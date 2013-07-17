@@ -55,13 +55,18 @@ def is_a_standar(object_name):
     return False
 
 ##############################################################################
-def read_config(hdr, needed, conf_file):
+def read_config(hdr, needed, args):
     """ Reads a config file that contains which keywords are used by a particular 
         telescope/instrument in the headers. It will search for those in the 
         variable 'needed'. 
     """
+    # If the user gave all the needed keywords when calling the program:
+    if args.filterk != "" and args.datek != "" and args.exptimek != "" and \
+       args.objectk != "":
+           keywords = {"date": args.datek , "filter": args.filterk , \
+                       "exptime": args.exptimek, "object":args.objectk }     
     # Check if file exists. It does not exist?
-    if conf_file == "":
+    elif args.config == "":
         # Check if, by any chance, ALL the needed keywords are called exactly 
          # the same in the header.
         ans = True
@@ -94,7 +99,7 @@ def read_config(hdr, needed, conf_file):
     #If file exists simply read it and check the needed keywords are present. 
     else:
         # Trick to read a file with ConfigPaser
-        ini_str = '[root]\n'+open(conf_file,'r').read()
+        ini_str = '[root]\n'+open(args.config,'r').read()
         ini_fp = StringIO.StringIO(ini_str)
         config = ConfigParser.RawConfigParser()
         config.readfp(ini_fp)
@@ -105,7 +110,7 @@ def read_config(hdr, needed, conf_file):
         # If any of the keys is missing, tell the user!
         for key in needed: 
             if keywords.has_key(key) == False: 
-                sys.exit("Error! Keyword " + key + " is missing in " + conf_file) 
+                sys.exit("Error! Keyword " + key + " is missing in " + args.config) 
     return keywords            
 
 ###########################################################################
@@ -140,10 +145,11 @@ def rename(args):
         im = pyfits.open(names) 
         hdr = im[0].header
 
-        # Read from config file (if present) the names of the different keywords
-        # we need.     
+        # If the needed keywords were passed by the user, build a dictionary with 
+        # them, otherwise, read from config file (if present) the names of the 
+        # different keywords. 
         needed = ["object", "filter", "date", "exptime"]
-        keywords = read_config(hdr, needed, args.config)
+        keywords = read_config(hdr, needed, args)
      
         # Read date in format YYYYMMDD
         date_current = dateutil.parser.parse(hdr[keywords["date"]])
@@ -296,19 +302,19 @@ parser.add_argument("out_dir", metavar='output_dir', action='store', \
 parser.add_argument("--objectk", metavar='objectk', action='store', \
                      default = '', help='Name of the keyword in the headers that'+\
                      ' contain the name of the object. This can also be provided '+\
-                     'with the --config_file option', nargs=1)                       
+                     'with the --config_file option')                       
 parser.add_argument("--filterk", metavar='filterk', action='store', \
                      default = '', help='Name of the keyword in the headers that'+\
                      ' contain the name of the filter. This can also be provided '+\
-                     'with the --config_file option', nargs=1)  
+                     'with the --config_file option')  
 parser.add_argument("--exptimek", metavar='exptimek', action='store', \
                      default = '', help='Name of the keyword in the headers that'+\
                      ' contain the exposure time. This can also be provided '+\
-                     'with the --config_file option', nargs=1)  
+                     'with the --config_file option')  
 parser.add_argument("--datek", metavar='datek', action='store', \
                      default = '', help='Name of the keyword in the headers that'+\
                      ' contain the date. This can also be provided '+\
-                     'with the --config_file option', nargs=1)      
+                     'with the --config_file option')      
 parser.add_argument("--in_pattern", metavar='in_pattern', action='store', \
                      default='*', help='Only sort files starting with this '+\
                      'pattern. Default: "*" ')
