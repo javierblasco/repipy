@@ -33,6 +33,7 @@ import ConfigParser
 import dateutil.parser
 import StringIO
 import re
+import reduction_pipeline.find_keywords as find_keywords
 
 #############################################################################
 def is_a_standar(object_name):
@@ -55,63 +56,63 @@ def is_a_standar(object_name):
     return False
 
 ##############################################################################
-def read_config(hdr, needed, args):
-    """ Reads a config file that contains which keywords are used by a particular 
-        telescope/instrument in the headers. It will search for those in the 
-        variable 'needed'. 
-    """
-    # If the user gave all the needed keywords when calling the program:
-    if args.filterk != "" and args.datek != "" and args.exptimek != "" and \
-       args.objectk != "":
-           keywords = {"date": args.datek , "filter": args.filterk , \
-                       "exptime": args.exptimek, "object":args.objectk }     
-    # Check if file exists. It does not exist?
-    elif args.config == "":
-        # Check if, by any chance, ALL the needed keywords are called exactly 
-         # the same in the header.
-        ans = True
-        for key in needed:
-            ans = ans*hdr.has_key(key.upper())  
-
-        # If it found all of them, you are in luck, even with no config file 
-        # the program can build the dict. 
-        if ans == True:
-            keywords = {key:key for key in needed}
-
-        # If any of the keywords is not in the header prompt the user to create
-        # a config file or use the arguments passed to the program to identify 
-        # the needed keywords in the header. 
-        else:
-            print " \n \n"
-            print " ERROR: Unknown keywords! I do not know the names of keywords"+\
-                  " in the headers of these particular files."
-            print " Please, use the argument --config_file to pass a file with the "+\
-                  " syntaxis: \n \n OBJECT = NAME_OF_OBJECT_KEYWORD_IN_YOUR_HEADER"
-            print " FILTER = NAME_OF_FILTER_KEYWORD_IN_YOUR_HEADER "
-            print " ... = ... \n"
-            print " Alternatively, you can provide the needed keywords with the "+\
-                  " corresponding arguments. \n For that, check the help: python "+\
-                  " rename.py -h"
-            print " Either way, you need to provide how OBJECT, FILTER, EXPTIME "+\
-                  " and DATE are called in your headers.\n\n"
-            sys.exit(" Exiting program\n")
-
-    #If file exists simply read it and check the needed keywords are present. 
-    else:
-        # Trick to read a file with ConfigPaser
-        ini_str = '[root]\n'+open(args.config,'r').read()
-        ini_fp = StringIO.StringIO(ini_str)
-        config = ConfigParser.RawConfigParser()
-        config.readfp(ini_fp)
-
-        # Convert to a dictionary
-        keywords = dict(config.items("root"))
-        
-        # If any of the keys is missing, tell the user!
-        for key in needed: 
-            if keywords.has_key(key) == False: 
-                sys.exit("Error! Keyword " + key + " is missing in " + args.config) 
-    return keywords            
+#def read_config(hdr, needed, args):
+#    """ Reads a config file that contains which keywords are used by a particular 
+#        telescope/instrument in the headers. It will search for those in the 
+#        variable 'needed'. 
+#    """
+#    # If the user gave all the needed keywords when calling the program:
+#    if args.filterk != "" and args.datek != "" and args.exptimek != "" and \
+#       args.objectk != "":
+#           keywords = {"date": args.datek , "filter": args.filterk , \
+#                       "exptime": args.exptimek, "object":args.objectk }     
+#    # Check if file exists. It does not exist?
+#    elif args.config == "":
+#        # Check if, by any chance, ALL the needed keywords are called exactly 
+#         # the same in the header.
+#        ans = True
+#        for key in needed:
+#            ans = ans*hdr.has_key(key.upper())  
+#
+#        # If it found all of them, you are in luck, even with no config file 
+#        # the program can build the dict. 
+#        if ans == True:
+#            keywords = {key:key for key in needed}
+#
+#        # If any of the keywords is not in the header prompt the user to create
+#        # a config file or use the arguments passed to the program to identify 
+#        # the needed keywords in the header. 
+#        else:
+#            print " \n \n"
+#            print " ERROR: Unknown keywords! I do not know the names of keywords"+\
+#                  " in the headers of these particular files."
+#            print " Please, use the argument --config_file to pass a file with the "+\
+#                  " syntaxis: \n \n OBJECT = NAME_OF_OBJECT_KEYWORD_IN_YOUR_HEADER"
+#            print " FILTER = NAME_OF_FILTER_KEYWORD_IN_YOUR_HEADER "
+#            print " ... = ... \n"
+#            print " Alternatively, you can provide the needed keywords with the "+\
+#                  " corresponding arguments. \n For that, check the help: python "+\
+#                  " rename.py -h"
+#            print " Either way, you need to provide how OBJECT, FILTER, EXPTIME "+\
+#                  " and DATE are called in your headers.\n\n"
+#            sys.exit(" Exiting program\n")
+#
+#    #If file exists simply read it and check the needed keywords are present. 
+#    else:
+#        # Trick to read a file with ConfigPaser
+#        ini_str = '[root]\n'+open(args.config,'r').read()
+#        ini_fp = StringIO.StringIO(ini_str)
+#        config = ConfigParser.RawConfigParser()
+#        config.readfp(ini_fp)
+#
+#        # Convert to a dictionary
+#        keywords = dict(config.items("root"))
+#        
+#        # If any of the keys is missing, tell the user!
+#        for key in needed: 
+#            if keywords.has_key(key) == False: 
+#                sys.exit("Error! Keyword " + key + " is missing in " + args.config) 
+#    return keywords            
 
 ###########################################################################
 def rename(args):
@@ -149,7 +150,12 @@ def rename(args):
         # them, otherwise, read from config file (if present) the names of the 
         # different keywords. 
         needed = ["object", "filter", "date", "exptime"]
-        keywords = read_config(hdr, needed, args)
+        if args.objectk != "" and args.filterk != "" and args.datek != "" and\
+           args.exptimek != "":
+               keywords = {"object":args.objectk, "filter":args.filterk,\
+                           "date":args.datek, "exptime":args.exptimek}
+        else:
+            keywords = find_keywords.get_keywords(hdr, needed, args)
      
         # Read date in format YYYYMMDD
         date_current = dateutil.parser.parse(hdr[keywords["date"]])
@@ -162,42 +168,47 @@ def rename(args):
         if date_current < date: 
             date = date_current
 
-    for galaxy in fits_list:
+    # Run through all images
+    for image in fits_list:
         # Read header and extract relevant information: object and filter
-        im = pyfits.open(galaxy, mode='update')
+        im = pyfits.open(image, mode='update')
         hdr = im[0].header
-        object = (hdr[keywords["object"]].lower())
+        object_name = (hdr[keywords["object"]].lower())
         # lower case, no spaces, no "/", no "["...
-        object = object.replace(" ","")  
-        object = object.replace("/","")
-        object = object.replace("[","")
-        object = object.replace("]","")          
-        # sort type of objects
-        if object.count("flat") != 0 and object.count("sky") != 0 : 
-              object = "skyflat"     
-        if object.count("flat") != 0 and object.count("dome") != 0 : 
-              object = "domeflat"
-        if object.count("bias") != 0: object = "bias"
+        object_name = object_name.replace(" ","")  
+        object_name = object_name.replace("/","")
+        object_name = object_name.replace("[","")
+        object_name = object_name.replace("]","")          
+        # find type of objects
+        if object_name.count("flat") != 0 and object_name.count("sky") != 0 : 
+              object_name = "skyflat"     
+        if object_name.count("flat") != 0 and object_name.count("dome") != 0 : 
+              object_name = "domeflat"
+        if object_name.lower().count("bias") != 0: 
+              object_name = "bias"
         # If object is cig+number, where number is three digits, add a fourth 
-         # one, a zero at the beginning
-        if object.count("cig") != 0:
-            number = (object.split("cig"))[1]
+         # one, with a zero at the beginning
+        if object_name.count("cig") != 0:
+            number = (object_name.split("cig"))[1]
             if number.isdigit() == True and len(number) < 4:
                 number = "{0:04d}".format(int(number))
-                object = "cig"+number
+                object_name = "cig"+number
 
         # If object is just a number, it usually means the number of the cig, 
-         # add "cig" at the beginning.
-        if object.isdigit() == True :
-            object = "{0:04d}".format(int(object))
-            object = "cig"+object
+        # add "cig" at the beginning.
+        if object_name.isdigit() == True :
+            object_name = "{0:04d}".format(int(object_name))
+            object_name = "cig"+object_name
 
-        # again, no spaces, no "/"
-        filter = hdr[keywords["filter"]].replace(" ","")     
-        filter = filter.replace("/","")    
+        # Read filter from keyword. Again, no spaces, no "/"
+        filter_name = hdr[keywords["filter"]].replace(" ","")     
+        filter_name = filter_name.replace("/","")    
 
         # New name for the file will be determined by object, date and filter.
-        new_name = object+"_"+date+"_"+filter+"_" 
+        # Except for bias frames, in which the filter has no meaning.
+        new_name = object_name+"_"+date+"_"
+        if object_name != "bias":
+            new_name = new_name + filter_name +"_" 
 
         # Now we need to find out which sequential number the image should have    
         ans = True
@@ -207,21 +218,21 @@ def rename(args):
             ans = os.path.isfile(newfile)
             if ans == False:        # this one does not exist yet
 	            # Add history comment into the header
-                hdr.add_history("- Image "+galaxy+" renamed "+newfile)
+                hdr.add_history("- Image "+image+" renamed "+newfile)
                 im.flush()
                 if args.overwrite == True:
-                    os.rename(galaxy, newfile)
+                    os.rename(image, newfile)
                 else:
-                    shutil.copy(galaxy, newfile)
-                oldname_nodir = (os.path.split(galaxy))[1]
+                    shutil.copy(image, newfile)
+                oldname_nodir = (os.path.split(image))[1]
                 newname_nodir = (os.path.split(newfile))[1]
-                ff.write(oldname_nodir+"  "+ newname_nodir + " " + object +"  "+\
-                           filter + "  " + str(hdr[keywords["date"]]) + "  " +\
+                ff.write(oldname_nodir+"  "+ newname_nodir + " " + object_name +"  "+\
+                           filter_name + "  " + str(hdr[keywords["date"]]) + "  " +\
                            str(hdr[keywords["exptime"]]) + "\n")
             jj=jj+1
 
     # Copy the flats from output directory to a subdir
-    list_flats = glob.glob(os.path.join(args.out_dir,"skyflat*"))    
+    list_flats = glob.glob(os.path.join(args.out_dir,"skyflat*fits"))    
     for ii in list_flats:
         skyflat_dir = os.path.join(args.out_dir, "skyflats")
         if os.path.isdir(skyflat_dir) == False: 
@@ -232,7 +243,7 @@ def rename(args):
 
     # Copy blanks from output to a subdir
     blank_dir = os.path.join(args.out_dir, "blanks")
-    list_flats = glob.glob(args.out_dir + "blank*")    
+    list_flats = glob.glob(args.out_dir + "blank*fits")    
     for ii in list_flats :    
         if os.path.isdir(blank_dir) == False: 
               os.makedirs(blank_dir)
@@ -243,7 +254,7 @@ def rename(args):
 
     # Copy the domeflats from output directory to a subdir
     dome_dir = os.path.join(args.out_dir, "domeflats")
-    list_domeflats = glob.glob(os.path.join(dome_dir,"domeflat*"))    
+    list_domeflats = glob.glob(os.path.join(args.out_dir,"domeflat*fits"))    
     for ii in list_domeflats :    
         if os.path.isdir(dome_dir) == False: 
               os.makedirs(dome_dir)
@@ -253,7 +264,7 @@ def rename(args):
 
     # Copy the bias
     bias_dir = os.path.join(args.out_dir,"bias")
-    list_bias = glob.glob(os.path.join(bias_dir,"bias*"))    
+    list_bias = glob.glob(os.path.join(args.out_dir,"bias*"))
     for ii in list_bias :    
         if os.path.isdir(bias_dir) == False: 
               os.makedirs(bias_dir)
@@ -294,11 +305,11 @@ parser = argparse.ArgumentParser(description='Rename files in a folder ' +\
                                  ' using the headers')    
 # Add arguments to the parser
 parser.add_argument("in_dir", metavar='input_dir', action='store', \
-                     default = './', help='Directory to be sorted. ' +\
+                      help='Directory to be sorted. ' +\
                      ' Default:     "./" ', nargs=1)
 parser.add_argument("out_dir", metavar='output_dir', action='store', \
-                     default = ' ', help='Directory to save the renamed ' +\
-                     'files. Default: same as input_dir', nargs=1)  
+                     default = '', help='Directory to save the renamed ' +\
+                     'files. Default: same as input_dir', nargs="?")  
 parser.add_argument("--objectk", metavar='objectk', action='store', \
                      default = '', help='Name of the keyword in the headers that'+\
                      ' contain the name of the object. This can also be provided '+\
@@ -343,17 +354,16 @@ def main(arguments=None):
     if arguments == None:
         arguments = sys.argv[1:]
     args = parser.parse_args(arguments)
-    args.out_dir = (args.out_dir[0])
     args.in_dir = (args.in_dir[0])
     
     # Check arguments
     if args.in_dir[-1] != "/":    # If path passed without "/" at the end, add it
         args.in_dir = args.in_dir+"/"
-    if args.out_dir == ' ':      # If no output dir passed, use input dir 
+    if args.out_dir == '':      # If no output dir passed, use input dir 
         args.out_dir = args.in_dir
     if args.out_dir[-1] != "/":   # If path passed without "/" at the end, add it
         args.out_dir = args.out_dir+"/"
-                
+               
     # Call function with the args
     rename(args)        
 if __name__ == "__main__":
