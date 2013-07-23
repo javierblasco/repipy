@@ -197,7 +197,7 @@ def rename(args):
     # Looking for the smaller of dates (i.e. before 00:00 if present)
     sort_indices = np.argsort(list_datetimes)
     min_date = list_datetimes[sort_indices[0]].date()
-    date = str(min_date)
+    date = str(min_date).replace("-","")
 
     # And now sort files in fits_list using the date and time
     fits_list_sorted = [fits_list[ii] for ii in sort_indices]
@@ -211,14 +211,15 @@ def rename(args):
         im = pyfits.open(image, mode='update')
         hdr = im[0].header
         object_name = (hdr[keywords["object"]].lower())
-        object_filter = hdr[keywords["filter"]].lower()
-        object_filter = jbh.homogeneous_filter_name(object_filter)
-
-        # lower case, remove spaces, "/", "["...
         remove_characters = [" ", "/", "[", "]", "_"]
         for character in remove_characters:
             object_name = object_name.replace(character,"")  
-            object_filter = object_filter.replace(character,"")
+
+
+        # Homogeneous names for filters!
+        object_filter = hdr[keywords["filter"]]
+        object_filter = jbh.homogeneous_filter_name(object_filter)
+
             
         # find type of objects: bias, skyflat, domeflat, blank...
         object_name, object_type = distinguish_type(object_name)
