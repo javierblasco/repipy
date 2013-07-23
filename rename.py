@@ -30,10 +30,12 @@ import sys
 import argparse
 import ConfigParser
 import dateutil.parser
+import datetime
 import StringIO
 import re
 import reduction_pipeline.find_keywords as find_keywords
 import numpy as np
+import jbh_utilities as jbh
 
 #############################################################################
 def is_a_standar(object_name):
@@ -139,27 +141,27 @@ def rename(args):
     fits_list1 = glob.glob(os.path.join(args.in_dir, args.in_pattern + "*.fits"))
     fits_list2 = glob.glob(os.path.join(args.in_dir, args.in_pattern + "*.fit"))
     fits_list = fits_list1+fits_list2
-    fits_list.sort()
-    
+
     # If the needed keywords were passed by the user, build a dictionary with 
     # them, otherwise, read from config file (if present) the names of the 
     # different keywords. 
-    needed = ["object", "filter", "date", "exptime"]
+    needed = ["object", "filter", "date", "time", "exptime"]
     if args.objectk != "" and args.filterk != "" and args.datek != "" and\
        args.exptimek != "":
            keywords = {"object":args.objectk, "filter":args.filterk,\
-                       "date":args.datek, "exptime":args.exptimek}
+                       "date":args.datek, "exptime":args.exptimek,\
+                       "time":args.timek}
     else:
         hdr = pyfits.getheader(fits_list[0])
-        keywords = find_keywords.get_keywords(hdr, needed, args)
-
+        keywords = find_keywords.get_keywords(hdr, needed, args) 
 
     # The output of the whole code will be this dictionary, in which the images 
     # are sorted in groups (bias, skyflats, domeflats, cigXXXX, ...)
     empty_array = np.asarray([], dtype=object)
     final_dict = {"filename":empty_array, 
                   "type":empty_array, 
-                  "objname":empty_array}
+                  "objname":empty_array,
+                  "time":empty_array}
 
 
     # If --copy was selected, copy all those files into a directory called backup
@@ -180,21 +182,29 @@ def rename(args):
     ff.write("CHECK WITH OBSERVING LOG: \n \n")
     ff.write("ORIG_NAME, NEW_NAME   , OBJECT   , FILTER  , DATE  , EXPTIME \n ")    
 
-    # Look for the date (the starting date if before midnight)
-    date = ""
+    # Look for the date and time of all images
+    list_datetimes =[]
     for names in fits_list:
         im = pyfits.open(names) 
         hdr = im[0].header        
-        date_current = dateutil.parser.parse(hdr[keywords["date"]])
-        date_current = str(date_current.date())
-        date_current = date_current.replace("-","")  
-        
-        # Looking for the smaller of dates (i.e. before 00:00 if present)
-        if date == "": 
-            date = date_current
-        if date_current < date: 
-            date = date_current
+        date_current = dateutil.parser.parse(hdr[keywords["date"]]).date()
+        time_current = dateutil.parser.parse(hdr[keywords["time"]]).time()
+        datetime_current = datetime.datetime.combine(date_current, time_current) 
+        # If user didn't provide any time keyword but date_current does not 
+        # actually contain the time this time_current will be 00:00:00. Problem?
+        list_datetimes.append(datetime_current)
+               
+    # Looking for the smaller of dates (i.e. before 00:00 if present)
+    sort_indices = np.argsort(list_datetimes)
+    min_date = list_datetimes[sort_indices[0]].date()
+    date = str(min_date)
 
+    # And now sort files in fits_list using the date and time
+    fits_list_sorted = [fits_list[ii] for ii in sort_indices]
+    fits_list = fits_list_sorted
+    list_datetimes_sorted = [list_datetimes[ii] for ii in sort_indices]
+    final_dict["time"] = np.asarray(list_datetimes_sorted)
+    
     # Run through all images
     for image in fits_list:
         # Read image and header, extract name of object and filter.
@@ -202,6 +212,7 @@ def rename(args):
         hdr = im[0].header
         object_name = (hdr[keywords["object"]].lower())
         object_filter = hdr[keywords["filter"]].lower()
+        object_filter = jbh.homogeneous_filter_name(object_filter)
 
         # lower case, remove spaces, "/", "["...
         remove_characters = [" ", "/", "[", "]", "_"]
@@ -283,7 +294,11 @@ parser.add_argument("--exptimek", metavar='exptimek', action='store', \
 parser.add_argument("--datek", metavar='datek', action='store', \
                      default = '', help='Name of the keyword in the headers that'+\
                      ' contain the date. This can also be provided '+\
-                     'with the --config_file option')      
+                     'with the --config_file option')  
+parser.add_argument("--timek", metavar='timek', action='store', \
+                     default = '', help='Name of the keyword that contains the '+\
+                     'observing time. If the time is already present in the '+\
+                     '--datek keyword just omit this one.')                     
 parser.add_argument("--in_pattern", metavar='in_pattern', action='store', \
                      default='*', help='Only sort files starting with this '+\
                      'pattern. Default: "*" ')
@@ -321,7 +336,9 @@ def main(arguments=None):
         args.out_dir = args.in_dir
     if args.out_dir[-1] != "/":   # If path passed without "/" at the end, add it
         args.out_dir = args.out_dir+"/"
-               
+    if args.timek == '':    # If no timek given, assume datek contains time
+        args.timek = args.datek
+
     # Call function with the args
     fits_dict = rename(args)
     return fits_dict        
