@@ -109,7 +109,7 @@ def combine(args):
         string = " ,".join(list1)
         hdr.add_history(" - Image built from the combination of the images: "+string)
         hdr.add_history(" combine = " + args.average + ", scale = " + args.scale + \
-                        ", reject = 'minmax', mclip='yes', lsigma='3', hsigma='3', " +\
+                        ", reject = 'minmax', mclip='yes', " +\
                         "statsec = " + statsection + ", nhigh=" + args.nhigh +\
                         ", nlow = " + args.nlow)
         newimage.flush()
