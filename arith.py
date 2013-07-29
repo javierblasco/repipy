@@ -49,7 +49,7 @@ def arith(args):
         # Actual operation
         imarith(image, args.operation[0], args.input2[0], outpt)
         output.append(outpt)        
-        
+
         # Read the output file and update its history
         im = pyfits.open(outpt, mode='update')
         hdr = im[0].header
