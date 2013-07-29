@@ -9,6 +9,40 @@ import pytz
 import sys
 import numpy as np
 from pyraf import iraf
+import datetime
+
+def mean_datetime(datetimes):
+    """ This function returns the average datetime from a given set of datetime 
+        objects. We have to calculate the differences between each time and 
+        the first value, then calculate the average of those differences and 
+        add that to the first value. """
+    delta_times = [(times - datetimes[0]).total_seconds() for times in datetimes]
+    average_delta = sum(delta_times) / float(len(delta_times))
+    average_time = datetimes[0] + datetime.timedelta(0,average_delta)
+    return average_time
+    
+def group_images_in_blocks(times):
+    """ In a night at the telescope, we can observe blocks of images on the same 
+        field of the sky. For example, five blank fields, then the object, then 
+        another 4 blank fields, then the object... We might want to distinguish 
+        those blocks, in order to, e.g., combine the blank fields of each block, 
+        correct a block of images of the object with a certain blank or bias 
+        image... This routine gets the datetime.datetime objects that indicate
+        the date and time of observations, and separates them in blocks, giving 
+        back an array:
+            indices = [ind0,ind1,ind2,ind3]
+        so that, each slice [ind0:ind1], [ind1:ind2] and [ind2:ind3] gives a block
+        of the incoming images """
+    delta_times = np.asarray( [(times[ii+1] - times[ii]).seconds for ii in 
+                               range(len(times)-1)] )
+    whr_submean = np.where(delta_times < np.mean(delta_times))[0]
+    delta_typical = np.median(delta_times[whr_submean])
+    block_limits = np.where(delta_times > 3 * delta_typical)[0] # > 3 times larger
+    block_limits = block_limits + 1  # num of holes = number points - 1
+    # Now we have the limits between blocks, we need to add the first image (where 
+    # the first block starts) and the last image (where last block ends)
+    block_limits = np.insert( np.append(block_limits, len(times)+1) , 0, 0) 
+    return block_limits
 
 def universal_time_to_local_time(date, time, location):
     """ Routine to convert universal time to local time for a given location. 
@@ -63,27 +97,29 @@ def add_suffix_prefix(filename, prefix='', suffix=''):
 
     return outpt
 
-def homogeneous_filter_name(filt, telescope="OSN"):
+def homogeneous_filter_name(filt):
     """ Find a common name for all those thousands of differents ways of 
        writting the filter names.  """
-    if telescope == "OSN":
-        filt_dict = {"rGu": "rGunn", "R":"R", "rGunn":"rGunn", \
-                    "rgunn":"rGunn", "Rgunn":"rGunn", "gunnr":"rGunn",\
-                    "GunnR":"rGunn", "gunnR":"rGunn", \
-                    "H6607":"H6607", "H07":"H6607", "6607":"H6607", \
-                    "H6652":"H6652", "H52":"H6652", "6652":"H6652", \
-                    "H6650":"H6650", "H50":"H6650", "6650":"H6650", \
-                    "H6678":"H6678", "H78":"H6678", "6678":"H6678", \
-                    "Clear":"Clear", "Cle":"Clear", "clear":"Clear",\
-                    "None":"Clear", "No":"Clear"  , "I":"I", "V":"V"}
-        try:
-            return filt_dict[filt]
-        except KeyError:
-            print "\n\n Probably you have not defined the filter " + filt + \
-                  " in the dictionary! Include it in homogeneous_filter_name"+\
-                  " in jbh_utilities.py .  \n \n"
-            raise KeyError
-    
+    filt = filt.lower()
+    remove_characters = [" ", "/", "[", "]", "_"]
+    for character in remove_characters:
+        filt = filt.replace(character,"")
+    filt_dict = {"rgu": "rGunn", "rgunn":"rGunn", "gunnr":"rGunn",\
+                 "sdssr":"sdssr", "rsdss":"sdssr", "r":"R", \
+                 "H6607":"H6607", "H07":"H6607", "6607":"H6607", \
+                 "H6652":"H6652", "H52":"H6652", "6652":"H6652", \
+                 "H6650":"H6650", "H50":"H6650", "6650":"H6650", \
+                 "H6678":"H6678", "H78":"H6678", "6678":"H6678", \
+                 "Clear":"Clear", "Cle":"Clear", "clear":"Clear",\
+                 "None":"Clear", "No":"Clear"  , "I":"I", "V":"V"}
+    try:
+        return filt_dict[filt]
+    except KeyError:
+        print "\n\n Probably you have not defined the filter " + filt + \
+              " in the dictionary! Include it in homogeneous_filter_name"+\
+              " in jbh_utilities.py .  \n \n"
+        sys.exit("Exiting program")
+
 def locate_images(directory, pattern):
     """ Given a directory, save all the files that fit any of the patternsof a 
         dictionary. Save in a dictionary, whose keys are the same as the ones of
