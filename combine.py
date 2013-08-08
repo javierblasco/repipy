@@ -8,9 +8,9 @@ import sys
 import tempfile
 import StringIO
 import ConfigParser
-import jbh_utilities as jbh
-import reduction_pipeline.arith as arith_images
-import reduction_pipeline.find_keywords as find_keywords
+import repipy.utilities as utils
+import repipy.arith as arith_images
+import repipy.find_keywords as find_keywords
 import collections
 from pyraf.iraf import imcombine as imcombine
 
@@ -31,7 +31,7 @@ def combine(args):
             filter_obj = hdr_obj[keywords["filter"]]
               
         # Homogeneous name for the filter names!
-        filter_obj = jbh.homogeneous_filter_name(filter_obj)
+        filter_obj = utils.homogeneous_filter_name(filter_obj)
 
         # Add the filter of this image to the list
         images_filters.append(filter_obj)
@@ -107,6 +107,7 @@ def combine(args):
         newimage = pyfits.open(newfile, mode="update")
         hdr = newimage[0].header
         string = " ,".join(list1)
+        
         hdr.add_history(" - Image built from the combination of the images: "+string)
         hdr.add_history(" combine = " + args.average + ", scale = " + args.scale + \
                         ", reject = 'minmax', mclip='yes', " +\

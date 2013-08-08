@@ -2,7 +2,7 @@
 import argparse
 import sys
 import os
-import jbh_utilities as jbh
+import repipy.utilities as utils
 import cosmics_04.cosmics as cosmics
 import pyfits
 """ This routine uses cosmic.py (Malte Tewes, 2010), the python version of LACOS 
@@ -16,7 +16,7 @@ def remove_cosmics(args):
     if args.output != '':
         newfile = args.output
     else:
-        newfile = jbh.add_suffix_prefix(args.input[0], prefix = args.prefix, \
+        newfile = utils.add_suffix_prefix(args.input[0], prefix = args.prefix, \
                                         suffix = args.suffix )
     
     # Read the FITS :
@@ -33,7 +33,7 @@ def remove_cosmics(args):
     
     # If you want the mask, here it is :
     if args.mask == True:
-        mask = jbh.add_suffix_prefix(newfile, prefix="cosmic_mask")    
+        mask = utils.add_suffix_prefix(newfile, prefix="cosmic_mask")    
         cosmics.tofits(mask, c.mask, header)
                           
     # And write info to the header:

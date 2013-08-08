@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import jbh_utilities as jbh
+import repipy.utilities as utils
 import re, shutil, os
 import collections
 import numpy as np
@@ -23,8 +23,8 @@ def tidy_up(directory, pattern, date):
     """
         
     # List all files in directory and extract pattern information
-    lista = jbh.list_dir(directory)
-    dictionary_images = jbh.name_pattern(pattern, lista)
+    lista = utils.list_dir(directory)
+    dictionary_images = utils.name_pattern(pattern, lista)
 
     # Empty array of dtype=object is the best way I found to be able to save 
     # variable length strings in an array. With dtype=string_ it just truncates
@@ -49,12 +49,12 @@ def tidy_up(directory, pattern, date):
 
         # Create the folders if not present
         if folder not in dirs:
-            jbh.create_dirs([folder], directory)
+            utils.create_dirs([folder], directory)
             dirs.append(folder)
 
         # Find filter
         try:  
-            filt = jbh.homogeneous_filter_name(fileinfo["filt"])
+            filt = utils.homogeneous_filter_name(fileinfo["filt"])
         except KeyError:   # bias has no filter!
             filt = "none"
             
@@ -72,5 +72,5 @@ def tidy_up(directory, pattern, date):
         # Now move and update the header adding a HISTORY comment. 
         shutil.move(filename, newname)
         text = "File renamed: " + os.path.split(filename)[1] + " --> " + os.path.split(newname)[1]  
-        jbh.add_history_line(newname, text)                
+        utils.add_history_line(newname, text)                
     return final_dict

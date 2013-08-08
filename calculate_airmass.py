@@ -1,6 +1,6 @@
 import pyfits
 import sys
-import jbh_utilities as jbh
+import repipy.utilities as utils
 from pyraf import iraf
 import argparse
 parser = argparse.ArgumentParser(description='Check header for airmass and '+\
@@ -45,13 +45,13 @@ def estimate_airmass(args):
         
         # Calculate local time from UT. If user provides with a name for LT in 
         # the header save it. Otherwise no need to save it. 
-        LT = jbh.universal_time_to_local_time(date, UT, location)
+        LT = utils.universal_time_to_local_time(date, UT, location)
         if args.LT != "":
             hdr.update(args.LT, LT, " Local time ")
             print "Local time ", LT
             
         # Calculate local sidereal time from local time and location of observ.
-        ST = jbh.local_to_sidereal_time(date, LT, args.observatory)
+        ST = utils.local_to_sidereal_time(date, LT, args.observatory)
         hdr.update(args.ST, ST, " Local sidereal time ")    
     
         im.flush()

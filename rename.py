@@ -33,9 +33,9 @@ import dateutil.parser
 import datetime
 import StringIO
 import re
-import reduction_pipeline.find_keywords as find_keywords
+import repipy.find_keywords as find_keywords
 import numpy as np
-import jbh_utilities as jbh
+import repipy.utilities as utils
 
 #############################################################################
 def is_a_standar(object_name):
@@ -218,7 +218,7 @@ def rename(args):
 
         # Homogeneous names for filters!
         object_filter = hdr[keywords["filter"]]
-        object_filter = jbh.homogeneous_filter_name(object_filter)
+        object_filter = utils.homogeneous_filter_name(object_filter)
 
             
         # find type of objects: bias, skyflat, domeflat, blank...
