@@ -10,8 +10,10 @@ import argparse
 import astropy.io.fits as fits
 import numpy
 import scipy
+import repipy.utilities as utils
 from scipy import ndimage
 from scipy import optimize
+
 
 def apply_sobel_filter(image):
     """ Apply sobel filter on an image, return the filtered object. 
@@ -107,7 +109,9 @@ def mask(args):
         has not being exposed, it is sometimes convenient to mask it out. 
     '''
     for image in args.image:
-        data = fits.getdata(image)
+        im = fits.open(image, mode='update')
+        data = im[0].data
+        header = im[0].header
         mask = numpy.ones(data.shape, dtype=numpy.int) * args.true_val #create mask
         
         # If circular field of view within rectangular image:
@@ -123,10 +127,23 @@ def mask(args):
         print bad_pixels
         mask[bad_pixels] = args.false_val
         
-        os.remove("mask.fits")
-        fits.writeto("mask.fits", mask)
-        sys.exit()
+        # Save mask image
+        maskname = args.output
+        if not maskname:
+            maskname = image + ".msk"
+        if os.path.isfile(maskname):
+            os.remove(maskname)
+        fits.writeto(maskname, mask)    
 
+        # Add message to image header
+        header.add_history("- Created mask of image, see mask keyword")
+        header.update("mask", maskname, "Mask of original image")        
+        im.flush()        
+        
+        
+
+
+            
 def main(arguments = None):
   # Pass arguments to variable args
   if arguments == None:
