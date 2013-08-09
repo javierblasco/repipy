@@ -1,104 +1,175 @@
-import pyfits
-import argparse
-import numpy
-#import copy
-from numpy import ma as ma
-import os
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Aug  9 16:44:52 2013
+
+@author: blasco
+"""
 import sys
+import os
+import argparse
+import astropy.io.fits as fits
+import numpy
+import scipy
+from scipy import ndimage
+from scipy import optimize
 
-""" Program to mask out areas of the image according to certain criteria, to prevent it from participating in 
-	aspects like making statistics of the image. 
-    We mask out:
-	- Values below minval and above maxval. Default: (-100,55000)
-     - Values outside the round FoV of the CAFOs 2.2 instrument, when the data are from there 
-""" 
-
-def mask_CAHA2(shp, rmax):
+def apply_sobel_filter(image):
+    """ Apply sobel filter on an image, return the filtered object. 
+        This routine roughly follows the solution provided in:
+        http://stackoverflow.com/questions/7185655/applying-the-sobel-filter-using-scipy 
     """
-    Pixels further from the centre than radius rmax are masked out (True), others are not (False). 
-    """	
-    # Centre of the image
-    xcent = shp[0]/2
-    ycent = shp[1]/2
-    x = numpy.arange(shp[0])
-    y = numpy.arange(shp[1])    
+    dx = ndimage.sobel(image, 0)  # horizontal derivative
+    dy = ndimage.sobel(image, 1)  # vertical derivative
+    mag = numpy.hypot(dx, dy)    # magnitude
+    return mag
     
-    # Distances of every pixel to the centre
-    r = numpy.sqrt( (x[:,None]-xcent)**2 + (y[None,:]-ycent)**2 )
-    
-    # Build a mask combining the new and the old with a logical "or"
-    mask = ma.getmask(ma.masked_greater(r, rmax))
-    return mask 
-    
-def mask_image(args):
-    """ 
-    This program reads the images indicated by the user and creates a mask with the mask being False:
-        - for pixels outside the boundaries (minval,maxval). Default: (-100,55000).
-        - for pixels outside the round FOV within the square image (data from CAHA 2.2)	  
-    """
+def Zero_edges(image, edge=5):
+    """ Return same image with the edges reset to zero """
+    image[0:edge, :] = 0.
+    image[:, 0:edge] = 0.
+    image[image.shape[0]-edge:, :] = 0.
+    image[:, image.shape[1]-edge:] = 0.
+    return image    
 
-    for name1 in args.input:
-        # Convert to absolute path, in case the user does, i.e. "./../file"
-        filename = os.path.abspath(name1)
+def detect_circular_FoV(data):
+    ''' A Sobel edge detection algorithm is used to detect a sharp circular edge 
+        within a rectangular 2D numpy array. The array is the only input, while
+        the centre of the image and the radius of the circle are provided as 
+        outputs.     
+    '''
+    mag = apply_sobel_filter(data)  # Filter image
+    
+    
+    # Exclude edges of image. Sobel uses a filter of size 3:
+    mag = Zero_edges(mag, edge=3)
+
+    # Find those values in the highest 0.5%, the sharpest edges
+    percentile = numpy.percentile(mag, 99.5)
+    indices = numpy.where(mag > percentile)
+    x,y = indices
+
+    # Now fit resulting points to a circle 
+    xc, yc, radius, radius_MAD = fit_to_circle(x, y)
+
+    # If radius_MAD > 5% of the radius, data was not originally a circle
+    if (radius_MAD / radius * 100) < 5:
+        result = xc, yc, radius 
+    else:
+        result = None
+    return result
+
+def fit_to_circle(x, y, xc=None, yc=None):
+    """ Fit to a circle using the method shown by the scipy cookbook:
+        http://wiki.scipy.org/Cookbook/Least_Squares_Circle """
+    if not xc:
+        estimate = numpy.median(x), numpy.median(y)  # first guess for centre
+    # optimize centre 
+    
+    (xc, yc), ier = optimize.leastsq(f_2, estimate, args=(x,y)) # fitted xc, yc
+    # calculate radii of points, median for best value, median absolute deviation
+    # (MAD) for error estimates.
+    radii_fit = calc_R(x, y, xc, yc)   
+    radius = numpy.median(radii_fit)   
+    radius_MAD =  numpy.median(numpy.abs(radii_fit-radius)) 
+    return xc, yc, radius, radius_MAD        
+
+def calc_R(x, y, xc, yc):
+    """ calculate the distance of each 2D points from the center (xc, yc) """
+    return numpy.sqrt((x-xc)**2 + (y-yc)**2)
+   
+def f_2((xc, yc), x, y):
+    """ calculate the algebraic distance between the data points and the mean 
+        circle centered at c=(xc, yc) """
+    Ri = calc_R(x, y, xc, yc)
+    return Ri - numpy.median(Ri)
+
+def mask_circle(image, xc, yc, radius, value=0):
+    ''' Mask with value (defect, value=0) a circle within an image '''
+    lx, ly = image.shape
+    # Create an array like image with the separation from xc of each pixel.
+    # Then, same for y axis. 
+    x = numpy.arange(lx).reshape(lx,1) * numpy.ones(ly) - xc
+    y = numpy.arange(ly) * numpy.ones(lx).reshape(lx,1) - yc
+    
+    # Calculate radius
+    r = numpy.sqrt(x**2 + y**2)
+    image[numpy.where(r > radius)] = value
+    return image
+
+def mask(args):
+    ''' Program to mask a set of images according to:
+           - min, max clipping
+           - circular field of view in rectangular image
+        In the first case, the default values are 0 and 50000, but the user can 
+        input any other limits. In the second case, some telescopes will provide
+        the field of view of the telescope (roughly circular) within a rectangular 
+        image (because the CCD camera is rectangular). As that part of the image
+        has not being exposed, it is sometimes convenient to mask it out. 
+    '''
+    for image in args.image:
+        data = fits.getdata(image)
+        mask = numpy.ones(data.shape, dtype=numpy.int) * args.true_val #create mask
         
-        # Read the image and the header
-        #print "Image: "+filename
-        image = pyfits.open(filename, mode='update')
-        im = image[0].data
-        hdr = image[0].header
+        # If circular field of view within rectangular image:
+        if args.circular:
+            result = detect_circular_FoV(data)
+            if result:
+                xc, yc, radius = result
+                radius = radius - args.margin   # avoid border effects
+                mask = mask_circle(mask, xc, yc, radius, value=args.false_val)
+    
+        # Now mask invalid values:
+        bad_pixels = numpy.where((data < args.minval) | (data > args.maxval))
+        print bad_pixels
+        mask[bad_pixels] = args.false_val
+        
+        os.remove("mask.fits")
+        fits.writeto("mask.fits", mask)
+        sys.exit()
 
-        # Minmax masking. If there is no values in the mask (no True where found) 
-        # build a mask of Falses.
-        im2 = ma.masked_outside(im, int(args.minval), int(args.maxval))
-        mask1=ma.getmask(im2)	
-        if im2.mask.shape == (): im2 = ma.array(im, mask=False)
-        mask1 = ma.getmask(im2)
-        #print "    Masked out for values <"+args.minval+" or > "+args.maxval		
+def main(arguments = None):
+  # Pass arguments to variable args
+  if arguments == None:
+      arguments = sys.argv[1:]
+  args = parser.parse_args(arguments)
+  print args.minval, args.maxval, args.output, args.image
+  
+  # Call combine, keep name of the file created
+  masknames = mask(args)
+  return masknames   
 
-        # CAHA masking. If telescope is CAHA 2.2 then the image is circular, 
-        # mask out anything close to the border (R~800)
-        mask2 = None
-        if hdr.has_key("Instrume") == True and hdr["Instrume"] == 'CAFOS 2.2':
-                mask2 = mask_CAHA2(im.shape, 760)   # Actually 800
-                print "    Masked out values outside circular FoV (CAFOS 2.2)"
-        if mask2 == None: mask2 = numpy.ma.getmask(ma.array(im, mask=False))
 
-        # Combine both with logical "or" operator
- 
-        im2.mask = ma.mask_or(mask1,mask2)
-        if os.path.isfile(filename+".msk") == True:
-            os.remove(filename+".msk")
-        im2.mask.dump(filename+".msk")
-        #print "Created mask: "+filename+".msk"		
 
-        # Modify and update header to keep history of things
-        name = os.path.split(filename)[1]       
-        if str(hdr.get_history()).count("-Mask created:") == 0:
-            hdr.add_history('-Mask created: (see key "mask") ')
-        hdr.update("mask",name + ".msk", "mask image" )
-        image.flush()  
-        image.close()
-
-########################################################################################################################
 # Create parser
-parser = argparse.ArgumentParser(description='Create a mask from an image.')
-
+parser = argparse.ArgumentParser(description='Create masks for images')
 # Add necessary arguments to parser
-parser.add_argument("input", metavar='input', action='store', help='list of" +\
-                    " input images for which to create a mask', nargs='+')
-parser.add_argument("--maxval", metavar='maxval', action='store', default='55000', \
-                    help='Maximum value allowed, mask 	above it. Default: 55000.', \
-                    nargs='?')
-parser.add_argument("--minval", metavar='minval', action='store', default='-100',\
-                    help='Minimum value allowed, mask below it. Default: -100 ', \
-                    nargs='?')
-
-def main(arguments=None):
-    if arguments == None:
-        arguments = sys.argv[1:]
-    args = parser.parse_args(arguments)
-    mask_image(args)
+parser.add_argument("image", metavar='image', action='store',\
+                    help='Image(s) from which to create masks.', nargs='+')
+parser.add_argument("--max_val", metavar="maxval", dest='maxval', action='store',\
+                    default=50000, type=int, help='Maximum allowed value. '+\
+                    'Above this value, mask out. Default: 50000.')
+parser.add_argument("--min_val", metavar="minval", dest='minval', default=0, \
+                   type=int, action='store', help='Minimum allowed value. '+\
+                   'Below this value, mask out. Default: 0.')
+parser.add_argument("--output", metavar="output", dest='output', action='store',\
+                    default='', help='Name of the output mask. ' +\
+                    'Default: same as input images, but ending in .fits.msk.')
+parser.add_argument("--circular", action="store_true", dest="circular", \
+                   default=False, help=' Use if the field of view is circular, '+\
+                   ' while the image is a rectangle. Mask is set to zero_value '+\
+                   'the circle. ')
+parser.add_argument("--true_val", metavar="true_val", dest='true_val', default=1, \
+                   type=int, action='store', help='Value for the VALID points. '+\
+                   'those you DO NOT want to mask out. Default: 1 ')
+parser.add_argument("--false_val", metavar="false_val", dest='false_val', default=0, \
+                   type=int, action='store', help='Value for the INVALID points. '+\
+                   'those you DO want to mask out. Default: 0 ')                   
+parser.add_argument("--margin", metavar="margin", dest='margin', default=10, \
+                   type=int, action='store', help='Margin around the edges for '+\
+                   'which the mask is set to zero. If --circular is used '+\
+                   'this margin will be reduced from the calculated radius. '+\
+                   'Default: 10')
+                   
 
 if __name__ == "__main__":
     main()
-	
