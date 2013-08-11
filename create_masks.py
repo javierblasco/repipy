@@ -124,7 +124,6 @@ def mask(args):
     
         # Now mask invalid values:
         bad_pixels = numpy.where((data < args.minval) | (data > args.maxval))
-        print bad_pixels
         mask[bad_pixels] = args.false_val
         
         # Save mask image
@@ -149,7 +148,6 @@ def main(arguments = None):
   if arguments == None:
       arguments = sys.argv[1:]
   args = parser.parse_args(arguments)
-  print args.minval, args.maxval, args.output, args.image
   
   # Call combine, keep name of the file created
   masknames = mask(args)
