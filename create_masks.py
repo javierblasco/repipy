@@ -132,11 +132,12 @@ def mask(args):
             maskname = image + ".msk"
         if os.path.isfile(maskname):
             os.remove(maskname)
+        maskname = os.path.abspath(maskname)    
         fits.writeto(maskname, mask)    
 
         # Add message to image header
         header.add_history("- Created mask of image, see mask keyword")
-        header.update("mask", maskname, "Mask of original image")        
+        header.update("BPM", maskname, "Mask of original image")        
         im.flush()        
         
         
