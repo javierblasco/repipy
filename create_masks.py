@@ -133,11 +133,11 @@ def mask(args):
         if os.path.isfile(maskname):
             os.remove(maskname)
         maskname = os.path.abspath(maskname)    
-        fits.writeto(maskname, mask)    
+        fits.writeto(maskname, mask)
 
         # Add message to image header
         header.add_history("- Created mask of image, see mask keyword")
-        header.update("BPM", maskname, "Mask of original image")        
+        header.update("mask", maskname, "Mask of original image")        
         im.flush()        
         
         
@@ -149,6 +149,11 @@ def main(arguments = None):
   if arguments == None:
       arguments = sys.argv[1:]
   args = parser.parse_args(arguments)
+  
+  # True_val and false_val can not be the same
+  if args.true_val == args.false_val:
+      sys.exit("\n\n ERROR: true_val and false_val are the same value: " + \
+               str(args.false_val) + " Use --true_val and --false_val \n\n")
   
   # Call combine, keep name of the file created
   masknames = mask(args)
@@ -174,12 +179,12 @@ parser.add_argument("--circular", action="store_true", dest="circular", \
                    default=False, help=' Use if the field of view is circular, '+\
                    ' while the image is a rectangle. Mask is set to zero_value '+\
                    'the circle. ')
-parser.add_argument("--true_val", metavar="true_val", dest='true_val', default=1, \
+parser.add_argument("--true_val", metavar="true_val", dest='true_val', default=0, \
                    type=int, action='store', help='Value for the VALID points. '+\
-                   'those you DO NOT want to mask out. Default: 1 ')
-parser.add_argument("--false_val", metavar="false_val", dest='false_val', default=0, \
+                   'those you DO NOT want to mask out. Default: 0 ')
+parser.add_argument("--false_val", metavar="false_val", dest='false_val', default=1, \
                    type=int, action='store', help='Value for the INVALID points. '+\
-                   'those you DO want to mask out. Default: 0 ')                   
+                   'those you DO want to mask out. Default: 1 ')                   
 parser.add_argument("--margin", metavar="margin", dest='margin', default=10, \
                    type=int, action='store', help='Margin around the edges for '+\
                    'which the mask is set to zero. If --circular is used '+\
