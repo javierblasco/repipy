@@ -11,6 +11,18 @@ import numpy as np
 from pyraf import iraf
 import datetime
 
+def read_image_with_mask(image, mask_keyword=None):
+    """ Read an image and a mask (from a keyword in the image), save it into a 
+        numpy.ma array. The mask should contain 1 for pixels to be masked out. """
+    data = fits.getdata(image)
+    if mask_keyword:
+        header = fits.getheader(image)
+        mask_name = header[mask_keyword]
+        mask = fits.getdata(mask_name)
+    else:
+        mask = numpy.zeros_like(data)
+    return numpy.ma.array(data, mask=mask)         
+
 def mean_datetime(datetimes):
     """ This function returns the average datetime from a given set of datetime 
         objects. We have to calculate the differences between each time and 
