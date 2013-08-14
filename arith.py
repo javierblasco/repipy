@@ -7,19 +7,20 @@ import sys
 import argparse
 import numpy
 import astropy.io.fits as fits
+import repipy.utilities as utils
 """ Wrapper for imarith using pyraf. The program will perform an operation 
     between images"""
    
     
-def arith(args):        
-    output = []
+def arith(args):
+    output_list = []        
     for image in args.input1:        
         # Read inputs as masked arrays or numbers (input2 might be a scalar)  
-        im1 = read_image_with_mask(image, args.mask_key)        
-        if (args.input2[0]).isdigit(): # if input 2 is a number
+        im1 = utils.read_image_with_mask(image, args.mask_key)        
+        try: # if it is a number        
             im2 = float(args.input2[0])
-        else:
-            im2 = read_image_with_mask(args.input2[0], args.mask_key)        
+        except ValueError:
+            im2 = utils.read_image_with_mask(args.input2[0], args.mask_key)        
             
         # Case of mean or median for Input2 
         if args.median == True:
@@ -77,7 +78,8 @@ def arith(args):
             os.remove(mask_name)
         fits.writeto(outpt, result.data, header=hdr_im) 
         fits.writeto(mask_name, result.mask.astype(int), header=hdr_mask)
-    return outpt
+        output_list.append(outpt)
+    return output_list
 
 ########################################################################################################################
 
