@@ -10,7 +10,34 @@ import sys
 import numpy as np
 from pyraf import iraf
 import datetime
+import astropy.io.fits as fits
 
+def check_dimensions(image_list):
+    """ Check that fits images in a list have all the same dimensions, so that 
+        operations can be performed. If one is not a file (or can not be read), 
+        check if it is a float. If it is a float, operations can be performed, 
+        so ignore the exception. Otherwise, raise it."""
+    # Check and save dimensions of every image
+    dimensions = []
+    for image in image_list:
+        try:  # try to open
+            dimensions.append(fits.open(image, mode="readonly")[0].shape)
+        except IOError:
+            try: #check if float
+                float(image)
+            except ValueError: # if not, reraise original error
+                raise IOError ("[Errno 2] No such file or directory: " + "'" +\
+                               image + "'")
+    # If len(set(dimensions))  == 1 return True (all images are the same size)       
+    if len(set(dimensions)) == 1:
+        return True
+    else: # print sizes of images
+        print "\n Sizes of images are not the same! \n"
+        print "Image: " + "\t" * 4 + "Size"    
+        for image, size in zip(image_list, dimensions):
+            print image, size        
+        return False
+    
 def read_image_with_mask(image, mask_keyword=None):
     """ Read an image and a mask (from a keyword in the image), save it into a 
         numpy.ma array. The mask should contain 1 for pixels to be masked out. """
@@ -20,8 +47,8 @@ def read_image_with_mask(image, mask_keyword=None):
         mask_name = header[mask_keyword]
         mask = fits.getdata(mask_name)
     else:
-        mask = numpy.zeros_like(data)
-    return numpy.ma.array(data, mask=mask)         
+        mask = np.zeros_like(data)
+    return np.ma.array(data, mask=mask)         
 
 def mean_datetime(datetimes):
     """ This function returns the average datetime from a given set of datetime 
@@ -122,6 +149,7 @@ def homogeneous_filter_name(filt):
         filt = filt.replace(character,"")
     filt_dict = {"rgu": "rGunn", "rgunn":"rGunn", "gunnr":"rGunn",\
                  "sdssr":"sdssr", "rsdss":"sdssr", "r":"R", \
+                 "sdssi":"sdssi", "isdss":"sdssi",\
                  "h6607":"H6607", "h07":"H6607", "6607":"H6607", \
                  "h6652":"H6652", "h52":"H6652", "6652":"H6652", \
                  "h6650":"H6650", "h50":"H6650", "6650":"H6650", \
