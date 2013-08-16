@@ -210,7 +210,7 @@ def combine(args):
         # https://github.com/numpy/numpy/issues/1811
         map_cube = numpy.ma.count(cube, axis=0) # number non-masked values per pixel
         if args.average == "mean":
-            image = numpy.ma.mean()
+            image = numpy.ma.mean(cube, axis=0)
         elif args.average == "median":
             image = home_made_median(map_cube, cube)
 
