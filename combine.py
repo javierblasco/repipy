@@ -198,7 +198,7 @@ def combine(args):
         # If user was odd enough to give args.median and args.nlow = args.nhigh
         # skip the minmax rejection.
         if (args.nlow or args.nhigh):
-            if not (args.average == "median" and args.nlow != args.nhigh):
+            if not (args.average == "median" and args.nlow == args.nhigh):
                cube = minmax_reject(cube, args.nlow, args.nhigh)
         else:
             cube.sort()  # In any case, we need cube to be sorted
@@ -251,8 +251,8 @@ def combine(args):
         hdr.add_history(" - Image built from the combination of the images: "+string)
         hdr.add_history(" combine = " + args.average + ", scale = " + args.scale + \
                         ", reject = 'minmax', mclip='yes', " +\
-                        ", nhigh=" + args.nhigh +\
-                        ", nlow = " + args.nlow)
+                        ", nhigh=" + str(args.nhigh) +\
+                        ", nlow = " + str(args.nlow))
         newimage.flush()
         newimage.close()
         newmask = fits.open(name_mask, mode="update")
@@ -293,13 +293,13 @@ parser.add_argument("--all_together", action="store_true", dest="alltogether", \
                    'together, i.e. do not separate by filter (e.g. for bias)') 
 parser.add_argument("--norm", action="store_true", dest="norm", default=False, \
                     help="Normalize resulting image? Default: No")
-parser.add_argument("--nlow", metavar="nlow", dest='nlow', action='store', \
+parser.add_argument("--nlow", metavar="nlow", type=int, dest='nlow', action='store', \
                    default='0', help='Number of low pixels to be rejected by'+ \
                    ' the combining procedure. Default: 0')
-parser.add_argument("--nhigh", metavar="nhigh", dest='nhigh', action='store', \
+parser.add_argument("--nhigh", metavar="nhigh", type=int, dest='nhigh', action='store', \
                    default='1', help='Number of highpixels to be rejected by' +\
                    'the combining procedure. Default: 1')
-parser.add_argument("--nmin", metavar="nmin", dest="nmin", action='store', \
+parser.add_argument("--nmin", metavar="nmin", type=int, dest="nmin", action='store', \
                     default=1, help="Minimum number of images with valid "+\
                     "(i.e. non masked, non rejected) pixels. If the valid pixels "+\
                     "are less than nmin, the fill_val value is used as result, "+\
@@ -330,9 +330,9 @@ parser.add_argument("--output_mask", metavar="output_mask", dest='out_mask', \
                     'If none is provided, the program will create output.fits.msk '+\
                     'where output.fits is the name of the output image. ')
 parser.add_argument("--fill_val", metavar="fill_val", dest="fill_val", \
-                    action='store', default=0, help=' Keyword with which to '+\
+                    action='store', default=0, type=int, help=' Keyword with which to '+\
                     'fill a pixel if that pixel is masked in all the images. '+\
-                    'Default:0')
+                    'Default: 0')
 
 def main(arguments = None):
   # Pass arguments to variable args
