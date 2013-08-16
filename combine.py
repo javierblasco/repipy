@@ -201,7 +201,7 @@ def combine(args):
             if not (args.average == "median" and args.nlow == args.nhigh):
                cube = minmax_reject(cube, args.nlow, args.nhigh)
         else:
-            cube.sort()  # In any case, we need cube to be sorted
+            cube.sort(axis=0)  # In any case, we need cube to be sorted
 
         # Finally, average! Remember that the cube is sorted so that
         # cube[0,ii,jj] < cube[1,ii,jj] and that the highest values of all 
