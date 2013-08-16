@@ -214,28 +214,40 @@ def combine(args):
         elif args.average == "median":
             image = home_made_median(map_cube, cube)
 
-        # Image is masked array, we need to fill in masked values with the 
+
+        # Image is a masked array, we need to fill in masked values with the 
         # args.fill_val. Also, values with less than args.nmin valid values 
         # should be masked out. 
-        image.mask[map_cube.data < args.nmin] = 1        
+        image.mask[map_cube.data < args.nmin] = 1             
+        mask = image.mask.astype(numpy.int0) # converto to binary  
         image = image.filled(args.fill_val)
              
         # And save image
         newfile = os.path.join(args.out_dir, 
                                str(args.out_pattern) + "_" + filt + '.fits')
-        if os.path.isfile(newfile) == True: 
+        if args.out_mask != "":
+            name_mask = args.out_mask
+        else:
+            name_mask = newfile + ".msk"
+        if os.path.isfile(newfile): 
             os.remove(newfile)  # iraf does not overwrite files 
+        if os.path.isfile(name_mask):
+            os.remove(name_mask)
         fits.writeto(newfile,image)
-
+        fits.writeto(name_mask, mask)
         result[filt] = newfile  
         if os.path.isfile(newfile) == False:
             sys.exit(newfile + " does not exist")
  
-       # And read the image again to add comments to the header
+       # And read the images again to add comments to the headers
         newimage = fits.open(newfile, mode="update")
         hdr = newimage[0].header
+        if args.mask_key != "":
+            mask_key = args.mask_key
+        else:
+            mask_key = "mask"
+        hdr.update(mask_key, name_mask, "Mask for this image.")
         string = " ,".join(list1)
-        
         hdr.add_history(" - Image built from the combination of the images: "+string)
         hdr.add_history(" combine = " + args.average + ", scale = " + args.scale + \
                         ", reject = 'minmax', mclip='yes', " +\
@@ -243,6 +255,9 @@ def combine(args):
                         ", nlow = " + args.nlow)
         newimage.flush()
         newimage.close()
+        newmask = fits.open(name_mask, mode="update")
+        hdr = newmask[0].header
+        hdr.add_history(" - Mask of image: " + newfile)
 
         # To normalize calculate median and call arith_images to divide by it.
         if args.norm == True:
@@ -310,6 +325,10 @@ parser.add_argument("--mask_key", metavar="mask_key", dest='mask_key', \
                     action='store', default="", help=' Keyword in the header ' +\
                     'of the image that contains the name of the mask. The mask '+\
                     'will contain ones (1) in those pixels to be MASKED OUT.')
+parser.add_argument("--output_mask", metavar="output_mask", dest='out_mask', \
+                    action='store', default="", help=' Name of the output mask. '
+                    'If none is provided, the program will create output.fits.msk '+\
+                    'where output.fits is the name of the output image. ')
 parser.add_argument("--fill_val", metavar="fill_val", dest="fill_val", \
                     action='store', default=0, help=' Keyword with which to '+\
                     'fill a pixel if that pixel is masked in all the images. '+\
