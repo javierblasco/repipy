@@ -65,8 +65,8 @@ def arith(args):
         elif args.mean:  # if single number because mean used
             name2 = "mean(" + name2 + ") (" + str(im2) + ")"
             
-        # Now write a HISTORY element to the header    
-        hdr_im.add_history(" - Operation performed: "+ outfile + " " + 
+        # Write a HISTORY element to the header    
+        hdr_im.add_history(" - Operation performed: " + outfile + " " + 
                            args.operation[0] + " " + name2)
         hdr_mask = fits.PrimaryHDU(result.mask.astype(int)).header
         hdr_mask.add_history("- Mask corresponding to image: " + outpt)
@@ -76,8 +76,8 @@ def arith(args):
             os.remove(outpt)
         if os.path.isfile(mask_name):
             os.remove(mask_name)
-        fits.writeto(outpt, result.data, header=hdr_im) 
-        fits.writeto(mask_name, result.mask.astype(int), header=hdr_mask)
+        fits.writeto(outpt, result.filled(args.fill), header=hdr_im) 
+        fits.writeto(mask_name, result.mask.astype(numpy.int0), header=hdr_mask)
         output_list.append(outpt)
     return output_list
 
@@ -123,7 +123,8 @@ parser.add_argument("--mask_name", metavar="mask_name", dest='mask_name', \
                     'mask. If the pixel of any of the images is masked out, the '+\
                     'resulting mask will obviously be masked out as well.')         
 parser.add_argument("--fill", metavar="fill", dest="fill", action="store",\
-                    default="0", )
+                    default=0, type=int, help=' Value to fill masked pixels when '+\
+                    'creating the final image. Default: 0')
 parser.add_argument("--overwrite", action="store_true", dest="overwrite", \
                     default=False, help="Allows you to overwrite the original image.")
 parser.add_argument("--mean", action="store_true", dest="mean", default=False, \
