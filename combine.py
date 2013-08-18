@@ -82,11 +82,11 @@ def cube_images(args, scales):
 
     # Now read all the images (and masks, if present), into the cube
     for index, image in enumerate(args.in_pattern):
-        cube[index,:,:] = fits.getdata(image)
+        cube[index,:,:] = fits.getdata(image)/scales[index]
         if args.mask_key != "":
             try:
                 mask_name = fits.getheader(image)[args.mask_key]
-                cube.mask[index,:,:] = fits.getdata(mask_name) / scales[index]
+                cube.mask[index,:,:] = fits.getdata(mask_name)
             except (KeyError,IOError):   # If no keyword or image cannot be read
                 pass   # no mask, default (all pixels valid), applies    
     return cube    
@@ -218,9 +218,10 @@ def combine(args):
         # Image is a masked array, we need to fill in masked values with the 
         # args.fill_val. Also, values with less than args.nmin valid values 
         # should be masked out. 
-        image.mask[map_cube.data < args.nmin] = 1             
+        image.mask[map_cube < args.nmin] = 1 
         mask = image.mask.astype(numpy.int0) # converto to binary  
         image = image.filled(args.fill_val)
+        print "\n\n max(mask) ", numpy.where(mask==1)
              
         # And save image
         newfile = os.path.join(args.out_dir, 
