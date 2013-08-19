@@ -241,7 +241,7 @@ def rename(args):
         ans = True
         jj=1
         while ans == True:         #  until file does not exist
-            newfile = os.path.join(new_name+str(jj)+'.fits')
+            newfile = os.path.join(new_name+str(jj).zfill(3)+'.fits')
             ans = os.path.isfile(newfile)
             jj += 1
         oldname_nodir = (os.path.split(image))[1]
