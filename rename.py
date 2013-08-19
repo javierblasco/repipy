@@ -52,7 +52,7 @@ def is_a_standar(object_name):
     # Common names of the standard fields 
     standards_list = ["bd+25", "bd+28", "bd+35", "kop27", "grw73", "pg1708", \
                     "f110", "pg170", "wolf1346", "sa113", "hz15", "feige34", \
-                    "pg1633", "sa110"]
+                    "pg1633", "sa110", "pg1323"]
     for standard in standards_list:
         if ((object_name).lower()).count(standard) != 0 :
             return True
