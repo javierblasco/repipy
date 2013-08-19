@@ -5,13 +5,8 @@ import argparse
 import numpy
 from scipy.stats import mode as mode
 import sys
-import tempfile
-import StringIO
-import ConfigParser
-from pyraf.iraf import imcombine as imcombine      
 import astropy.io.fits as fits
 import collections
-import time
 import repipy.utilities as utils
 import repipy.arith as arith_images
 import repipy.find_keywords as find_keywords
@@ -208,7 +203,7 @@ def combine(args):
         # are the masked elements. We will take advantage of it if the median 
         # is selected, because nowadays the masked median is absurdly slow: 
         # https://github.com/numpy/numpy/issues/1811
-        map_cube = numpy.ma.count(cube, axis=0) # number non-masked values per pixel
+        map_cube = numpy.ma.count(cube, axis=0) # number non-masked values per pixel                                
         if args.average == "mean":
             image = numpy.ma.mean(cube, axis=0)
         elif args.average == "median":
@@ -219,7 +214,7 @@ def combine(args):
         # args.fill_val. Also, values with less than args.nmin valid values 
         # should be masked out. 
         image.mask[map_cube < args.nmin] = 1 
-        mask = image.mask.astype(numpy.int0) # converto to binary  
+        mask = image.mask.astype(numpy.int0) # converto to binary 
         image = image.filled(args.fill_val)
              
         # And save image
@@ -230,7 +225,7 @@ def combine(args):
         else:
             name_mask = newfile + ".msk"
         if os.path.isfile(newfile): 
-            os.remove(newfile)  # iraf does not overwrite files 
+            os.remove(newfile)  
         if os.path.isfile(name_mask):
             os.remove(name_mask)
         fits.writeto(newfile,image)
@@ -255,10 +250,13 @@ def combine(args):
                         ", nlow = " + str(args.nlow))
         newimage.flush()
         newimage.close()
+        
         newmask = fits.open(name_mask, mode="update")
         hdr = newmask[0].header
         hdr.add_history(" - Mask of image: " + newfile)
-
+        newmask.flush()
+        newmask.close()
+       
         # To normalize calculate median and call arith_images to divide by it.
         if args.norm == True:
             im = fits.getdata(newfile)
@@ -266,7 +264,8 @@ def combine(args):
             median = numpy.median(im[lx/3:lx*2/3,ly/3:ly*2/3])                                 
             msg =  "- NORMALIZED USING MEDIAN VALUE:"                      
             arith_images.main(arguments=["--message", msg, "--output", newfile,
-                                         newfile, "/", str(median)])
+                                         "--mask_key", mask_key, "--fill", 
+                                         args.fill_val, newfile, "/", str(median)])
     return result
 
 ############################################################################
