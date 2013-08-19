@@ -221,7 +221,6 @@ def combine(args):
         image.mask[map_cube < args.nmin] = 1 
         mask = image.mask.astype(numpy.int0) # converto to binary  
         image = image.filled(args.fill_val)
-        print "\n\n max(mask) ", numpy.where(mask==1)
              
         # And save image
         newfile = os.path.join(args.out_dir, 
