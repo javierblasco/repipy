@@ -77,13 +77,9 @@ def cube_images(args, scales):
 
     # Now read all the images (and masks, if present), into the cube
     for index, image in enumerate(args.in_pattern):
-        cube[index,:,:] = fits.getdata(image)/scales[index]
-        if args.mask_key != "":
-            try:
-                mask_name = fits.getheader(image)[args.mask_key]
-                cube.mask[index,:,:] = fits.getdata(mask_name)
-            except (KeyError,IOError):   # If no keyword or image cannot be read
-                pass   # no mask, default (all pixels valid), applies    
+        im = utils.read_image_with_mask(image, mask_keyword = args.mask_key)
+        cube.data[index,:,:] = im.data/scales[index]
+        cube.mask[index,:,:] = im.mask
     return cube    
     
 ################################################################################
@@ -234,28 +230,20 @@ def combine(args):
         if os.path.isfile(newfile) == False:
             sys.exit(newfile + " does not exist")
  
-       # And read the images again to add comments to the headers
-        newimage = fits.open(newfile, mode="update")
-        hdr = newimage[0].header
+        # Add comments to the headers
+        string1 = " - Image built from the combination of the images: "+\
+                 " ,".join(list1) + "\n"
+        string2 = " combine = " + args.average + ", scale = " + args.scale +\
+                 ", reject = minmax, nhigh = " + str(args.nhigh) + ", nlow = "+\
+                 str(args.nlow) + "\n"
+        utils.add_history_line(newfile, string1 + string2 )  
+        utils.add_history_line(name_mask, " - Mask of image: " + newfile)
+        mask_key = "mask"  # default
         if args.mask_key != "":
             mask_key = args.mask_key
-        else:
-            mask_key = "mask"
-        hdr.update(mask_key, name_mask, "Mask for this image.")
-        string = " ,".join(list1)
-        hdr.add_history(" - Image built from the combination of the images: "+string)
-        hdr.add_history(" combine = " + args.average + ", scale = " + args.scale + \
-                        ", reject = 'minmax', mclip='yes', " +\
-                        ", nhigh=" + str(args.nhigh) +\
-                        ", nlow = " + str(args.nlow))
-        newimage.flush()
-        newimage.close()
+        utils.header_update_keyword(newfile, mask_key, name_mask, "Mask for this image")
+ 
         
-        newmask = fits.open(name_mask, mode="update")
-        hdr = newmask[0].header
-        hdr.add_history(" - Mask of image: " + newfile)
-        newmask.flush()
-        newmask.close()
        
         # To normalize calculate median and call arith_images to divide by it.
         if args.norm == True:

@@ -263,6 +263,14 @@ def add_history_line(image, text):
     im.flush()
     im.close()
 
+def header_update_keyword(image, keyword, value, comment=""):
+    """ Update a header keyword, or create it if not present """
+    im = pyfits.open(image, mode="update")
+    hdr = im[0].header
+    hdr.update(keyword, value, comment)
+    im.flush()
+    im.close()
+
 def check_sizes(imagelist):
     """ Uses pyraf to check if a list of images have the same size """
         
