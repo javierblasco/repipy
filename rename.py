@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 """
 @author: javier blasco herrera
 @e-mail: blasco@iaa.es  javier.blasco.herrera@gmail.com 
@@ -186,7 +185,7 @@ def rename(args):
     list_datetimes =[]
     for names in fits_list:
         im = pyfits.open(names) 
-        hdr = im[0].header        
+        hdr = im[0].header  
         date_current = dateutil.parser.parse(hdr[keywords["date"]]).date()
         time_current = dateutil.parser.parse(hdr[keywords["time"]]).time()
         datetime_current = datetime.datetime.combine(date_current, time_current) 
