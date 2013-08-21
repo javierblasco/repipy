@@ -131,12 +131,12 @@ def add_suffix_prefix(filename, prefix='', suffix=''):
     
     # Now construct the output file including the prefix/suffix if present
     if prefix != '' and suffix != '':
-        outpt = os.path.join(outdir, prefix + outfile_root + "-" + \
+        outpt = os.path.join(outdir, prefix + outfile_root + \
                              suffix + out_extensions)                             
     elif prefix != '':
-        outpt = os.path.join(outdir, prefix + outfile_root+ "-" + out_extensions)
+        outpt = os.path.join(outdir, prefix + outfile_root + out_extensions)
     elif suffix != '':
-        outpt = os.path.join(outdir, outfile_root + "-" + suffix + out_extensions)
+        outpt = os.path.join(outdir, outfile_root + suffix + out_extensions)
 
     return outpt
 
