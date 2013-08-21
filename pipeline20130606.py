@@ -28,6 +28,7 @@ import repipy.complete_headers as complete_headers
 import repipy.calculate_airmass as calculate_airmass
 import repipy.header_keywords as header_keywords
 import repipy.rename as rename
+import repipy.median_filter as median_filter
 
 ################################################################################
 #                   Campaign dependent                                         # 
@@ -41,9 +42,10 @@ lemon_dir = "/home/blasco/Desktop/librerias_python/lemon"
 
 # Images not to be used. Early bias images show too high counts statistics. 
 # And the focus image and the skyflat 1 are of different size to all the others. 
-bad_bias = ["bias_20130606_" + str(ii) + ".fits" for ii in range(1,11)]
-remove_images = ["focustelescope_20130606_sdssr_1.fits", \
-                 "skyflat_20130606_sdssr_1.fits"] + bad_bias
+bad_bias = ["bias_20130606_" + str(ii).zfill(3) + ".fits" for ii in range(1,11)]
+remove_images = ["focustelescope_20130606_sdssr_001.fits", \
+                 "skyflat_20130606_sdssr_001.fits"] + bad_bias
+pixel_to_pixel_flat = ""
 
 # Keywords in the header of images
 filterk = "INSFLNAM"     # filter name
@@ -103,10 +105,103 @@ superbias = combine_images.main(arguments=["--average", "median", "--all_togethe
 
 # Subtract bias from all images.  
 print "Subtracting bias"
-newname = arith_images.main(arguments=["--suffix", "b", "--message", \
+newname = arith_images.main(arguments=["--suffix", " -b", "--message", \
                             "BIAS SUBTRACTED",] + list(list_images["filename"]) +\
                             [ "-", superbias["AllFilters"]])
 list_images["filename"] = np.asarray(newname)
+   
+# Same as blanks for sky flats. In this case the limit should be much higher since
+# the observations will have very variable exposure times, and there is no risk 
+# of mixing beginning of the night with end of the night. 
+print "Combining sky flats"
+skyflat_indices = np.where(list_images["type"] == "skyflats")    
+times = list_images["time"][skyflat_indices]  # times of the skyflat images 
+block_limits = utilities.group_images_in_blocks(times, limit=20)  
+master_skyflats = {}
+for ii in range(len(block_limits)-1): 
+    block = list_images["filename"][skyflat_indices][block_limits[ii]:block_limits[ii+1]]
+    time_block = utilities.mean_datetime(list_images["time"][skyflat_indices]
+                                    [block_limits[ii]:block_limits[ii+1]] )
+    skyflat = combine_images.main(arguments=["--average", "median", "--norm",\
+                                           "--scale", "median", "--notest",\
+                                           "-o", "masterflat{0}".format(ii), 
+                                           "--nhigh", "1", "--nlow", "0", 
+                                           "--filterk", filterk] + list(block)[:])    
+    master_skyflats[time_block] = skyflat.values()
+
+
+# Dividing the combined flat with a median-filtered version of itself the 
+# large scale changes are removed, and only the pixel-to-pixel (p2p) 
+# differences remain. 
+print "Creating pixel-to-pixel combined images"
+for key,image in master_skyflats.items():
+    print image
+    # first filter
+    filtered = median_filter.main(arguments= image + [ "--mask_key", "mask",
+    "--side", "100", "--fill_val", "0"])
+    # then divide "image" by "filtered"
+    divided = arith_images.main(arguments=["--suffix", " -p2p", "--message",
+                                           "PIXEL TO PIXEL CREATED"] + image +\
+                                           ["/", filtered])
+    master_skyflats[key] = divided    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Subtract bias from all images.  
+print "Correcting blanks from pixel-to-pixel differences"
+whr = numpy.where(list_images["type"] == "blanks")
+blank_list = list(list_images["filename"][whr])
+newname = arith_images.main(arguments=["--suffix", " -f1",] +\
+                            blank_list + [ "/", ])
+list_images["filename"] = np.asarray(newname)
+
 
 
 # The blank fields should be grouped in blocks by time of night they were observed. 
@@ -131,25 +226,6 @@ for ii in range(len(block_limits)-1):
                                            "--nhigh", "1", "--nlow", "0", 
                                            "--filterk", filterk] + list(block)[:])    
     master_blanks[time_block] = blank.values()
-    
-# Same as blanks for sky flats. In this case the limit should be much higher since
-# the observations will have very variable exposure times, and there is no risk 
-# of mixing beginning of the night with end of the night. 
-print "Combining sky flats"
-skyflat_indices = np.where(list_images["type"] == "skyflats")    
-times = list_images["time"][skyflat_indices]  # times of the skyflat images 
-block_limits = utilities.group_images_in_blocks(times, limit=20)  
-master_skyflats = {}
-for ii in range(len(block_limits)-1): 
-    block = list_images["filename"][skyflat_indices][block_limits[ii]:block_limits[ii+1]]
-    time_block = utilities.mean_datetime(list_images["time"][skyflat_indices]
-                                    [block_limits[ii]:block_limits[ii+1]] )
-    skyflat = combine_images.main(arguments=["--average", "median", "--norm",\
-                                           "--scale", "median", "--notest",\
-                                           "-o", "masterflat{0}".format(ii), 
-                                           "--nhigh", "1", "--nlow", "0", 
-                                           "--filterk", filterk] + list(block)[:])    
-    master_skyflats[time_block] = skyflat.values()
 
 
 
@@ -161,7 +237,7 @@ for index, time, image in zip(range(len(list_images["time"])),
     time_diff = np.asarray(flats.keys()) - np.asarray(time)
     closest = np.argmin(abs(time_diff))  
     key_closest = flats.keys()[closest]
-    newname = arith_images.main(arguments=["--suffix", "f", "--message", \
+    newname = arith_images.main(arguments=["--suffix", " -f", "--message", \
                                 "FLAT-FIELD CORRECTION:", image, "/"] + \
                                     flats[key_closest])
     list_images["filename"][index] = newname[0]  
@@ -321,7 +397,7 @@ print "Creating masks"
 # update the list of images to the ones with the bias subtracted.
 print "Subtracting bias"
 for index, im in enumerate(list_images["filename"]):
-        newname = arith_images.main(arguments=["--suffix", "b", "--message", \
+        newname = arith_images.main(arguments=["--suffix", " -b", "--message", \
                                    "BIAS SUBTRACTED", im, "-", superbias["AllFilters"]])
         list_images["filename"][index] = newname[0]
             
