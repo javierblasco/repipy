@@ -19,7 +19,7 @@ def arith(args):
         im1 = utils.read_image_with_mask(image, args.mask_key)        
         try: # if it is a number        
             im2 = float(args.input2[0])
-        except ValueError:
+        except (ValueError,TypeError):
             im2 = utils.read_image_with_mask(args.input2[0], args.mask_key)        
             
         # Case of mean or median for Input2 
