@@ -71,8 +71,6 @@ def main(arguments = None):
       arguments = sys.argv[1:]
   args = parser.parse_args(arguments)
 
-  print args.input, type(args.input)
-
   # Call combine, keep name of the file created
   newfile = filter_image(args)
   return newfile  
