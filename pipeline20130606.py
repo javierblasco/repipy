@@ -93,15 +93,20 @@ for im in remove_images:
     for key in list_images.keys():  # remove that item from all the lists
         list_images[key] = np.delete(list_images[key], index)
 
+# Create masks for all images 
+print "Creating masks"
+create_masks.main(arguments=["--max_val", "50000", "--circular"] + 
+                  list(list_images["filename"][:]))        
+
+
 # Combine bias images
 print "Combining bias images"                
 whr = np.where(list_images["type"] == "bias")
 bias_images = list(list_images["filename"][whr])
-superbias = combine_images.main(arguments=["--average", "median", "--all_together",\
-                                           "--scale", "median", "--notest",\
-                                           "-o", "superbias", "--nhigh", "1",\
-                                           "--nlow", "0", "--filterk", filterk] +\
-                                           bias_images[:])    
+superbias = combine_images.main(arguments=["--average", "median", "--all_together",
+                                           "--notest", "-o", "superbias", 
+                                           "--nhigh", "1", "--nlow", "0", 
+                                           "--filterk", filterk] + bias_images[:])    
 
 # Subtract bias from all images.  
 print "Subtracting bias"
@@ -110,9 +115,7 @@ newname = arith_images.main(arguments=["--suffix", " -b", "--message", \
                             [ "-", superbias["AllFilters"]])
 list_images["filename"] = np.asarray(newname)
    
-# Same as blanks for sky flats. In this case the limit should be much higher since
-# the observations will have very variable exposure times, and there is no risk 
-# of mixing beginning of the night with end of the night. 
+# Combine skyflats using blocks to distinguish between sunset and sunrise flats.
 print "Combining sky flats"
 skyflat_indices = np.where(list_images["type"] == "skyflats")    
 times = list_images["time"][skyflat_indices]  # times of the skyflat images 
@@ -122,10 +125,11 @@ for ii in range(len(block_limits)-1):
     block = list_images["filename"][skyflat_indices][block_limits[ii]:block_limits[ii+1]]
     time_block = utilities.mean_datetime(list_images["time"][skyflat_indices]
                                     [block_limits[ii]:block_limits[ii+1]] )
-    skyflat = combine_images.main(arguments=["--average", "median", "--norm",\
-                                           "--scale", "median", "--notest",\
+    skyflat = combine_images.main(arguments=["--average", "median", "--norm",
+                                           "--scale", "median", "--notest",
                                            "-o", "masterflat{0}".format(ii), 
-                                           "--nhigh", "1", "--nlow", "0", 
+                                           "--nhigh", "1", "--nlow", "0",
+                                           "--mask_key", "mask",
                                            "--filterk", filterk] + list(block)[:])    
     master_skyflats[time_block] = skyflat.values()
 
@@ -135,20 +139,22 @@ for ii in range(len(block_limits)-1):
 # differences remain. 
 print "Creating pixel-to-pixel combined images"
 for key,image in master_skyflats.items():
-    print image
-    # first filter
+    print "master_skyflats", master_skyflats
+    print "key", key
+    # first filter with median
     filtered = median_filter.main(arguments= image + [ "--mask_key", "mask",
     "--side", "100", "--fill_val", "0"])
     # then divide "image" by "filtered"
     divided = arith_images.main(arguments=["--suffix", " -p2p", "--message",
                                            "PIXEL TO PIXEL CREATED"] + image +\
-                                           ["/", filtered])
+                                           ["/"] + filtered)
+    print "divided", divided
     master_skyflats[key] = divided    
 
 
 
 
-
+sys.exit()
 
 
 
