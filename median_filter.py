@@ -31,7 +31,7 @@ def filter_image(args):
     output_list = []
     for image in args.input:
         im = utils.read_image_with_mask(image, mask_keyword=args.mask_key)
-        filt_im = apply_median_filter(im,args.side)        
+        filt_im = apply_median_filter(im,args.side)
         filt_im = filt_im.filled(args.fill_val)
         if args.output == "":
             output = utils.add_suffix_prefix(image, suffix='_filtered')
