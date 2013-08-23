@@ -90,7 +90,6 @@ def compute_scales(args):
     lx, ly = fits.getdata(args.in_pattern[0]).shape
     scales = []
     for image in args.in_pattern:
-        print image
         centre = fits.open(image, mode="readonly",\
                            memmap=True)[0].section[lx/3:lx*2/3, ly/3:ly*2/3]
         if args.scale == "mode":
