@@ -47,7 +47,7 @@ if os.path.isfile(saved_dir + 'skyflats/masterflat1_sdssr.fits'):
                       [saved_dir + 'skyflats/masterflat1_sdssr.fits'], 
                       datetime.datetime(2013, 6, 6, 20, 2, 38, 200000): 
                       [saved_dir + 'skyflats/masterflat0_sdssr.fits']}
-if os.path.isfile(saved_dir + 'blanks/ '):
+if os.path.isfile(saved_dir + 'blanks/masterblank2_sdssr-p2p_filtered.fits'):
     master_blanks = {datetime.datetime(2013, 6, 7, 2, 24, 44, 333333): 
                     [saved_dir + 'blanks/masterblank2_sdssr-p2p_filtered.fits'], 
                      datetime.datetime(2013, 6, 6, 22, 21, 16, 333333): 
@@ -159,10 +159,10 @@ except NameError:
     for key,image in master_skyflats.items():
         print key
         # first filter with median
-        filtered = median_filter.main(arguments= image + [ "--mask_key", "mask",
+        filtered = median_filter.main(arguments= image + ["--mask_key", "mask",
         "--side", "100", "--fill_val", "0"])
         # then divide "image" by "filtered"
-        divided = arith_images.main(arguments=["--suffix", " -structure", "--message",
+        divided = arith_images.main(arguments=["--suffix", " -small_scale", "--message",
                                                "REMOVE LARGE SCALE STRUCT"] + image +\
                                                ["/"] + filtered)
         master_skyflats[key] = divided    
@@ -199,7 +199,7 @@ except NameError:
         # correct pixel-to-pixel differences (from skyflats)
         print type(image), type(master_skyflats.values()[closest])
         print image, master_skyflats.values()[closest]
-        corrected = arith_images.main(arguments=["--suffix", " -p2p", "--message",
+        corrected = arith_images.main(arguments=["--suffix", " -sf", "--message",
                                                  "REMOVE SMALL SCALE STRUCTURE"]+
                                                  image + ["/"] + 
                                                  master_skyflats.values()[closest])
@@ -209,10 +209,24 @@ except NameError:
     print "master_blanks = {", master_blanks, "}"    
 
 # Now we will correct each image with the closest sky flat field (for small
-# scale variations) and 
-
-
-
+# scale variations) and the closest blank field (for large scale flatfielding)
+for index in range(len(list_images["filename"])):
+    time = list_images["time"][index]
+    image = list_images["filename"][index] 
+    # First pixel-to-pixel
+    time_diff = np.asarray(master_skyflats.keys()) - time
+    closest = np.argmin(abs(time_diff))
+    corrected = arith_images.main(arguments=["--suffix", " -sf", "--message",
+                                             "REMOVE SMALL SCALE STRUCTURE",
+                                             image] + ["/"] + 
+                                             master_skyflats.values()[closest])
+    # Now the large scale using the blanks
+    time_diff = np.asarray(master_blanks.keys()) - time 
+    closest = np.argmin(abs(time_diff))
+    corrected = arith_images.main(arguments=["--suffix", " -sb", "--message",
+                                             "REMOVE LARGE SCALE STRUCTURE"] +
+                                             corrected + ["/"] + 
+                                             master_blanks.values()[closest])
 sys.exit()
 
 
