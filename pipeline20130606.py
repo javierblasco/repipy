@@ -29,6 +29,7 @@ import repipy.calculate_airmass as calculate_airmass
 import repipy.header_keywords as header_keywords
 import repipy.rename as rename
 import repipy.median_filter as median_filter
+import datetime
 
 ################################################################################
 #                   Campaign dependent                                         # 
@@ -40,12 +41,21 @@ directory = "/home/blasco/Desktop/DEEP_OBS/20130606/"
 # Directory where the lemon pipeline (https://github.com/vterron/lemon) is
 lemon_dir = "/home/blasco/Desktop/librerias_python/lemon"
 
+# Directory with saved masters flats
+saved_dir = "/home/blasco/Desktop/DEEP_OBS/20130606/saved/"
+if os.path.isfile(saved_dir + 'skyflats/masterflat1_sdssr.fits'):
+    master_skyflats = {datetime.datetime(2013, 6, 7, 4, 19, 10, 297297): 
+                      [saved_dir + 'skyflats/masterflat1_sdssr.fits'], 
+                      datetime.datetime(2013, 6, 6, 20, 2, 38, 200000): 
+                      [saved_dir + 'skyflats/masterflat0_sdssr.fits']}
+if os.path.isfile(saved_dir + 'blanks/ '):
+    master_blanks = {}
+
 # Images not to be used. Early bias images show too high counts statistics. 
 # And the focus image and the skyflat 1 are of different size to all the others. 
 bad_bias = ["bias_20130606_" + str(ii).zfill(3) + ".fits" for ii in range(1,11)]
 remove_images = ["focustelescope_20130606_sdssr_001.fits", \
                  "skyflat_20130606_sdssr_001.fits"] + bad_bias
-pixel_to_pixel_flat = ""
 
 # Keywords in the header of images
 filterk = "INSFLNAM"     # filter name
@@ -114,45 +124,86 @@ newname = arith_images.main(arguments=["--suffix", " -b", "--message", \
                             "BIAS SUBTRACTED",] + list(list_images["filename"]) +\
                             [ "-", superbias["AllFilters"]])
 list_images["filename"] = np.asarray(newname)
-   
+
+ 
 # Combine skyflats using blocks to distinguish between sunset and sunrise flats.
-print "Combining sky flats"
-skyflat_indices = np.where(list_images["type"] == "skyflats")    
-times = list_images["time"][skyflat_indices]  # times of the skyflat images 
-block_limits = utilities.group_images_in_blocks(times, limit=20)  
-master_skyflats = {}
-for ii in range(len(block_limits)-1): 
-    block = list_images["filename"][skyflat_indices][block_limits[ii]:block_limits[ii+1]]
-    time_block = utilities.mean_datetime(list_images["time"][skyflat_indices]
-                                    [block_limits[ii]:block_limits[ii+1]] )
-    skyflat = combine_images.main(arguments=["--average", "median", "--norm",
-                                           "--scale", "median", "--notest",
-                                           "-o", "masterflat{0}".format(ii), 
-                                           "--nhigh", "1", "--nlow", "0",
-                                           "--mask_key", "mask",
-                                           "--filterk", filterk] + list(block)[:])    
-    master_skyflats[time_block] = skyflat.values()
+try:
+    dummy = len(master_skyflats)
+except NameError:
+    print "Combining sky flats"
+    skyflat_indices = np.where(list_images["type"] == "skyflats")    
+    times = list_images["time"][skyflat_indices]  # times of the skyflat images 
+    block_limits = utilities.group_images_in_blocks(times, limit=20)  
+    master_skyflats = {}
+    for ii in range(len(block_limits)-1): 
+        block = list_images["filename"][skyflat_indices][block_limits[ii]:block_limits[ii+1]]
+        time_block = utilities.mean_datetime(list_images["time"][skyflat_indices]
+                                        [block_limits[ii]:block_limits[ii+1]] )
+        skyflat = combine_images.main(arguments=["--average", "median", "--norm",
+                                               "--scale", "median", "--notest",
+                                               "-o", "masterflat{0}".format(ii), 
+                                               "--nhigh", "1", "--nlow", "0",
+                                               "--mask_key", "mask",
+                                               "--filterk", filterk] + list(block)[:])    
+        master_skyflats[time_block] = skyflat.values()
+    
+        # Dividing the combined flat with a median-filtered version of itself the 
+        # large scale changes are removed, and only the pixel-to-pixel (p2p) 
+        # differences remain. 
+        
+    print "Creating pixel-to-pixel combined images"
+    for key,image in master_skyflats.items():
+        print key
+        # first filter with median
+        filtered = median_filter.main(arguments= image + [ "--mask_key", "mask",
+        "--side", "100", "--fill_val", "0"])
+        # then divide "image" by "filtered"
+        divided = arith_images.main(arguments=["--suffix", " -structure", "--message",
+                                               "REMOVE LARGE SCALE STRUCT"] + image +\
+                                               ["/"] + filtered)
+        master_skyflats[key] = divided    
 
-
-# Dividing the combined flat with a median-filtered version of itself the 
-# large scale changes are removed, and only the pixel-to-pixel (p2p) 
-# differences remain. 
-print "Creating pixel-to-pixel combined images"
-for key,image in master_skyflats.items():
-    print "master_skyflats", master_skyflats
-    print "key", key
-    # first filter with median
-    filtered = median_filter.main(arguments= image + [ "--mask_key", "mask",
-    "--side", "100", "--fill_val", "0"])
-    # then divide "image" by "filtered"
-    divided = arith_images.main(arguments=["--suffix", " -p2p", "--message",
-                                           "PIXEL TO PIXEL CREATED"] + image +\
-                                           ["/"] + filtered)
-    print "divided", divided
-    master_skyflats[key] = divided    
-
-
-
+# Combine blanks also in blocks. In this case, we will combine images from  
+# every two consecutive blocks, because we only have three blanks per block
+# and the dithering is not large enough, so too many residuals were present. 
+try:
+    dummy = len(master_blanks)
+except NameError:
+    print "Combining blanks"
+    blank_indices = np.where(list_images["type"] == "blanks")[0]  #select blank images
+    times = list_images["time"][blank_indices]  # times of the blank images 
+    block_limits = utilities.group_images_in_blocks(times, limit=5)  
+    master_blanks = {} 
+    for ii in range(len(block_limits)-2): 
+        block = list_images["filename"][blank_indices][block_limits[ii]:block_limits[ii+2]]
+        time_block = utilities.mean_datetime(list_images["time"][blank_indices]
+                                        [block_limits[ii]:block_limits[ii+1]] )
+        blank = combine_images.main(arguments=["--average", "median", "--norm",\
+                                               "--scale", "median", "--notest",\
+                                               "-o", "masterblank{0}".format(ii), 
+                                               "--nhigh", "2", "--nlow", "0", 
+                                               "--filterk", filterk] + list(block)[:])    
+        master_blanks[time_block] = blank.values()
+    
+    # Use the pixel-to-pixel differences in master_skyflats to correct the 
+    # master_blanks for this effect. 
+    print "Correcting combined blanks for pixel-to-pixel (small scale) variations"
+    for time, image in master_blanks.items():
+        # find closest flat
+        time_diff = np.asarray(master_skyflats.keys()) - np.asarray(time)
+        closest = np.argmin(abs(time_diff))
+        # correct pixel-to-pixel differences (from skyflats)
+        print type(image), type(master_skyflats.values()[closest])
+        print image, master_skyflats.values()[closest]
+        corrected = arith_images.main(arguments=["--suffix", " -p2p", "--message",
+                                                 "REMOVE SMALL SCALE STRUCTURE"]+
+                                                 image + ["/"] + 
+                                                 master_skyflats.values()[closest])
+        smoothed = median_filter.main(arguments= corrected + [ "--mask_key", "mask",
+            "--side", "100", "--fill_val", "0"])
+        master_blanks[time] = smoothed
+    
+    print "master_blanks = {", master_blanks, "}"    
 
 sys.exit()
 
@@ -202,7 +253,7 @@ sys.exit()
 
 # Subtract bias from all images.  
 print "Correcting blanks from pixel-to-pixel differences"
-whr = numpy.where(list_images["type"] == "blanks")
+whr = np.where(list_images["type"] == "blanks")
 blank_list = list(list_images["filename"][whr])
 newname = arith_images.main(arguments=["--suffix", " -f1",] +\
                             blank_list + [ "/", ])
@@ -210,36 +261,15 @@ list_images["filename"] = np.asarray(newname)
 
 
 
-# The blank fields should be grouped in blocks by time of night they were observed. 
-# For that purpose we kept the times of all the fits files as datetime.datetime 
-# objects in list_images["time"]. From the difference between images we can 
-# determine where each block starts and finishes. Then we will combine the 
-# blocks into master blanks, saving in a dictionary, as keys a mean of the 
-# times at which each block was observed and as values the name of the resulting
-# combined image.
-print "Combining blanks"
-blank_indices = np.where(list_images["type"] == "blanks")[0]  #select blank images
-times = list_images["time"][blank_indices]  # times of the blank images 
-block_limits = utilities.group_images_in_blocks(times, limit=5)  
-master_blanks = {} 
-for ii in range(len(block_limits)-1): 
-    block = list_images["filename"][blank_indices][block_limits[ii]:block_limits[ii+1]]
-    time_block = utilities.mean_datetime(list_images["time"][blank_indices]
-                                    [block_limits[ii]:block_limits[ii+1]] )
-    blank = combine_images.main(arguments=["--average", "median", "--norm",\
-                                           "--scale", "median", "--notest",\
-                                           "-o", "masterblank{0}".format(ii), 
-                                           "--nhigh", "1", "--nlow", "0", 
-                                           "--filterk", filterk] + list(block)[:])    
-    master_blanks[time_block] = blank.values()
 
 
 
 # Flat-field correction using the flat that is closest (in time) to each image.
 print "Flat-fielding using the closest flat image"
 flats = master_skyflats  # we will use, for the moment, the sky flats. 
-for index, time, image in zip(range(len(list_images["time"])), 
-                              list_images["time"], list_images["filename"]):
+for index, time, image in zip( range(len(list_images["time"])), 
+                               list_images["time"], 
+                               list_images["filename"]):
     time_diff = np.asarray(flats.keys()) - np.asarray(time)
     closest = np.argmin(abs(time_diff))  
     key_closest = flats.keys()[closest]
