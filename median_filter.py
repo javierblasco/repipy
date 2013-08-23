@@ -34,7 +34,7 @@ def filter_image(args):
         filt_im = apply_median_filter(im,args.side)
         filt_im = filt_im.filled(args.fill_val)
         if args.output == "":
-            output = utils.add_suffix_prefix(image, suffix='_filtered')
+            output = utils.add_suffix_prefix(image, suffix='-mf')
         else :
             output = args.output
         fits.writeto(output, filt_im)
@@ -57,7 +57,7 @@ parser.add_argument("--side", metavar="side", type=int, dest="side",
                     "be used to filter the image. Mandatory argument.")
 parser.add_argument("--output", metavar='output', dest='output', action='store',
                    default='', help='output image in which to save the result.'+\
-                    ' If not provided the suffix _filtered will be added to '+\
+                    ' If not provided the suffix -mf will be added to '+\
                     'the input.')
 parser.add_argument("--fill_val", metavar="fill_val", dest="fill_val", \
                     action='store', default=0, type=int, help=' Keyword with '+\
