@@ -88,15 +88,20 @@ def compute_scales(input_images, scale, mask_key):
     lx, ly = fits.getdata(input_images[0]).shape
     scales = []
     for image in input_images:
-        im = utils.read_image_with_mask(image, mask=mask_key)
+        im = utils.read_image_with_mask(image, mask_keyword=mask_key)
         centre = im[lx/3:lx*2/3, ly/3:ly*2/3]
         if scale == "median":
-            scales.append(numpy.ma.median(centre))
+            new_item = numpy.ma.median(centre)
         elif scale == "mean":
-            scales.append(numpy.ma.mean(centre))
+            new_item = numpy.ma.mean(centre)
         elif scale == "none":
-            scales.append(1) 
-    return scales                                            
+            new_item = 1
+        if new_item is numpy.ma.masked:  # If all elements where masked
+            new_item = 1
+            print "All elements of the central part of image " + image + \
+                  " seem to be masked. Replacing scale calculation by 1." 
+        scales.append(new_item)
+    return scales  # cases where of all elements were masked                                            
                                                                 
 ################################################################################
 def run_test(args, list1, filt):
@@ -157,13 +162,14 @@ def combine(args):
     # other (and write to a test folder) and combine the images (and write)
     for filt in filter_list:	   
         # If user provided a specific filter to be combined, use just that one
-        if filt != args.filter:
+        if filt != args.filter and args.filter != "":
+            print "skipping filter", filt, "User provided --filter option."
             continue
 
         # list of objects with current filter (exception: allfilters is true) 
         list1 = [args.in_pattern[p] for p,f in enumerate(images_filters) if 
                      (f == filt or filt == "AllFilters") ]
- 
+
         # Check that all images have same dimension. If not, exit program
         if not utils.check_dimensions(list1):
             sys.exit("Dimensions of images to combine are different!")
@@ -176,10 +182,9 @@ def combine(args):
         # In order to combine, we first need to calculate the scales, so that 
         # they are all at the same flux level
         scales = compute_scales(list1, args.scale, args.mask_key)
-        
+
         # Now we can build a cube with all the images, masks included. 
         cube = cube_images(list1, args.mask_key, scales)
-        
         # If nlow != 0 or nhigh!=0 we need to remove the necessary pixels.
         # If user was odd enough to give args.median and args.nlow = args.nhigh
         # skip the minmax rejection.
