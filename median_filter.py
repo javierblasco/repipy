@@ -13,17 +13,14 @@ import astropy.io.fits as fits
 def apply_median_filter(im, side):
     """ Filter a masked np.ma array with a median filter. """
     lx, ly = im.shape
-    mask = numpy.ones((lx,ly),dtype=numpy.int0)
+    mask = numpy.zeros((lx,ly),dtype=numpy.int0)
     data = numpy.asarray(mask, dtype=numpy.float)
     filt_im = numpy.ma.array(data, mask=mask)
     for ii in range(lx):
       for jj in range(ly):
-        if not im.mask[ii,jj]:  # If pixel is not masked
           minx, maxx = max([ii-side/2,0]), min([ii+side/2+1,lx])
           miny, maxy = max([jj-side/2,0]), min([jj+side/2+1,ly])
-          whr = numpy.where(im.mask[minx:maxx,miny:maxy] == 0)
-          filt_im.data[ii,jj] = numpy.median(im.data[minx:maxx,miny:maxy][whr])
-          filt_im.mask[ii,jj] = 0
+          filt_im[ii,jj] = numpy.ma.median(im[minx:maxx,miny:maxy])
     return filt_im            
             
 def filter_image(args):
@@ -70,7 +67,7 @@ def main(arguments = None):
   if arguments == None:
       arguments = sys.argv[1:]
   args = parser.parse_args(arguments)
-
+  
   # Call combine, keep name of the file created
   newfile = filter_image(args)
   return newfile  
