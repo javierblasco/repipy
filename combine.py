@@ -161,7 +161,7 @@ def combine(args):
     # other (and write to a test folder) and combine the images (and write)
     for filt in filter_list:	   
         # If user provided a specific filter to be combined, use just that one
-        if filt == args.filter:
+        if filt != args.filter:
             continue
 
         # list of objects with current filter (exception: allfilters is true) 
@@ -237,12 +237,9 @@ def combine(args):
                  str(args.nlow) + "\n"
         utils.add_history_line(newfile, string1 + string2 )  
         utils.add_history_line(name_mask, " - Mask of image: " + newfile)
-        mask_key = "mask"  # default
         if args.mask_key != "":
-            mask_key = args.mask_key
-        utils.header_update_keyword(newfile, mask_key, name_mask, "Mask for this image")
- 
-        
+            utils.header_update_keyword(newfile, args.mask_key, name_mask, 
+                                        "Mask for this image")        
        
         # To normalize calculate median and call arith_images to divide by it.
         if args.norm == True:
@@ -251,7 +248,7 @@ def combine(args):
             median = numpy.median(im[lx/3:lx*2/3,ly/3:ly*2/3])                                 
             msg =  "- NORMALIZED USING MEDIAN VALUE:"                      
             arith_images.main(arguments=["--message", msg, "--output", newfile,
-                                         "--mask_key", mask_key, "--fill", 
+                                         "--mask_key", args.mask_key, "--fill", 
                                          args.fill_val, newfile, "/", str(median)])
     return result
 
