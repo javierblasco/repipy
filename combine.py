@@ -64,42 +64,40 @@ def minmax_reject(cube, nlow, nhigh):
     return cube
 
 ################################################################################
-def cube_images(args, scales):
-    """ From a set of images (args.in_pattern), and once divided by their scales, 
-        get the average image, rejecting the args.nlow smaller and the args.nhigh 
-        largest for each pixel. The average is determined by args.average, and 
-        could be mean, median or mode."""
+def cube_images(input_images, mask_key, scales):
+    """ From a set of images (input_images), and once divided by their scales, 
+        form a cube with all the images. """
     # Initialize the cube and the mask. 
-    lx, ly = fits.getdata(args.in_pattern[0]).shape
-    lz = len(args.in_pattern)
+    lx, ly = fits.getdata(input_images[0]).shape
+    lz = len(input_images)
     mask = numpy.zeros([lz,lx,ly])  # initialized to zero, all pixels are valid
     cube = numpy.ma.array(mask, mask=mask) 
 
     # Now read all the images (and masks, if present), into the cube
-    for index, image in enumerate(args.in_pattern):
-        im = utils.read_image_with_mask(image, mask_keyword = args.mask_key)
+    for index, image in enumerate(input_images):
+        im = utils.read_image_with_mask(image, mask_keyword = mask_key)
         cube.data[index,:,:] = im.data/scales[index]
         cube.mask[index,:,:] = im.mask
     return cube    
     
 ################################################################################
-def compute_scales(args):
-    """ From the list of images in the argparse object, args.in_pattern, use the central
-        third of the image to calculate the scale necessary to get all the images
-        to the same level of flux, using args.scale (median, mode or mean). """
-    lx, ly = fits.getdata(args.in_pattern[0]).shape
+def compute_scales(input_images, scale):
+    """ From the list of input images use the central third of the image to 
+        calculate the scale necessary to get all the images to the same level
+        of flux, using the scale (median, mode, mean, none) given by user. """
+    lx, ly = fits.getdata(input_images[0]).shape
     scales = []
-    for image in args.in_pattern:
+    for image in input_images:
         centre = fits.open(image, mode="readonly",\
                            memmap=True)[0].section[lx/3:lx*2/3, ly/3:ly*2/3]
-        if args.scale == "mode":
+        if scale == "mode":
             scales.append( mode(centre.astype(int).flatten() ))
-        elif args.scale == "median":
+        elif scale == "median":
             scales.append(numpy.median(centre))
-        elif args.scale == "mean":
-            scales.append(numpy.mean(centre))
+        elif scale == "mean":
+            append(numpy.mean(centre))
         elif args.scale == "none":
-            scales.append(1) 
+            append(1) 
     return scales                                            
                                                                 
 ################################################################################
@@ -179,10 +177,10 @@ def combine(args):
 
         # In order to combine, we first need to scale the images, so that 
         # they are all at the same flux level
-        scales = compute_scales(args)
+        scales = compute_scales(list1, args.scale)
         
         # Now we can build a cube with all the images, masks included. 
-        cube = cube_images(args, scales)
+        cube = cube_images(list1, args.mask_key, scales)
         
         # If nlow != 0 or nhigh!=0 we need to remove the necessary pixels.
         # If user was odd enough to give args.median and args.nlow = args.nhigh
