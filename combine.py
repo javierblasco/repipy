@@ -81,23 +81,21 @@ def cube_images(input_images, mask_key, scales):
     return cube    
     
 ################################################################################
-def compute_scales(input_images, scale):
+def compute_scales(input_images, scale, mask_key):
     """ From the list of input images use the central third of the image to 
         calculate the scale necessary to get all the images to the same level
         of flux, using the scale (median, mode, mean, none) given by user. """
     lx, ly = fits.getdata(input_images[0]).shape
     scales = []
     for image in input_images:
-        centre = fits.open(image, mode="readonly",\
-                           memmap=True)[0].section[lx/3:lx*2/3, ly/3:ly*2/3]
-        if scale == "mode":
-            scales.append( mode(centre.astype(int).flatten() ))
-        elif scale == "median":
-            scales.append(numpy.median(centre))
+        im = utils.read_image_with_mask(image, mask=mask_key)
+        centre = im[lx/3:lx*2/3, ly/3:ly*2/3]
+        if scale == "median":
+            scales.append(numpy.ma.median(centre))
         elif scale == "mean":
-            append(numpy.mean(centre))
-        elif args.scale == "none":
-            append(1) 
+            scales.append(numpy.ma.mean(centre))
+        elif scale == "none":
+            scales.append(1) 
     return scales                                            
                                                                 
 ################################################################################
@@ -175,9 +173,9 @@ def combine(args):
         if args.notest == False:
             run_test(args, list1, filt)
 
-        # In order to combine, we first need to scale the images, so that 
+        # In order to combine, we first need to calculate the scales, so that 
         # they are all at the same flux level
-        scales = compute_scales(list1, args.scale)
+        scales = compute_scales(list1, args.scale, args.mask_key)
         
         # Now we can build a cube with all the images, masks included. 
         cube = cube_images(list1, args.mask_key, scales)
