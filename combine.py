@@ -170,7 +170,7 @@ def combine(args):
  
         # Check that all images have same dimension. If not, exit program
         if not utils.check_dimensions(list1):
-            sys.exit("")
+            sys.exit("Dimensions of images to combine are different!")
 
         # Divide each object by all the others and generate files called 
         # test+out_pattern+filter+num1+num2
