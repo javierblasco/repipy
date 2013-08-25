@@ -91,7 +91,9 @@ def main(arguments=None):
     args = parser.parse_args(arguments)
     if args.output == '' and args.prefix == '' and args.suffix == '':  
         sys.exit("Error! Introduce a prefix, a suffix or an output filename. "+\
-                 "For help: python remove_cosmics.py -h ")     
+                 "For help: python remove_cosmics.py -h ")    
+    if args.suffix != "":
+      args.suffix = args.suffix.strip()
     newfile = remove_cosmics(args)
     return newfile             
 if __name__ == "__main__":
