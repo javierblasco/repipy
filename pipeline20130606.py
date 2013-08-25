@@ -9,7 +9,7 @@ They do not have comprehensible names, but are in sequence and contain raw data.
 
 """
 
-import os, shutil, re, sys
+import os, shutil, re, sys, glob
 import subprocess
 # Advice from Victor Terron in his "lemon setup.py" about how to run mkiraf 
 # automatically:
@@ -17,6 +17,7 @@ if os.path.isfile("login.cl") == False:
     p = subprocess.Popen(['mkiraf'], stdin = subprocess.PIPE, stdout = subprocess.PIPE)
     out, err = p.communicate(input = 'xgterm')
 import numpy as np
+import datetime
 import repipy.utilities as utilities
 import repipy.combine as combine_images
 import repipy.arith as arith_images
@@ -28,7 +29,7 @@ import repipy.complete_headers as complete_headers
 import repipy.calculate_airmass as calculate_airmass
 import repipy.rename as rename
 import repipy.median_filter as median_filter
-import datetime
+import astropy.io.fits as fits
 
 ################################################################################
 #                   Campaign dependent                                         # 
@@ -39,22 +40,7 @@ directory = "/home/blasco/Desktop/DEEP_OBS/20130606/"
 
 # Directory where the lemon pipeline (https://github.com/vterron/lemon) is
 lemon_dir = "/home/blasco/Desktop/librerias_python/lemon"
-
-# Directory with saved master flats. That will save calculating time later on.
-saved_dir = "/home/blasco/Desktop/DEEP_OBS/20130606/saved/"
-if os.path.isfile(saved_dir + 'skyflats/masterflat1_sdssr.fits'):
-    master_skyflats = {datetime.datetime(2013, 6, 7, 4, 19, 10, 297297): 
-                      [saved_dir + 'skyflats/masterflat1_sdssr.fits'], 
-                      datetime.datetime(2013, 6, 6, 20, 2, 38, 200000): 
-                      [saved_dir + 'skyflats/masterflat0_sdssr.fits']}
-if os.path.isfile(saved_dir + 'blanks/masterblank2_sdssr-p2p_filtered.fits'):
-    master_blanks = {datetime.datetime(2013, 6, 7, 2, 24, 44, 333333): 
-                    [saved_dir + 'blanks/masterblank2_sdssr-p2p_filtered.fits'], 
-                     datetime.datetime(2013, 6, 6, 22, 21, 16, 333333): 
-                    [saved_dir + 'blanks/masterblank0_sdssr-p2p_filtered.fits'], 
-                    datetime.datetime(2013, 6, 6, 23, 35, 39, 333333): 
-                    [saved_dir + 'blanks/masterblank1_sdssr-p2p_filtered.fits']}     
-    
+        
 # Images not to be used. Early bias images show too high counts statistics. 
 # And the focus image and the skyflat 1 are of different size to all the others. 
 bad_bias = ["bias_20130606_" + str(ii).zfill(3) + ".fits" for ii in range(1,11)]
@@ -68,7 +54,36 @@ objectk = "object"       # name of object
 rak = "ra"               # degree
 deck = "dec"             # degree
 datek = "date-obs"
+telescope = "CAHA2.2"
 #timek = "date"      
+
+# Directory with saved master flats. That will save calculating time later on.
+saved_dir = "/home/blasco/Desktop/DEEP_OBS/20130606/saved/"
+if os.path.isfile(saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'):
+    master_skyflats = {datetime.datetime(2013, 6, 7, 4, 19, 10, 297297): 
+                      [saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'], 
+                      datetime.datetime(2013, 6, 6, 20, 2, 38, 200000): 
+                      [saved_dir + 'skyflats/masterskyflat0_sdssr-small_scale.fits']}
+    list_mastersky = glob.glob(saved_dir + "skyflats/*")
+    if not os.path.isdir(directory + "skyflats"):
+        os.mkdir(directory + "skyflats")
+    for element in list_mastersky:
+        shutil.copy(element, directory + "skyflats/")        
+          
+if os.path.isfile(saved_dir + 'blanks/masterblank2_sdssr-sf-mf.fits'):
+    master_blanks = {datetime.datetime(2013, 6, 7, 2, 24, 44, 333333): 
+                    [saved_dir + 'blanks/masterblank2_sdssr-sf-mf.fits'], 
+                     datetime.datetime(2013, 6, 6, 22, 21, 16, 333333): 
+                    [saved_dir + 'blanks/masterblank0_sdssr-sf-mf.fits'], 
+                    datetime.datetime(2013, 6, 6, 23, 35, 39, 333333): 
+                    [saved_dir + 'blanks/masterblank1_sdssr-sf-mf.fits']} 
+    list_masterblank = glob.glob(saved_dir + "blanks/*")
+    if not os.path.isdir(directory + "blanks/"):
+        os.mkdir(directory + "blanks/")
+    for element in list_masterblank:
+        shutil.copy(element, directory + "blanks/")
+
+
 ################################################################################
 ################################################################################
 
@@ -88,7 +103,20 @@ def tidy_pattern_dict():
                               "(?P<filt>.*)_(?P<exp_num>\d{3})(?P<rest>\.fits)$"
     in_pattern["blanks"] = "^(?P<name>blank)_(?P<date>\d{8})_(?P<filt>.*)_" +\
                          "(?P<exp_num>\d{3})(?P<rest>\.fits)$"
-    return in_pattern                               
+    return in_pattern     
+
+def cosmic_removal_param(telescope = ''):
+    if telescope == "OSN":
+       cosmic_dict = {}
+       cosmic_dict["gain"] = "2"
+       cosmic_dict["readnoise"]= "5"
+       cosmic_dict["sigclip"] = "5"            
+    if telescope == "CAHA2.2": 
+       cosmic_dict = {}
+       cosmic_dict["gain"] = "1.43"  # from header of image
+       cosmic_dict["readnoise"]= "7.4" # from header of image
+       cosmic_dict["sigclip"] = "5"        
+    return cosmic_dict                     
 ################################################################################
 ################################################################################
 
@@ -107,26 +135,30 @@ for im in remove_images:
     for key in list_images.keys():  # remove that item from all the lists
         list_images[key] = np.delete(list_images[key], index)
 
-# Create masks for all images 
+# Create masks for all images. Stars in blanks need to be removed (max_val small). 
 print "Creating masks"
+whr = np.where(list_images["type"] != "blanks")
 create_masks.main(arguments=["--max_val", "50000", "--circular"] + 
-                  list(list_images["filename"][:]))        
-
+                  list(list_images["filename"][whr]))        
+whr = np.where(list_images["type"] == "blanks")
+create_masks.main(arguments=["--max_val", "20000", "--circular"] + 
+                  list(list_images["filename"][whr]))   
 
 # Combine bias images
 print "Combining bias images"                
 whr = np.where(list_images["type"] == "bias")
 bias_images = list(list_images["filename"][whr])
 superbias = combine_images.main(arguments=["--average", "median", "--all_together",
-                                           "--notest", "-o", "superbias", 
-                                           "--nhigh", "1", "--nlow", "0", 
+                                           "-o", "superbias", "--nlow", "0", 
+                                           "--mask_key", "mask",
                                            "--filterk", filterk] + bias_images[:])    
 
 # Subtract bias from all images.  
 print "Subtracting bias"
-newname = arith_images.main(arguments=["--suffix", " -b", "--message", \
-                            "BIAS SUBTRACTED",] + list(list_images["filename"]) +\
-                            [ "-", superbias["AllFilters"]])
+newname = arith_images.main(arguments=["--suffix", " -b", "--message", 
+                                       "BIAS SUBTRACTED", "--mask_key", 
+                                       "mask"] + list(list_images["filename"]) +
+                                       [ "-", superbias["AllFilters"]])
 list_images["filename"] = np.asarray(newname)
 
  
@@ -145,26 +177,26 @@ except NameError:
                                         [block_limits[ii]:block_limits[ii+1]] )
         skyflat = combine_images.main(arguments=["--average", "median", "--norm",
                                                "--scale", "median", "--notest",
-                                               "-o", "masterflat{0}".format(ii), 
+                                               "-o", "masterskyflat{0}".format(ii), 
                                                "--nhigh", "1", "--nlow", "0",
-                                               "--mask_key", "mask",
+                                               "--mask_key", "mask", "--notest",
                                                "--filterk", filterk] + list(block)[:])    
         master_skyflats[time_block] = skyflat.values()
     
-        # Dividing the combined flat with a median-filtered version of itself the 
-        # large scale changes are removed, and only the pixel-to-pixel (p2p) 
-        # differences remain. 
-        
+    # Dividing the combined flat with a median-filtered version of itself the 
+    # large scale changes are removed, and only the pixel-to-pixel (p2p) 
+    # differences remain.         
     print "Creating pixel-to-pixel combined images"
     for key,image in master_skyflats.items():
         print key
         # first filter with median
         filtered = median_filter.main(arguments= image + ["--mask_key", "mask",
-        "--side", "100", "--fill_val", "0"])
+        "--side", "150", "--fill_val", "0"])
         # then divide "image" by "filtered"
-        divided = arith_images.main(arguments=["--suffix", " -small_scale", "--message",
-                                               "REMOVE LARGE SCALE STRUCT"] + image +\
-                                               ["/"] + filtered)
+        divided = arith_images.main(arguments=["--suffix", " -small_scale", 
+                                               "--message", 
+                                               "REMOVE LARGE SCALE STRUCT"] +
+                                               image + ["/"] + filtered)
         master_skyflats[key] = divided    
 
 # Combine blanks also in blocks. In this case, we will combine images from  
@@ -178,14 +210,16 @@ except NameError:
     times = list_images["time"][blank_indices]  # times of the blank images 
     block_limits = utilities.group_images_in_blocks(times, limit=5)  
     master_blanks = {} 
-    for ii in range(len(block_limits)-2): 
-        block = list_images["filename"][blank_indices][block_limits[ii]:block_limits[ii+2]]
+    for ii in range(len(block_limits)-1): 
+        block = list_images["filename"][blank_indices][block_limits[ii]:block_limits[ii+1]]
         time_block = utilities.mean_datetime(list_images["time"][blank_indices]
                                         [block_limits[ii]:block_limits[ii+1]] )
         blank = combine_images.main(arguments=["--average", "median", "--norm",\
-                                               "--scale", "median", "--notest",\
-                                               "-o", "masterblank{0}".format(ii), 
-                                               "--nhigh", "2", "--nlow", "0", 
+                                               "--scale", "median", "--mask_key",\
+                                               "mask", "-o", 
+                                               "masterblank{0}".format(ii), 
+                                               "--nhigh", "0", "--nlow", "0",
+                                               "--nmin", "2",
                                                "--filterk", filterk] + list(block)[:])    
         master_blanks[time_block] = blank.values()
     
@@ -197,19 +231,22 @@ except NameError:
         time_diff = np.asarray(master_skyflats.keys()) - np.asarray(time)
         closest = np.argmin(abs(time_diff))
         # correct pixel-to-pixel differences (from skyflats)
-        print type(image), type(master_skyflats.values()[closest])
         print image, master_skyflats.values()[closest]
         corrected = arith_images.main(arguments=["--suffix", " -sf", "--message",
-                                                 "REMOVE SMALL SCALE STRUCTURE"]+
+                                                 "REMOVE SMALL SCALE STRUCTURE",
+                                                 "--mask_key", "mask"]+
                                                  image + ["/"] + 
                                                  master_skyflats.values()[closest])
         smoothed = median_filter.main(arguments= corrected + [ "--mask_key", "mask",
-            "--side", "100", "--fill_val", "0"])
+            "--side", "150", "--fill_val", "0"])
         master_blanks[time] = smoothed
     print "master_blanks = {", master_blanks, "}"    
 
+
+
 # Now we will correct each image with the closest sky flat field (for small
 # scale variations) and the closest blank field (for large scale flatfielding)
+print "Correcting all images from both small scale and large scale flat."
 for index in range(len(list_images["filename"])):
     time = list_images["time"][index]
     image = list_images["filename"][index] 
@@ -223,10 +260,53 @@ for index in range(len(list_images["filename"])):
     # Now the large scale using the blanks
     time_diff = np.asarray(master_blanks.keys()) - time 
     closest = np.argmin(abs(time_diff))
-    corrected = arith_images.main(arguments=["--suffix", " -sb", "--message",
+    corrected = arith_images.main(arguments=["--suffix", " -bf", "--message",
                                              "REMOVE LARGE SCALE STRUCTURE"] +
                                              corrected + ["/"] + 
                                              master_blanks.values()[closest])
+
+#print "Removing cosmic rays from images"
+#cosmic_dict = cosmic_removal_param(telescope)  # Read the parameters (gain,readout noise)
+#for index, im in enumerate(list_images["filename"]):
+#    if list_images["type"][index] not in ["bias", "flats"]:        
+#            newname = remove_cosmics.main(arguments=["--suffix", " -c", "--gain",\
+#                   cosmic_dict["gain"], "--readnoise", cosmic_dict["readnoise"], \
+#                   "--sigclip", cosmic_dict["sigclip"], "--maxiter", "3", im])
+#            list_images["filename"][index] = newname
+
+print "Estimate seeing from images"
+for index, image in enumerate(list_images["filename"]):
+    if list_images["type"][index] not in ("bias", "skyflats", "domeflats", "unknown"):
+        # Victor Terron has promissed changing dirs will soon be unnecessary 
+        curdir = os.path.abspath(os.curdir)
+        os.chdir(lemon_dir)
+        import lemon.seeing as seeing
+        seeing.main(arguments=["--margin", "0", "--filename", '', "--suffix",
+                               "-s", image, os.path.split(image)[0] ])
+        newname = utilities.add_suffix_prefix(image, suffix = "-s")
+        os.chdir(curdir)
+        list_images["filename"][index] = newname
+  
+        # While running lemon.seeing a sextractor catalogue is produced. 
+        catalog = fits.getheader(newname)["SEX CATALOG"]
+        catalog_newname = utilities.replace_extension(newname, ".cat")
+        shutil.copy(catalog, catalog_newname)
+        utilities.header_update_keyword(newname, "SEX CATALOG", catalog_newname)
+
+print "Aligning images of the CIGs and the standards"
+types_need_aligning = (current_type for current_type in set(list_images["type"]) 
+                                     if current_type in ["cig", "standards"])
+for current_type in types_need_aligning:
+    whr = numpy.where(list_images["type"] == current_type)
+    
+
+
+        
+print list_images["filename"]
+
+
+
+
 sys.exit()
 
 
@@ -256,69 +336,6 @@ sys.exit()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Subtract bias from all images.  
-print "Correcting blanks from pixel-to-pixel differences"
-whr = np.where(list_images["type"] == "blanks")
-blank_list = list(list_images["filename"][whr])
-newname = arith_images.main(arguments=["--suffix", " -f1",] +\
-                            blank_list + [ "/", ])
-list_images["filename"] = np.asarray(newname)
-
-
-
-
-
-
-# Flat-field correction using the flat that is closest (in time) to each image.
-print "Flat-fielding using the closest flat image"
-flats = master_skyflats  # we will use, for the moment, the sky flats. 
-for index, time, image in zip( range(len(list_images["time"])), 
-                               list_images["time"], 
-                               list_images["filename"]):
-    time_diff = np.asarray(flats.keys()) - np.asarray(time)
-    closest = np.argmin(abs(time_diff))  
-    key_closest = flats.keys()[closest]
-    newname = arith_images.main(arguments=["--suffix", " -f", "--message", \
-                                "FLAT-FIELD CORRECTION:", image, "/"] + \
-                                    flats[key_closest])
-    list_images["filename"][index] = newname[0]  
-
-# Measuring seeing for every image except bias or flats. 
-print "Finding FWH"
-for index, im in enumerate(list_images["filename"]):
-    if list_images["type"][index] not in \
-                                     ["bias", "skyflats", "blanks", "domeflats"]:
-        curdir = os.path.abspath(os.curdir)
-        os.chdir(lemon_dir)
-        import lemon.seeing as seeing
-        seeing.main(arguments=["--margin", "0", "--filename", '', 
-                               im, os.path.split(im)[0] ])
-        os.chdir(curdir)
-
-# Find stars
-print "Finding stars in images"
-
-print list_images["type"]
-
-sys.exit("Final")
-    
 
 
 
