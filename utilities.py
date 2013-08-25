@@ -129,8 +129,6 @@ def add_suffix_prefix(filename, prefix='', suffix=''):
     for extension in outfile.split(os.extsep)[1:]:
         out_extensions += "." + extension
         
-    print "prefix", prefix, "suffix", suffix
-    
     # Now construct the output file including the prefix/suffix if present
     if prefix != '' and suffix != '':
         outpt = os.path.join(outdir, prefix + outfile_root + \
