@@ -128,6 +128,8 @@ def add_suffix_prefix(filename, prefix='', suffix=''):
     out_extensions = ""
     for extension in outfile.split(os.extsep)[1:]:
         out_extensions += "." + extension
+        
+    print "prefix", prefix, "suffix", suffix
     
     # Now construct the output file including the prefix/suffix if present
     if prefix != '' and suffix != '':
@@ -139,6 +141,15 @@ def add_suffix_prefix(filename, prefix='', suffix=''):
         outpt = os.path.join(outdir, outfile_root + suffix + out_extensions)
 
     return outpt
+    
+def replace_extension(filename, new_extension):
+    """ From the name of a file (possibly full path) change the extension 
+        by another one given by user"""
+    if new_extension[0] != ".":
+        new_extension = "." + new_extension
+    path, name = os.path.split(filename)
+    name_root, name_ext = os.path.splitext(name)
+    return os.path.join(path, name_root + new_extension)
 
 def homogeneous_filter_name(filt):
     """ Find a common name for all those thousands of differents ways of 
@@ -271,6 +282,32 @@ def header_update_keyword(image, keyword, value, comment=""):
     im.flush()
     im.close()
 
-def check_sizes(imagelist):
-    """ Uses pyraf to check if a list of images have the same size """
+def read_from_sextractor_catalogue(filename, keys):
+    """ Read from a sextractor catalogue the given keys, for example 
+        keys = ["X_IMAGE", "Y_IMAGE", "MAG_AUTO"] """
+    indices = [0] * len(keys)
+    with open(filename, "r") as f:
+        line = f.readline().split()
+        # Read which row the keys have
+        while line[0] == "#": 
+            if line[2] in keys:
+                indices[keys.index(line[2])] = int(line[1]) - 1
+            line = f.readline().split()
+        # If not all keys found
+        if 0 in indices:
+            which_are_zero = [keys[ii] for ii in indices if indices == 0]
+            sys.exit("Impossible to read sextractor catalog, some keys are "+\
+                     "not present: " + ", ".join(which_are_zero))
+                 
+        values = {keys[ii]:[] for ii in range(len(keys))}  
+        while line != []:  # until end of file
+            for ii in range(len(keys)):
+                try:
+                    values[keys[ii]].append(float(line[indices[ii]]))
+                except:
+                    print line
+            line = f.readline().split()
+        return values
+         
+    
         
