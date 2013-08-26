@@ -58,30 +58,30 @@ telescope = "CAHA2.2"
 #timek = "date"      
 
 # Directory with saved master flats. That will save calculating time later on.
-saved_dir = "/home/blasco/Desktop/DEEP_OBS/20130606/saved/"
-if os.path.isfile(saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'):
-    master_skyflats = {datetime.datetime(2013, 6, 7, 4, 19, 10, 297297): 
-                      [saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'], 
-                      datetime.datetime(2013, 6, 6, 20, 2, 38, 200000): 
-                      [saved_dir + 'skyflats/masterskyflat0_sdssr-small_scale.fits']}
-    list_mastersky = glob.glob(saved_dir + "skyflats/*")
-    if not os.path.isdir(directory + "skyflats"):
-        os.mkdir(directory + "skyflats")
-    for element in list_mastersky:
-        shutil.copy(element, directory + "skyflats/")        
-          
-if os.path.isfile(saved_dir + 'blanks/masterblank2_sdssr-sf-mf.fits'):
-    master_blanks = {datetime.datetime(2013, 6, 7, 2, 24, 44, 333333): 
-                    [saved_dir + 'blanks/masterblank2_sdssr-sf-mf.fits'], 
-                     datetime.datetime(2013, 6, 6, 22, 21, 16, 333333): 
-                    [saved_dir + 'blanks/masterblank0_sdssr-sf-mf.fits'], 
-                    datetime.datetime(2013, 6, 6, 23, 35, 39, 333333): 
-                    [saved_dir + 'blanks/masterblank1_sdssr-sf-mf.fits']} 
-    list_masterblank = glob.glob(saved_dir + "blanks/*")
-    if not os.path.isdir(directory + "blanks/"):
-        os.mkdir(directory + "blanks/")
-    for element in list_masterblank:
-        shutil.copy(element, directory + "blanks/")
+#saved_dir = "/home/blasco/Desktop/DEEP_OBS/20130606/saved/"
+#if os.path.isfile(saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'):
+#    master_skyflats = {datetime.datetime(2013, 6, 7, 4, 19, 10, 297297): 
+#                      [saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'], 
+#                      datetime.datetime(2013, 6, 6, 20, 2, 38, 200000): 
+#                      [saved_dir + 'skyflats/masterskyflat0_sdssr-small_scale.fits']}
+#    list_mastersky = glob.glob(saved_dir + "skyflats/*")
+#    if not os.path.isdir(directory + "skyflats"):
+#        os.mkdir(directory + "skyflats")
+#    for element in list_mastersky:
+#        shutil.copy(element, directory + "skyflats/")        
+#          
+#if os.path.isfile(saved_dir + 'blanks/masterblank2_sdssr-sf-mf.fits'):
+#    master_blanks = {datetime.datetime(2013, 6, 7, 2, 24, 44, 333333): 
+#                    [saved_dir + 'blanks/masterblank2_sdssr-sf-mf.fits'], 
+#                     datetime.datetime(2013, 6, 6, 22, 21, 16, 333333): 
+#                    [saved_dir + 'blanks/masterblank0_sdssr-sf-mf.fits'], 
+#                    datetime.datetime(2013, 6, 6, 23, 35, 39, 333333): 
+#                    [saved_dir + 'blanks/masterblank1_sdssr-sf-mf.fits']} 
+#    list_masterblank = glob.glob(saved_dir + "blanks/*")
+#    if not os.path.isdir(directory + "blanks/"):
+#        os.mkdir(directory + "blanks/")
+#    for element in list_masterblank:
+#        shutil.copy(element, directory + "blanks/")
 
 
 ################################################################################
@@ -140,9 +140,13 @@ print "Creating masks"
 whr = np.where(list_images["type"] != "blanks")
 create_masks.main(arguments=["--max_val", "50000", "--circular"] + 
                   list(list_images["filename"][whr]))        
+
 whr = np.where(list_images["type"] == "blanks")
-create_masks.main(arguments=["--max_val", "20000", "--circular"] + 
-                  list(list_images["filename"][whr]))   
+create_masks.main(arguments=["--max_val", "18000", "--min_val", "1000", "--stars",
+                             "--circular"] + list(list_images["filename"][whr])) 
+
+
+# In the case of  
 
 # Combine bias images
 print "Combining bias images"                
@@ -264,7 +268,7 @@ for index in range(len(list_images["filename"])):
                                              "REMOVE LARGE SCALE STRUCTURE"] +
                                              corrected + ["/"] + 
                                              master_blanks.values()[closest])
-
+    list_images["filename"][index] = corrected[0]
 #print "Removing cosmic rays from images"
 #cosmic_dict = cosmic_removal_param(telescope)  # Read the parameters (gain,readout noise)
 #for index, im in enumerate(list_images["filename"]):
@@ -275,8 +279,10 @@ for index in range(len(list_images["filename"])):
 #            list_images["filename"][index] = newname
 
 print "Estimate seeing from images"
+print set(list_images["type"])
+sys.exit()
 for index, image in enumerate(list_images["filename"]):
-    if list_images["type"][index] not in ("bias", "skyflats", "domeflats", "unknown"):
+    if list_images["type"][index] in ("cig", "standards", "clusters"):
         # Victor Terron has promissed changing dirs will soon be unnecessary 
         curdir = os.path.abspath(os.curdir)
         os.chdir(lemon_dir)
@@ -284,27 +290,23 @@ for index, image in enumerate(list_images["filename"]):
         seeing.main(arguments=["--margin", "0", "--filename", '', "--suffix",
                                "-s", image, os.path.split(image)[0] ])
         newname = utilities.add_suffix_prefix(image, suffix = "-s")
+        print "\n newname", newname, "\n"
         os.chdir(curdir)
         list_images["filename"][index] = newname
-  
+            
         # While running lemon.seeing a sextractor catalogue is produced. 
         catalog = fits.getheader(newname)["SEX CATALOG"]
         catalog_newname = utilities.replace_extension(newname, ".cat")
+        catalog_newname = os.path.split(catalog_newname)[1]
         shutil.copy(catalog, catalog_newname)
         utilities.header_update_keyword(newname, "SEX CATALOG", catalog_newname)
 
 print "Aligning images of the CIGs and the standards"
 types_need_aligning = (current_type for current_type in set(list_images["type"]) 
                                      if current_type in ["cig", "standards"])
-for current_type in types_need_aligning:
-    whr = numpy.where(list_images["type"] == current_type)
+for current_type in types_need_aligning:    
+    whr = np.where(list_images["type"] == current_type)
     
-
-
-        
-print list_images["filename"]
-
-
 
 
 sys.exit()
