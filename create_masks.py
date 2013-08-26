@@ -14,6 +14,9 @@ import repipy.utilities as utils
 from scipy import ndimage
 from scipy import optimize
 
+def gauss(x, *p):
+    A,mu,sigma = p
+    return A*numpy.exp(-(x-mu)**2/(2.*sigma**2))    
 
 def apply_sobel_filter(image):
     """ Apply sobel filter on an image, return the filtered object. 
@@ -122,9 +125,24 @@ def mask(args):
                 radius = radius - args.margin   # avoid border effects
                 mask = mask_circle(mask, xc, yc, radius, value=args.false_val)
     
-        # Now mask invalid values:
+        # Maxval, minval masking
         bad_pixels = numpy.where((data < args.minval) | (data > args.maxval))
         mask[bad_pixels] = args.false_val
+        
+        # Star masking fitting sky
+        if args.stars:  # if stars in the image
+            unmasked = data[mask == 0].flatten()        
+            n, bins = numpy.histogram(unmasked, bins=range(min(unmasked),
+                                                           max(unmasked),50))
+            bincenters = 0.5*(bins[1:]+bins[:-1])   
+            max_pos = n.argmax()
+            max_value = bincenters[max_pos]  #value of the sky
+            p0 = [n[max_pos], max_value, 50]
+            coeff, varmatrix = optimize.curve_fit(gauss, 
+                                                  bincenters[max_pos-5:max_pos+5],
+                                                  n[max_pos-5:max_pos+5],p0=p0)
+            max_sky = coeff[1] + 3. * coeff[2] # 2 sigma above sky level
+            mask[data > max_sky] = 1
         
         # Save mask image
         maskname = args.output
@@ -179,6 +197,9 @@ parser.add_argument("--circular", action="store_true", dest="circular", \
                    default=False, help=' Use if the field of view is circular, '+\
                    ' while the image is a rectangle. Mask is set to zero_value '+\
                    'the circle. ')
+parser.add_argument("--stars", action="store_true", dest="stars", \
+                   default=False, help=' Use if you want to mask stars in '+\
+                   ' an image. ')                  
 parser.add_argument("--true_val", metavar="true_val", dest='true_val', default=0, \
                    type=int, action='store', help='Value for the VALID points. '+\
                    'those you DO NOT want to mask out. Default: 0 ')
