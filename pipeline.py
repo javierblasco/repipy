@@ -35,7 +35,6 @@ if len(sys.argv) != 2:
     print sys.exit("Give me a campaign file....")
 
 execfile(sys.argv[1])
-print master_skyflats
 
 
 ################################################################################
@@ -77,7 +76,7 @@ list_images = rename.main(arguments=["--copy", "--objectk", objectk,\
                                      "--filterk", filterk, "--datek", datek,\
                                      "--overwrite", "--exptime", exptimek,\
                                      directory])    
-    
+
 # Remove images in list remove_images.
 print "Removing images as selected by user, if any."
 for im in remove_images:
@@ -95,9 +94,6 @@ whr = np.where(list_images["type"] == "blanks")
 create_masks.main(arguments=["--max_val", "30000", "--min_val", "1000", "--stars",
                              "--circular"] + list(list_images["filename"][whr])) 
 
-
-# In the case of  
-
 # Combine bias images
 print "Combining bias images"                
 whr = np.where(list_images["type"] == "bias")
@@ -113,8 +109,7 @@ newname = arith_images.main(arguments=["--suffix", " -b", "--message",
                                        "BIAS SUBTRACTED", "--mask_key", 
                                        "mask"] + list(list_images["filename"]) +
                                        [ "-", superbias["AllFilters"]])
-list_images["filename"] = np.asarray(newname)
-
+list_images["filename"][:] = newname
  
 # Combine skyflats using blocks to distinguish between sunset and sunrise flats.
 try:
@@ -174,7 +169,8 @@ except NameError:
                                                "masterblank{0}".format(ii), 
                                                "--nhigh", "0", "--nlow", "0",
                                                "--nmin", "2",
-                                               "--filterk", filterk] + list(block)[:])    
+                                               "--filterk", filterk] + 
+                                               list(block)[:])    
         master_blanks[time_block] = blank.values()
     
     # Use the pixel-to-pixel differences in master_skyflats to correct the 
@@ -197,7 +193,6 @@ except NameError:
     print "master_blanks = {", master_blanks, "}"    
 
 
-
 # Now we will correct each image with the closest sky flat field (for small
 # scale variations) and the closest blank field (for large scale flatfielding)
 print "Correcting all images from both small scale and large scale flat."
@@ -211,6 +206,7 @@ for index in range(len(list_images["filename"])):
                                              "REMOVE SMALL SCALE STRUCTURE",
                                              image] + ["/"] + 
                                              master_skyflats.values()[closest])
+
     # Now the large scale using the blanks
     time_diff = np.asarray(master_blanks.keys()) - time 
     closest = np.argmin(abs(time_diff))
@@ -219,6 +215,7 @@ for index in range(len(list_images["filename"])):
                                              corrected + ["/"] + 
                                              master_blanks.values()[closest])
     list_images["filename"][index] = corrected[0]
+    
 #print "Removing cosmic rays from images"
 #cosmic_dict = cosmic_removal_param(telescope)  # Read the parameters (gain,readout noise)
 #for index, im in enumerate(list_images["filename"]):
@@ -227,14 +224,10 @@ for index in range(len(list_images["filename"])):
 #                   cosmic_dict["gain"], "--readnoise", cosmic_dict["readnoise"], \
 #                   "--sigclip", cosmic_dict["sigclip"], "--maxiter", "3", im])
 #            list_images["filename"][index] = newname
-for name in list_images["filename"]:
-    print name
-sys.exit()
 
 print "Estimate seeing from images"
 for index, image in enumerate(list_images["filename"]):
     if list_images["type"][index] in ("cig", "standards", "clusters"):
-        print "Image: ", image
         # Victor Terron has promissed changing dirs will soon be unnecessary 
         curdir = os.path.abspath(os.curdir)
         os.chdir(lemon_dir)
@@ -249,9 +242,10 @@ for index, image in enumerate(list_images["filename"]):
         # While running lemon.seeing a sextractor catalogue is produced. 
         catalog = fits.getheader(newname)["SEX CATALOG"]
         catalog_newname = utilities.replace_extension(newname, ".cat")
-        catalog_newname = os.path.split(catalog_newname)[1]
         shutil.copy(catalog, catalog_newname)
-        utilities.header_update_keyword(newname, "SEX CATALOG", catalog_newname)
+        # Damn FITS format and its constraints!
+        short_name = os.path.split(catalog_newname)[1]
+        utilities.header_update_keyword(newname, "SEX CATALOG", short_name)
 
 print "Aligning images of the CIG(s), standards and cluster(s)"
 # List of objects to be aligned. There might be several cigs, several clusters
