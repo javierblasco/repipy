@@ -157,7 +157,7 @@ def rename(args):
     # The output of the whole code will be this dictionary, in which the images 
     # are sorted in groups (bias, skyflats, domeflats, cigXXXX, ...)
     empty_array = np.asarray([], dtype=object)
-    final_dict = {"filename":empty_array, 
+    final_dict = {"filename":np.asarray([], dtype="S150"), # defaults S70 too small 
                   "type":empty_array, 
                   "objname":empty_array,
                   "time":empty_array}
