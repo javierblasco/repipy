@@ -122,7 +122,7 @@ def distinguish_type(object_name):
         if number.isdigit() == True and len(number) <= 4:
             number = "{0:04d}".format(int(number))
             object_name = "cig" + number
-            object_type = "cig" + number
+            object_type = "cig"
     # If "cig" is missing, but there is a number, add "cig":        
     elif object_name.isdigit() == True :
         object_name = "{0:04d}".format(int(object_name))

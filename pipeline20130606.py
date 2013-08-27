@@ -36,7 +36,7 @@ import astropy.io.fits as fits
 ################################################################################
 
 # Work directory
-directory = "/home/blasco/Desktop/DEEP_OBS/20130606/"
+directory = "/mnt/data/DEEP_OBS/20130606/"
 
 # Directory where the lemon pipeline (https://github.com/vterron/lemon) is
 lemon_dir = "/home/blasco/Desktop/librerias_python/lemon"
@@ -58,30 +58,34 @@ telescope = "CAHA2.2"
 #timek = "date"      
 
 # Directory with saved master flats. That will save calculating time later on.
-#saved_dir = "/home/blasco/Desktop/DEEP_OBS/20130606/saved/"
-#if os.path.isfile(saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'):
-#    master_skyflats = {datetime.datetime(2013, 6, 7, 4, 19, 10, 297297): 
-#                      [saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'], 
-#                      datetime.datetime(2013, 6, 6, 20, 2, 38, 200000): 
-#                      [saved_dir + 'skyflats/masterskyflat0_sdssr-small_scale.fits']}
-#    list_mastersky = glob.glob(saved_dir + "skyflats/*")
-#    if not os.path.isdir(directory + "skyflats"):
-#        os.mkdir(directory + "skyflats")
-#    for element in list_mastersky:
-#        shutil.copy(element, directory + "skyflats/")        
-#          
-#if os.path.isfile(saved_dir + 'blanks/masterblank2_sdssr-sf-mf.fits'):
-#    master_blanks = {datetime.datetime(2013, 6, 7, 2, 24, 44, 333333): 
-#                    [saved_dir + 'blanks/masterblank2_sdssr-sf-mf.fits'], 
-#                     datetime.datetime(2013, 6, 6, 22, 21, 16, 333333): 
-#                    [saved_dir + 'blanks/masterblank0_sdssr-sf-mf.fits'], 
-#                    datetime.datetime(2013, 6, 6, 23, 35, 39, 333333): 
-#                    [saved_dir + 'blanks/masterblank1_sdssr-sf-mf.fits']} 
-#    list_masterblank = glob.glob(saved_dir + "blanks/*")
-#    if not os.path.isdir(directory + "blanks/"):
-#        os.mkdir(directory + "blanks/")
-#    for element in list_masterblank:
-#        shutil.copy(element, directory + "blanks/")
+saved_dir = "/mnt/data/DEEP_OBS/20130606/saved/"
+if os.path.isfile(saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'):
+    print "Reading masterskyflats from:", saved_dir + "skyflats/"
+    master_skyflats = {datetime.datetime(2013, 6, 7, 4, 19, 10, 297297): 
+                      [saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'], 
+                      datetime.datetime(2013, 6, 6, 20, 2, 38, 200000): 
+                      [saved_dir + 'skyflats/masterskyflat0_sdssr-small_scale.fits']}
+    list_mastersky = glob.glob(saved_dir + "skyflats/*")
+    if not os.path.isdir(directory + "skyflats"):
+        os.mkdir(directory + "skyflats")
+    for element in list_mastersky:
+        shutil.copy(element, directory + "skyflats/")        
+          
+if os.path.isfile(saved_dir + 'blanks/masterblank0_sdssr-sf-mf.fits'):
+    print "Reading masterblanks from:", saved_dir + "blanks/" 
+    master_blanks = {datetime.datetime(2013, 6, 7, 2, 24, 44, 333333): 
+                     [saved_dir + 'blanks/masterblank2_sdssr-sf-mf.fits'],
+                     datetime.datetime(2013, 6, 6, 22, 21, 16, 333333): 
+                     [saved_dir + 'blanks/masterblank0_sdssr-sf-mf.fits'], 
+                     datetime.datetime(2013, 6, 7, 3, 24, 21, 333333): 
+                     [saved_dir + '/blanks/masterblank3_sdssr-sf-mf.fits'], 
+                     datetime.datetime(2013, 6, 6, 23, 35, 39, 333333): 
+                     [saved_dir + 'blanks/masterblank1_sdssr-sf-mf.fits']}     
+    list_masterblank = glob.glob(saved_dir + "blanks/*")
+    if not os.path.isdir(directory + "blanks/"):
+        os.mkdir(directory + "blanks/")
+    for element in list_masterblank:
+        shutil.copy(element, directory + "blanks/")
 
 
 ################################################################################
@@ -142,7 +146,7 @@ create_masks.main(arguments=["--max_val", "50000", "--circular"] +
                   list(list_images["filename"][whr]))        
 
 whr = np.where(list_images["type"] == "blanks")
-create_masks.main(arguments=["--max_val", "18000", "--min_val", "1000", "--stars",
+create_masks.main(arguments=["--max_val", "30000", "--min_val", "1000", "--stars",
                              "--circular"] + list(list_images["filename"][whr])) 
 
 
@@ -202,7 +206,7 @@ except NameError:
                                                "REMOVE LARGE SCALE STRUCT"] +
                                                image + ["/"] + filtered)
         master_skyflats[key] = divided    
-
+    print "master_skyflats ={", master_skyflats, "}"
 # Combine blanks also in blocks. In this case, we will combine images from  
 # every two consecutive blocks, because we only have three blanks per block
 # and the dithering is not large enough, so too many residuals were present. 
@@ -301,13 +305,22 @@ for index, image in enumerate(list_images["filename"]):
         shutil.copy(catalog, catalog_newname)
         utilities.header_update_keyword(newname, "SEX CATALOG", catalog_newname)
 
-print "Aligning images of the CIGs and the standards"
-types_need_aligning = (current_type for current_type in set(list_images["type"]) 
-                                     if current_type in ["cig", "standards"])
-for current_type in types_need_aligning:    
+print "Aligning images of the CIG(s), standards and cluster(s)"
+# List of objects to be aligned. There might be several cigs, several clusters
+# and several standard fields.
+types_need_aligning = ["cig", "standards","cluster"]
+objects_need_aligning = ()
+for current_type in types_need_aligning:
     whr = np.where(list_images["type"] == current_type)
-    
+    objects_need_aligning = objects_need_aligning + tuple(set(list_images["object"][whr]))
 
+# For each object, read x_image, y_image, mag_auto from the sextractor catalog, 
+# select the top 20 brightest stars and find the translation between images
+for current_object in object_need_aligning:    
+    whr = np.where(list_images["object"] == current_object)[0]
+    for ii in whr:
+        print current_object, list_images["object"][ii]
+    
 
 sys.exit()
 
