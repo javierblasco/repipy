@@ -31,7 +31,7 @@ import repipy.rename as rename
 import repipy.median_filter as median_filter
 import astropy.io.fits as fits
 
-if len(sys.argv != 2):
+if len(sys.argv) != 2:
     print sys.exit("Give me a campaign file....")
 
 execfile(sys.argv[1])
