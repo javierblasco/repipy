@@ -232,10 +232,10 @@ def combine(args):
  
         # Add comments to the headers
         string1 = " - Image built from the combination of the images: "+\
-                 " ,".join(list1) + "\n"
+                 " ,".join(list1) 
         string2 = " combine = " + args.average + ", scale = " + args.scale +\
                  ", reject = minmax, nhigh = " + str(args.nhigh) + ", nlow = "+\
-                 str(args.nlow) + "\n"
+                 str(args.nlow)
         utils.add_history_line(newfile, string1 + string2 )  
         utils.add_history_line(name_mask, " - Mask of image: " + newfile)
         if args.mask_key != "":
