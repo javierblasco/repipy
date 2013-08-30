@@ -1,12 +1,11 @@
 #! /usr/bin/env python
 import os
 import re
-import pyfits
+import astropy.io.fits as fits
 from pyraf.iraf import imarith as imarith
 import sys
 import argparse
 import numpy
-import astropy.io.fits as fits
 import repipy.utilities as utils
 """ Wrapper for imarith using pyraf. The program will perform an operation 
     between images"""

@@ -1,6 +1,6 @@
 import scipy
 import numpy
-import pyfits
+import astropy.io.fits as fits
 import os
 import sys
 import argparse
@@ -31,9 +31,9 @@ def find_sky(args):
     imdir, imname = os.path.split(args.input[0])
 
     # Read images
-    im = pyfits.open(args.input[0], mode='update')
+    im = fits.open(args.input[0], mode='update')
     hdr = im[0].header
-    data = pyfits.getdata(args.input[0])
+    data = fits.getdata(args.input[0])
     
     # If mask exist read it, otherwise build it with all values unmasked
     if hdr.has_key("mask") == True:

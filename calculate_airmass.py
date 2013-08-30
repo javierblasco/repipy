@@ -1,4 +1,4 @@
-import pyfits
+import astropy.io.fits as fits
 import sys
 import repipy.utilities as utils
 from pyraf import iraf
@@ -33,7 +33,7 @@ parser.add_argument("--equinox", metavar='equinox', action='store', dest='equino
 
 def estimate_airmass(args):
     for image in args.input:
-        im = pyfits.open(image, mode="update")
+        im = fits.open(image, mode="update")
         hdr = im[0].header
         
         # Read all the variables from the header

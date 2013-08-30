@@ -26,7 +26,7 @@ and pass those keywords.
 
 
 INPUT: 
-    hdr: header (pyfits) of the image to check for the existence of the keywords
+    hdr: header (astropy.io.fits) of the image to check for the existence of the keywords
     needed: list with which keywords exactly we need to find. Combine.py will need
             a set that does not coincide with the one needed by rename.py and so on
     args: parser of commands given by the user when calling combine.py, rename.py or
