@@ -2,7 +2,6 @@
 """ List of functions to help in general life """
 
 import os, re
-import pyfits
 import collections
 import datetime
 import pytz
@@ -244,7 +243,8 @@ def create_dirs(dirs, directory):
 
 def name_pattern(pattern, lista):
     """ Extract info from the patterns in a list of filenames and saves it in 
-    dictionaries. Pattern needs to be a dictionary where the result of the pattern generates
+    dictionaries. Pattern needs to be a dictionary where the result of the 
+    pattern generates
     a dictionary (e.g: "cig(?P<cig_num>\d{3,4}).fits" would be a valid pattern, 
     "cig(\d{3,4}).fits" would not). lista be a list of names. """
     dictionary = {}
@@ -266,7 +266,7 @@ def list_dir(directory):
         
 def add_history_line(image, text):
     """ Add a history line to the image with the text given """
-    im = pyfits.open(image, mode="update")
+    im = fits.open(image, mode="update")
     hdr = im[0].header
     hdr.add_history(text)
     im.flush()
@@ -274,15 +274,15 @@ def add_history_line(image, text):
 
 def header_update_keyword(image, keyword, value, comment=""):
     """ Update a header keyword, or create it if not present """
-    im = pyfits.open(image, mode="update")
+    im = fits.open(image, mode="update")
     hdr = im[0].header
     hdr.update(keyword, value, comment)
     im.flush()
     im.close()
 
-def read_from_sextractor_catalogue(filename, keys):
+def read_from_sextractor_catalogue(filename, *keys):
     """ Read from a sextractor catalogue the given keys, for example 
-        keys = ["X_IMAGE", "Y_IMAGE", "MAG_AUTO"] """
+        keys can be "X_IMAGE", "Y_IMAGE", "MAG_AUTO" """
     indices = [0] * len(keys)
     with open(filename, "r") as f:
         line = f.readline().split()
@@ -297,13 +297,10 @@ def read_from_sextractor_catalogue(filename, keys):
             sys.exit("Impossible to read sextractor catalog, some keys are "+\
                      "not present: " + ", ".join(which_are_zero))
                  
-        values = {keys[ii]:[] for ii in range(len(keys))}  
+        values = [np.asarray([])] * len(keys) 
         while line != []:  # until end of file
             for ii in range(len(keys)):
-                try:
-                    values[keys[ii]].append(float(line[indices[ii]]))
-                except:
-                    print line
+                values[ii] = np.append(values[ii], float(line[indices[ii]]))
             line = f.readline().split()
         return values
          
