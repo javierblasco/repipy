@@ -250,18 +250,23 @@ for index, image in enumerate(list_images["filename"]):
 print "Aligning images of the CIG(s), standards and cluster(s)"
 # List of objects to be aligned. There might be several cigs, several clusters
 # and several standard fields.
-types_need_aligning = ["cig", "standards","cluster"]
+types_need_aligning = ["cig", "standards","clusters"]
 objects_need_aligning = ()
 for current_type in types_need_aligning:
     whr = np.where(list_images["type"] == current_type)
-    objects_need_aligning = objects_need_aligning + tuple(set(list_images["object"][whr]))
+    objects_need_aligning = objects_need_aligning + tuple(set(list_images["objname"][whr]))
 
 # For each object, read x_image, y_image, mag_auto from the sextractor catalog, 
 # select the top 20 brightest stars and find the translation between images
-for current_object in object_need_aligning:    
-    whr = np.where(list_images["object"] == current_object)[0]
-    for ii in whr:
-        print current_object, list_images["object"][ii]
+for current_object in objects_need_aligning:    
+    whr = np.where(list_images["objname"] == current_object)[0]
+    ref_im = list_images["filename"][whr[0]]
+    print ref_im
+    catalog_name = fits.getheader(ref_im)["SEX CATALOG"]
+    print catalog_name
+    
+#    for ii in whr:
+#        print current_object, list_images["object"][ii]
     
 
 sys.exit()
