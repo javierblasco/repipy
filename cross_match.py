@@ -403,7 +403,7 @@ def main(xref="", yref="", xobj="", yobj="", error=0.01, scale="", angle="",
     # opposite to side c and so on.
     triangle_ref, indices_ref = create_triangles(distances_ref)
     triangle_obj, indices_obj = create_triangles(distances_obj)
-    
+ 
     # Sort the triangles coordinates and the array of indices according to the 
     # first of the two coordinates in triangle space, x. This will require to 
     # sort triangle[0,:], and apply the same order to triangle[1,:] and 
@@ -477,19 +477,24 @@ def main(xref="", yref="", xobj="", yobj="", error=0.01, scale="", angle="",
                                distances_highest_obj[non_zero])
     scale_std_estimate = np.std(distances_highest_ref[non_zero] /
                                 distances_highest_obj[non_zero])
-
+    # If the numbers provided are exactly the same, the scale_std_estimate=0
+    # which might produce problems when comparing sc and scale_estimate few 
+    # lines below. The numbers should give exactly zero, otherwise no match 
+    # will be found. To amend for it, we increase just slightly the std.
+    if scale_std_estimate/scale_estimate < 1E-8: # scale_std_estimate too small!
+        scale_std_estimate = scale_estimate * 1E-8 
+        
     # And we repeat the voting matrix for those triangles with simimlar scale
     voting_matrix = np.zeros([n_ref, n_obj], dtype = np.int)    
     for index_ref, index_list in enumerate(matches): # for every triangle in tree_ref
         for index_obj in index_list:  # run through all the matches, ideally 1.
             sc = triangle_ref[2, index_ref] / triangle_obj[2, index_obj]
-            if abs(sc - scale_estimate) < 3 * scale_std_estimate:          
+            if abs(sc - scale_estimate) <= 3 * scale_std_estimate:          
                 for ii in range(3):     # each of the points of a triangle
                     point_ref = indices_ref[:, index_ref][ii]
                     point_obj = indices_obj[:, index_obj][ii]
                     voting_matrix[point_ref, point_obj] += 1                
-    print voting_matrix
-       
+
     # Now we will accept as valid those matches that are 3 sigma above the "noise" 
     # of the voting matrix. Some might still be missmatches, but the process to 
     # calculate rotation, translation, flipping and scaling will cope well with 
@@ -551,7 +556,6 @@ def main(xref="", yref="", xobj="", yobj="", error=0.01, scale="", angle="",
                                          deltay=delta[1])
     dist = np.sqrt((coords[0,:] - coords[2,:])**2 +
                   (coords[1,:] - coords[3,:])**2) 
-    print "dist:", distx
     precission = np.median(dist)
     return (scale, scale_std), flip, (angle, angle_std), (delta, delta_std), precission
         
