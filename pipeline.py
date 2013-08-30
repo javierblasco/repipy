@@ -254,16 +254,25 @@ types_need_aligning = ["cig", "standards","clusters"]
 objects_need_aligning = ()
 for current_type in types_need_aligning:
     whr = np.where(list_images["type"] == current_type)
-    objects_need_aligning = objects_need_aligning + tuple(set(list_images["objname"][whr]))
+    objects_need_aligning = objects_need_aligning +\
+                                      tuple(set(list_images["objname"][whr]))
 
 # For each object, read x_image, y_image, mag_auto from the sextractor catalog, 
 # select the top 20 brightest stars and find the translation between images
 for current_object in objects_need_aligning:    
     whr = np.where(list_images["objname"] == current_object)[0]
     ref_im = list_images["filename"][whr[0]]
-    print ref_im
     catalog_name = fits.getheader(ref_im)["SEX CATALOG"]
-    print catalog_name
+    # Add route to directory of ref_im, where catalog is:
+    catalog_name = os.path.join(os.path.split(ref_im)[0], catalog_name)
+ 
+    # Read the catalog of ref_im to extract position of reference stars
+    x_ref, y_ref, mag_ref = utilities.read_from_sextractor_catalogue(catalog_name,
+                                                                     "X_IMAGE",
+                                                                     "Y_IMAGE",
+                                                                     "MAG_AUTO")
+    for ii,jj in zip(x_ref, y_ref):
+        print ii, jj
     
 #    for ii in whr:
 #        print current_object, list_images["object"][ii]
