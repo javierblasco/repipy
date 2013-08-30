@@ -184,7 +184,7 @@ def rename(args):
     # Look for the date and time of all images
     list_datetimes =[]
     for names in fits_list:
-        im = pyfits.open(names) 
+        im = fits.open(names) 
         hdr = im[0].header  
         date_current = dateutil.parser.parse(hdr[keywords["date"]]).date()
         time_current = dateutil.parser.parse(hdr[keywords["time"]]).time()
@@ -207,7 +207,7 @@ def rename(args):
     # Run through all images
     for image in fits_list:
         # Read image and header, extract name of object and filter.
-        im = pyfits.open(image, mode='update')
+        im = fits.open(image, mode='update')
         hdr = im[0].header
         object_name = (hdr[keywords["object"]].lower())
         remove_characters = [" ", "/", "[", "]", "_"]
