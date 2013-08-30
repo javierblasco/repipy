@@ -4,7 +4,7 @@ import sys
 import os
 import repipy.utilities as utils
 import cosmics_04.cosmics as cosmics
-import pyfits
+import astropy.io.fits as fits
 """ This routine uses cosmic.py (Malte Tewes, 2010), the python version of LACOS 
     (Van Dokkum, PASP 2001) to remove cosmic rays from an astronomical image. 
      It requires for the cosmic.py module to be in the path, obviously. Some of 
@@ -37,7 +37,7 @@ def remove_cosmics(args):
         cosmics.tofits(mask, c.mask, header)
                           
     # And write info to the header:
-    im = pyfits.open(newfile, mode='update')
+    im = fits.open(newfile, mode='update')
     hdr = im[0].header
     hdr.add_history("COSMIC RAYS REMOVED:")
     oldname = os.path.split(args.input[0])[1]

@@ -24,7 +24,7 @@ sao110 for standards.
 
 import os, glob, shutil
 import collections 
-import pyfits
+import astropy.io.fits as fits
 import sys
 import argparse
 import ConfigParser
@@ -151,7 +151,7 @@ def rename(args):
                        "date":args.datek, "exptime":args.exptimek,\
                        "time":args.timek}
     else:
-        hdr = pyfits.getheader(fits_list[0])
+        hdr = fits.getheader(fits_list[0])
         keywords = find_keywords.get_keywords(hdr, needed, args) 
 
     # The output of the whole code will be this dictionary, in which the images 
