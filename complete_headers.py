@@ -3,7 +3,7 @@
 import argparse
 import sys
 import pyraf.iraf as iraf
-import pyfits
+import astropy.io.fits as fits
 import urllib2
 from astropy import coordinates as coord
 
@@ -140,7 +140,7 @@ def complete_headers(args):
     """ For each image check for all the necessary keywords, when possible
     add those not present """
     # Open image and read header in update mode so that we can include keywords. 
-    im = pyfits.open(args.input[0], mode="update")
+    im = fits.open(args.input[0], mode="update")
     hdr = im[0].header
     manipulated_keywords = ""    
     
