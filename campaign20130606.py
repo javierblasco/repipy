@@ -21,6 +21,8 @@ bad_bias = ["bias_20130606_" + str(ii).zfill(3) + ".fits" for ii in range(1,11)]
 remove_images = ["focustelescope_20130606_sdssr_001.fits", \
                  "skyflat_20130606_sdssr_001.fits"] + bad_bias
 
+nstars = 15  #number of stars used to align images
+
 # Keywords in the header of images
 filterk = "INSFLNAM"     # filter name
 exptimek = "exptime"    # exposure time (seconds)
