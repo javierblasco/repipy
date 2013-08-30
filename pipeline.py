@@ -13,7 +13,7 @@ import os, shutil, re, sys, glob
 import subprocess
 import pyraf.iraf as iraf
 # Advice from Victor Terron in his "lemon setup.py" about how to run mkiraf 
-# automatically:
+# automatically: 
 if os.path.isfile("login.cl") == False:
     p = subprocess.Popen(['mkiraf'], stdin = subprocess.PIPE, stdout = subprocess.PIPE)
     out, err = p.communicate(input = 'xgterm')
@@ -22,7 +22,7 @@ import datetime
 import repipy.utilities as utilities
 import repipy.combine as combine_images
 import repipy.arith as arith_images
-import repipy.tidy_up2 as tidy_up
+#import repipy.tidy_up2 as tidy_up
 import repipy.create_masks as create_masks
 import repipy.remove_cosmics as remove_cosmics
 import repipy.find_sky as find_sky
@@ -30,6 +30,7 @@ import repipy.complete_headers as complete_headers
 import repipy.calculate_airmass as calculate_airmass
 import repipy.rename as rename
 import repipy.median_filter as median_filter
+import repipy.cross_match as cross_match
 import astropy.io.fits as fits
 
 if len(sys.argv) != 2:
@@ -254,30 +255,35 @@ for index, image in enumerate(list_images["filename"]):
         find_sky.main(arguments=[list_images["filename"][index]])
 
 print "Detecting objects for images of CIG(s), standard(s) and cluster(s)"
+# This part follows the example in the webpage:
+#http://www.lancesimms.com/programs/Python/pyraf/daofind.py
 for index, image in enumerate(list_images["filename"]):
-    outfile = utilities.replace_extension(image, ".cat")
-    hdr = fits.getheader(image)
-    print image
-    FWHM = float(hdr["LEMON FWHM"])  # seeing meassured by lemon
-    SIGMA = "SKY_STD"              # sigma of sky meassured by calculate_sky
-    GAIN = hdr[gaink]              # Gain of the camera (for noise calculation)
-    READNOISE = read_noisek       # Readout noise of camera (noise again)
-    ROUNDLO = -0.3                # Minimal roundness  (0 is round)
-    ROUNDHI = 0.3                 # Maximal roundness  (0 is round)
-    AIRMASS = "airmass"
-    # Now do detect sources    
-    iraf.noao(_doprint=0)     # Load noao
-    iraf.digiphot(_doprint=0) # Load digiphot
-    iraf.apphot(_doprint=0)   # Load apphot
-    iraf.daofind(image, output=outfile, fwhmpsf=FWHM, exposure=exptimek,
-                 airmass=AIRMASS,filter=filterk, obstime="date-obs",
-                 sigma=SIGMA, gain=GAIN, readnoise=READNOISE, roundlo=ROUNDLO,
-                 roundhi=ROUNDHI)
+    if list_images["type"][index] in ["cig","standards","clusters"]:
+        outfile = utilities.replace_extension(image, ".cat")
+        if os.path.isfile(outfile):
+            os.remove(outfile)
+        # Prepare and run daofind
+        hdr = fits.getheader(image)
+        iraf.noao(_doprint=0)     # Load noao
+        iraf.digiphot(_doprint=0) # Load digiphot
+        iraf.apphot(_doprint=0)   # Load apphot        
+        iraf.daofind.setParam('image',image)
+        iraf.daofind.setParam('fwhmpsf', float(hdr["LEMON FWHM"]))       
+        iraf.daofind.setParam('output', outfile)
+        iraf.daofind.setParam('sigma', float(hdr["SKY_STD"]))
+        iraf.daofind.setParam('gain', gaink)
+        iraf.daofind.setParam('readnoise', float(hdr[read_noisek]))
+        iraf.daofind.setParam('roundlo', -0.3)  # Minimal roundness  (0 is round)
+        iraf.daofind.setParam('roundhi', 0.3 )
+        iraf.daofind.setParam('airmass', "airmass")
+        iraf.daofind.setParam('filter', filterk)
+        iraf.daofind.setParam('exposure', exptimek)
+        iraf.daofind.setParam('obstime', "date-obs")
+        iraf.daofind.setParam('verify', "no")
+        iraf.daofind.saveParList(filename='daofind.par')
+        iraf.daofind(ParList='daofind.par')
 
-
-
-
-print "Aligning images of the CIG(s), standards and cluster(s)"
+print "Reading catalogs, calculating shifts"
 # List of objects to be aligned. There might be several cigs, several clusters
 # and several standard fields.
 types_need_aligning = ["cig", "standards","clusters"]
@@ -286,42 +292,77 @@ for current_type in types_need_aligning:
     whr = np.where(list_images["type"] == current_type)
     objects_need_aligning = objects_need_aligning +\
                                       tuple(set(list_images["objname"][whr]))
-
-# For each object, read x_image, y_image, mag_auto from the sextractor catalog, 
-# select the top 20 brightest stars and find the translation between images
+# For each object, read x, y, mag from the sextractor catalog, 
+# select the top 15 brightest stars and find the translation between images
 for current_object in objects_need_aligning:    
+    # Open files to store data that imalign will need later on
+    obj_list = open(current_object + ".lis", "w")
+    shifts_list = open(current_object + ".shifts", "w")    
+    coords_list = open("coords.txt","w")
+    output_list = open(current_object + ".out", "w")
+
+    # All images of this object. Read fiirst as reference
     whr = np.where(list_images["objname"] == current_object)[0]
     ref_im = list_images["filename"][whr[0]]
-    catalog_name = fits.getheader(ref_im)["SEX CATALOG"]
-    # Add route to directory of ref_im, where catalog is:
-    catalog_name = os.path.join(os.path.split(ref_im)[0], catalog_name)
- 
-    # Read the catalog of ref_im to extract position of reference stars
-    x_ref, y_ref, mag_ref = utilities.read_from_sextractor_catalogue(catalog_name,
-                                                                     "X_IMAGE",
-                                                                     "Y_IMAGE",
-                                                                     "MAG_AUTO")
-    # Select the 15 brightest objects    
-    brightest_15 = np.argsort(mag_ref)[:15]     
-    print ref_im
-    for ii,jj,kk in zip(x_ref[brightest_15], 
-                        y_ref[brightest_15],
-                        mag_ref[brightest_15]):
-        print ii, jj, kk
+    ref_catalog = utilities.replace_extension(ref_im, ".cat")
     
-#    for ii in whr:
-#        print current_object, list_images["object"][ii]
+    # Txdump writes to a temporary file, then we read it
+    iraf.ptools(_doprint=0)
+    if os.path.isfile("temp.txt"):
+        os.remove("temp.txt")
+    iraf.txdump(ref_catalog, "xcenter, ycenter, mag", "yes", Stdout="temp.txt")
+    x_ref=y_ref=mag_ref=np.array([],dtype=np.float16)
+    with open("temp.txt") as f:
+        for line in f:
+            x_ref = np.append(x_ref,float(line.split()[0]))
+            y_ref = np.append(y_ref,float(line.split()[1]))
+            mag_ref = np.append(mag_ref, float(line.split()[2]))  
+    brightest_stars = np.argsort(mag_ref)[:nstars] 
+    x_ref = x_ref[brightest_stars] 
+    y_ref = y_ref[brightest_stars]
     
-
-sys.exit()
-
-
-
-
-
-
-
-
+    #Write to a file, which imalign will need later
+    for ii,jj in zip(x_ref,y_ref):
+        coords_list.write( str(ii) + " " + str(jj))
+    coords_list.close()
+            
+    # Finally, one by one, calculate the shifts  
+    for index in whr:  # for all images of the current_object
+        new_im = list_images["filename"][index]
+        output = utilities.add_suffix_prefix(new_im, suffix="-a")
+        
+        # Write input and output in files for imalign 
+        obj_list.write(new_im) 
+        output_list.write(output)        
+        
+        # Catalog for the new image                
+        new_catalog = utilities.replace_extension(new_im, ".cat")
+        if os.path.exists("temp.txt"):
+            os.remove("temp.txt")
+        iraf.txdump(new_catalog, "xcenter, ycenter, mag", "yes", Stdout="temp.txt")
+        x_new=y_new=mag_new=np.array([],dtype=np.float16)
+        with open("temp.txt") as f:
+            for line in f:
+                x_new = np.append(x_new,float(line.split()[0]))
+                y_new = np.append(y_new,float(line.split()[1]))
+                mag_new = np.append(mag_new, float(line.split()[2]))
+            brightest_stars = np.argsort(mag_new)[:nstars]
+            x_new = x_new[brightest_stars]
+            y_new = y_new[brightest_stars]
+        os.remove("temp.txt")   
+        result = cross_match.main(xref=x_ref, yref=y_ref, xobj=x_new, 
+                                  yobj=y_new, error=0.015, scale=1, angle=0, 
+                                  flip=False, test=False)
+        shifts_list.write(str(result[3][0]) + " " + str(result[3][1]))
+    shifts_list.close()
+    obj_list.close()
+    output_list.close()
+    #Align all images
+    iraf.images(_doprint=0)
+    iraf.immatch(_doprint=0)
+    iraf.imalign("@" + current_object + ".lis", reference = ref_im, 
+                 coords = "coords.txt",shifts = current_object + ".shifts",
+                 output="@" + current_object + ".out")
 
 
 
