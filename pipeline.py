@@ -11,6 +11,7 @@ They do not have comprehensible names, but are in sequence and contain raw data.
 
 import os, shutil, re, sys, glob
 import subprocess
+import pyraf.iraf as iraf
 # Advice from Victor Terron in his "lemon setup.py" about how to run mkiraf 
 # automatically:
 if os.path.isfile("login.cl") == False:
@@ -235,7 +236,7 @@ for index, image in enumerate(list_images["filename"]):
         seeing.main(arguments=["--margin", "0", "--filename", '', "--suffix",
                                "-s", image, os.path.split(image)[0] ])
         newname = utilities.add_suffix_prefix(image, suffix = "-s")
-        print "\n newname", newname, "\n"
+
         os.chdir(curdir)
         list_images["filename"][index] = newname
             
@@ -246,6 +247,35 @@ for index, image in enumerate(list_images["filename"]):
         # Damn FITS format and its constraints!
         short_name = os.path.split(catalog_newname)[1]
         utilities.header_update_keyword(newname, "SEX CATALOG", short_name)
+
+print "Estimate sky for images of CIG(s), standard(s) and cluster(s) "
+for index, image in enumerate(list_images["filename"]):
+    if list_images["type"][index] in ["cig","standards","clusters"]:
+        find_sky.main(arguments=[list_images["filename"][index]])
+
+print "Detecting objects for images of CIG(s), standard(s) and cluster(s)"
+for index, image in enumerate(list_images["filename"]):
+    outfile = utilities.replace_extension(image, ".cat")
+    hdr = fits.getheader(image)
+    print image
+    FWHM = float(hdr["LEMON FWHM"])  # seeing meassured by lemon
+    SIGMA = "SKY_STD"              # sigma of sky meassured by calculate_sky
+    GAIN = hdr[gaink]              # Gain of the camera (for noise calculation)
+    READNOISE = read_noisek       # Readout noise of camera (noise again)
+    ROUNDLO = -0.3                # Minimal roundness  (0 is round)
+    ROUNDHI = 0.3                 # Maximal roundness  (0 is round)
+    AIRMASS = "airmass"
+    # Now do detect sources    
+    iraf.noao(_doprint=0)     # Load noao
+    iraf.digiphot(_doprint=0) # Load digiphot
+    iraf.apphot(_doprint=0)   # Load apphot
+    iraf.daofind(image, output=outfile, fwhmpsf=FWHM, exposure=exptimek,
+                 airmass=AIRMASS,filter=filterk, obstime="date-obs",
+                 sigma=SIGMA, gain=GAIN, readnoise=READNOISE, roundlo=ROUNDLO,
+                 roundhi=ROUNDHI)
+
+
+
 
 print "Aligning images of the CIG(s), standards and cluster(s)"
 # List of objects to be aligned. There might be several cigs, several clusters
@@ -271,8 +301,13 @@ for current_object in objects_need_aligning:
                                                                      "X_IMAGE",
                                                                      "Y_IMAGE",
                                                                      "MAG_AUTO")
-    for ii,jj in zip(x_ref, y_ref):
-        print ii, jj
+    # Select the 15 brightest objects    
+    brightest_15 = np.argsort(mag_ref)[:15]     
+    print ref_im
+    for ii,jj,kk in zip(x_ref[brightest_15], 
+                        y_ref[brightest_15],
+                        mag_ref[brightest_15]):
+        print ii, jj, kk
     
 #    for ii in whr:
 #        print current_object, list_images["object"][ii]
