@@ -12,16 +12,6 @@ of the image represents the sky. It also estimates de standard deviation of
 the sky pixels and introduces the relevant keywords in the header of the 
 image. Finally, it adds a "history" line to the header.  """
 
-# Create parser
-parser = argparse.ArgumentParser(description='Find sky for a selection of images.')
-
-# Add necessary arguments to parser
-parser.add_argument("input", metavar='input', action='store', nargs=1, \
-                   help='list of input images for which to estimate sky.')
-parser.add_argument("--plot", dest='plot', action='store_true', default=False, \
-                    help='Plot histogram of image to find sky.')
-
-
 def gauss(x, *p):
     A,mu,sigma,cont = p
     return cont + A*numpy.exp(-(x-mu)**2/(2.*sigma**2))    
@@ -38,7 +28,7 @@ def find_sky(args):
     # If mask exist read it, otherwise build it with all values unmasked
     if hdr.has_key("mask") == True:
         maskname = os.path.join(imdir, hdr["mask"])
-        mask = numpy.ma.load(maskname)
+        mask = fits.getdata(maskname)
     else :
         mask = numpy.ma.make_mask_none(data.shape)
 
@@ -86,6 +76,18 @@ def main(arguments=None):
         arguments = sys.argv[1:]
     args = parser.parse_args(arguments)
     find_sky(args)
+
+
+
+# Create parser
+parser = argparse.ArgumentParser(description='Find sky for a selection of images.')
+
+# Add necessary arguments to parser
+parser.add_argument("input", metavar='input', action='store', nargs=1, \
+                   help='list of input images for which to estimate sky.')
+parser.add_argument("--plot", dest='plot', action='store_true', default=False, \
+                    help='Plot histogram of image to find sky.')
+
 
 if __name__ == "__main__" :
         main()
