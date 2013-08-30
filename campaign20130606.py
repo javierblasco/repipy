@@ -29,7 +29,10 @@ rak = "ra"               # degree
 deck = "dec"             # degree
 datek = "date-obs"
 telescope = "CAHA2.2"
-#timek = "date"      
+gaink = "CCDSENS"       # gain 
+read_noisek = "CCDRON"  # read-out noise
+
+
 
 # Directory with saved master flats. That will save calculating time later on.
 saved_dir = "/mnt/data/DEEP_OBS/20130606/saved/"
