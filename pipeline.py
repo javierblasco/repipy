@@ -281,6 +281,8 @@ for index, image in enumerate(list_images["filename"]):
         iraf.daofind.setParam('exposure', exptimek)
         iraf.daofind.setParam('obstime', "date-obs")
         iraf.daofind.setParam('verify', "no")
+        iraf.daofind.setParam('datamin', 500)
+        iraf.daofind.setParam('datamax', 50000)
         iraf.daofind.saveParList(filename='daofind.par')
         iraf.daofind(ParList='daofind.par')
 
@@ -300,7 +302,7 @@ for current_object in objects_need_aligning:
     # Open files to store data that imalign will need later on
     obj_list = open(current_object + ".lis", "w")
     shifts_list = open(current_object + ".shifts", "w")    
-    coords_list = open("coords.txt","w")
+    coords_list = open(current_object + ".coords","w")
     output_list = open(current_object + ".out", "w")
 
     # All images of this object. Read fiirst as reference
@@ -353,7 +355,7 @@ for current_object in objects_need_aligning:
             y_new = y_new[brightest_stars]
         os.remove("temp.txt")
         result = cross_match.main(xref=x_ref, yref=y_ref, xobj=x_new, 
-                                  yobj=y_new, error=0.001, scale=1, angle=0, 
+                                  yobj=y_new, error=0.01, scale=1, angle=0, 
                                   flip=False, test=False)
         shifts_list.write(str(result[3][0][0]) + " " + str(result[3][0][1]) + "\n")
     shifts_list.close()
