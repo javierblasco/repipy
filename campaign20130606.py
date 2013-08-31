@@ -24,7 +24,11 @@ remove_images = ["focustelescope_20130606_sdssr_001.fits", \
                  "cig0812_20130606_sdssr_018.fits",    # wrong
                  ] + bad_bias
 
-nstars = 15  #number of stars used to align images
+nstars = 20  #number of stars used to align images
+max_FWHM = 6 # largest reasonable FWHM. Sometimes LEMON seeing does not give
+             # reasonable numbers (like 22 for the FWHM) and that messes up
+             # the detection of stars. It does not need to be accurate, because 
+             # seeing is used mainly to detect sources. But 22 is too much!
 
 # Keywords in the header of images
 filterk = "INSFLNAM"     # filter name
