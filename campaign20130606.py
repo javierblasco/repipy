@@ -19,7 +19,10 @@ lemon_dir = "/home/blasco/Desktop/librerias_python/lemon"
 # And the focus image and the skyflat 1 are of different size to all the others. 
 bad_bias = ["bias_20130606_" + str(ii).zfill(3) + ".fits" for ii in range(1,11)]
 remove_images = ["focustelescope_20130606_sdssr_001.fits", \
-                 "skyflat_20130606_sdssr_001.fits"] + bad_bias
+                 "skyflat_20130606_sdssr_001.fits",   #saturated
+                 "cig0812_20130606_sdssr_028.fits",    # bias
+                 "cig0812_20130606_sdssr_018.fits",    # wrong
+                 ] + bad_bias
 
 nstars = 15  #number of stars used to align images
 
