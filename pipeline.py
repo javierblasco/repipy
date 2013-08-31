@@ -268,7 +268,8 @@ for index, image in enumerate(list_images["filename"]):
         iraf.digiphot(_doprint=0) # Load digiphot
         iraf.apphot(_doprint=0)   # Load apphot        
         iraf.daofind.setParam('image',image)
-        iraf.daofind.setParam('fwhmpsf', float(hdr["LEMON FWHM"]))       
+        FWHM = min(max_FWHM,float(hdr["LEMON FWHM"]))
+        iraf.daofind.setParam('fwhmpsf', FWHM)       
         iraf.daofind.setParam('output', outfile)
         iraf.daofind.setParam('sigma', float(hdr["SKY_STD"]))
         iraf.daofind.setParam('gain', gaink)
@@ -295,6 +296,7 @@ for current_type in types_need_aligning:
 # For each object, read x, y, mag from the sextractor catalog, 
 # select the top 15 brightest stars and find the translation between images
 for current_object in objects_need_aligning:    
+    print "Current object", current_object
     # Open files to store data that imalign will need later on
     obj_list = open(current_object + ".lis", "w")
     shifts_list = open(current_object + ".shifts", "w")    
@@ -323,7 +325,7 @@ for current_object in objects_need_aligning:
     
     #Write to a file, which imalign will need later
     for ii,jj in zip(x_ref,y_ref):
-        coords_list.write( str(ii) + " " + str(jj))
+        coords_list.write( str(ii) + " " + str(jj) + "\n")
     coords_list.close()
             
     # Finally, one by one, calculate the shifts  
@@ -332,8 +334,8 @@ for current_object in objects_need_aligning:
         output = utilities.add_suffix_prefix(new_im, suffix="-a")
         
         # Write input and output in files for imalign 
-        obj_list.write(new_im) 
-        output_list.write(output)        
+        obj_list.write(new_im + "\n") 
+        output_list.write(output + "\n")        
         
         # Catalog for the new image                
         new_catalog = utilities.replace_extension(new_im, ".cat")
@@ -349,24 +351,17 @@ for current_object in objects_need_aligning:
             brightest_stars = np.argsort(mag_new)[:nstars]
             x_new = x_new[brightest_stars]
             y_new = y_new[brightest_stars]
-        os.remove("temp.txt")   
+        os.remove("temp.txt")
         result = cross_match.main(xref=x_ref, yref=y_ref, xobj=x_new, 
-                                  yobj=y_new, error=0.015, scale=1, angle=0, 
+                                  yobj=y_new, error=0.001, scale=1, angle=0, 
                                   flip=False, test=False)
-        shifts_list.write(str(result[3][0]) + " " + str(result[3][1]))
+        shifts_list.write(str(result[3][0][0]) + " " + str(result[3][0][1]) + "\n")
     shifts_list.close()
     obj_list.close()
     output_list.close()
-    #Align all images
-    iraf.images(_doprint=0)
-    iraf.immatch(_doprint=0)
-    iraf.imalign("@" + current_object + ".lis", reference = ref_im, 
-                 coords = "coords.txt",shifts = current_object + ".shifts",
-                 output="@" + current_object + ".out")
 
 
-
-
+sys.exit()
 
 
 
