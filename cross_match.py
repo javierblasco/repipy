@@ -411,13 +411,11 @@ def main(xref="", yref="", xobj="", yobj="", error=0.01, scale="", angle="",
     # Distinguishing them is very difficult, so it is best to remove them. Notice
     # that we will not remove a triangle in which the third object will also be
     # very close.
-    valid_triangles = np.where( (triangle_ref[0,:] < 0.9) & 
-                              (triangle_ref[0,:] / triangle_ref[1,:] > 1.2) )[0]
+    valid_triangles = np.where( (triangle_ref[0,:] < 0.9))[0]
 
     triangle_ref = triangle_ref[:, valid_triangles]    
     indices_ref = indices_ref[:, valid_triangles]
-    valid_triangles = np.where( (triangle_obj[0,:] < 0.9) &
-                              (triangle_obj[0,:] / triangle_obj[1,:] > 1.2))[0]
+    valid_triangles = np.where( (triangle_obj[0,:] < 0.9))[0]
     triangle_obj = triangle_obj[:, valid_triangles]
     indices_obj = indices_obj[:, valid_triangles]
 
@@ -466,10 +464,10 @@ def main(xref="", yref="", xobj="", yobj="", error=0.01, scale="", angle="",
     #print "First voting matrix:"
     #print voting_matrix
     # Since false matches are a little bit irksome, we estimate a rough
-    # value of the scale of the image using the  4% matches with most votes.
+    # value of the scale of the image using the  2% matches with most votes.
     # Then we will repeat the process of the voting matrix not using anything
     # that differs more than error from the estimated value.
-    minimum = np.sort(voting_matrix.flatten())[-int(0.04*voting_matrix.size)]
+    minimum = np.sort(voting_matrix.flatten())[-int(0.02*voting_matrix.size)]
     largest_votes = np.where(voting_matrix >= minimum)
     xhighest_ref = xref[largest_votes[0][:]]
     yhighest_ref = yref[largest_votes[0][:]]
@@ -498,7 +496,7 @@ def main(xref="", yref="", xobj="", yobj="", error=0.01, scale="", angle="",
     for index_ref, index_list in enumerate(matches): # for every triangle in tree_ref
         for index_obj in index_list: # run through all the matches, ideally 1.
             sc = triangle_ref[2, index_ref] / triangle_obj[2, index_obj]
-            if abs(sc - scale_estimate) <= 1.5 * scale_MAD_estimate:
+            if abs(sc - scale_estimate) <= scale_MAD_estimate:
                 for ii in range(3): # each of the points of a triangle
                     point_ref = indices_ref[:, index_ref][ii]
                     point_obj = indices_obj[:, index_obj][ii]
@@ -513,7 +511,7 @@ def main(xref="", yref="", xobj="", yobj="", error=0.01, scale="", angle="",
     # a handful of mismatches.
     median_matrix = np.median(voting_matrix)
     stddev_matrix = np.median(abs(voting_matrix - median_matrix))
-    matched_objects = np.where(voting_matrix > median_matrix + 5. * stddev_matrix)
+    matched_objects = np.where(voting_matrix > median_matrix + 4. * stddev_matrix)
         
         
     # Now we start a new part of the process . We want to calculate the
