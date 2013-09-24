@@ -2,11 +2,12 @@
 import os
 import re
 import astropy.io.fits as fits
-from pyraf.iraf import imarith as imarith
 import sys
 import argparse
 import numpy
 import repipy.utilities as utils
+import operator
+
 """ Wrapper for imarith using pyraf. The program will perform an operation 
     between images"""
    
@@ -16,8 +17,8 @@ def arith(args):
     for image in args.input1:        
         # Read inputs as masked arrays or numbers (input2 might be a scalar)  
         im1 = utils.read_image_with_mask(image, args.mask_key)        
-        try: # if it is a number        
-            im2 = float(args.input2[0])
+        try: # if second operand is a number we still need it in a masked array
+            im2 = numpy.ma.array([float(args.input2[0])],mask=[0])
         except (ValueError,TypeError):
             im2 = utils.read_image_with_mask(args.input2[0], args.mask_key)        
             
@@ -27,15 +28,22 @@ def arith(args):
         elif args.mean == True:
             im2 = numpy.ma.mean(im2)
 
-        # Do the actual operation
-        import operator
+        # Do the actual operation. Result is a masked array which masks 
+        # any pixel if it is masked either in im1 or in im2.
         operations = {"+":operator.add, 
                       "-":operator.sub, 
                       "*":operator.mul,
                       "/":operator.div,
                       "**":operator.pow}
         oper = operations[args.operation[0]]
-        result = oper(im1, im2)  # Actual operation
+        result = numpy.zeros_like(im1)
+        result.data[:] = oper(im1.data, im2.data)  # Actual operation of images
+        result.mask[:] = im1.mask | im2.mask       # If any is masked, result is       
+
+        # If args.fill_val is present, use it
+        if args.fill_val != '':
+            print "Fill result", args.fill_val
+            result.data[:] = result.filled(float(args.fill_val))
                     
         # If output exists use it, otherwise use the input. Prefix/suffix might
         # modify things in next step.
@@ -65,9 +73,16 @@ def arith(args):
             name2 = "mean(" + name2 + ") (" + str(im2) + ")"
             
         # Write a HISTORY element to the header    
-        hdr_im.add_history(" - Operation performed: " + outfile + " " + 
+        hdr_im.add_history(" - Operation performed: " + image + " " + 
                            args.operation[0] + " " + name2)
-        hdr_mask = fits.PrimaryHDU(result.mask.astype(int)).header
+        try:
+            hdr_mask = fits.PrimaryHDU(result.mask.astype(int)).header
+        except:
+            print type(im1), type(result), type(im2)
+            print im1
+            print result
+            print im2
+           
         hdr_mask.add_history("- Mask corresponding to image: " + outpt)
         
         # Now save the resulting image and mask
@@ -75,7 +90,7 @@ def arith(args):
             os.remove(outpt)
         if os.path.isfile(mask_name):
             os.remove(mask_name)
-        fits.writeto(outpt, result.filled(args.fill), header=hdr_im) 
+        fits.writeto(outpt, result.data, header=hdr_im) 
         fits.writeto(mask_name, result.mask.astype(numpy.int0), header=hdr_mask)
         output_list.append(outpt)
     return output_list
@@ -121,9 +136,11 @@ parser.add_argument("--mask_name", metavar="mask_name", dest='mask_name', \
                     action='store', default="", help=' Name for the resulting ' +\
                     'mask. If the pixel of any of the images is masked out, the '+\
                     'resulting mask will obviously be masked out as well.')         
-parser.add_argument("--fill", metavar="fill", dest="fill", action="store",\
-                    default=0, type=int, help=' Value to fill masked pixels when '+\
-                    'creating the final image. Default: 0')
+parser.add_argument("--fill_val", metavar="fill_val", dest="fill_val", 
+                    action="store", default='', help=' If present, ' +\
+                    'this value will be used to fill masked pixels in the ' +\
+                    'final image. By default no filling is used, and the '+\
+                    'original value is used')
 parser.add_argument("--overwrite", action="store_true", dest="overwrite", \
                     default=False, help="Allows you to overwrite the original image.")
 parser.add_argument("--mean", action="store_true", dest="mean", default=False, \
