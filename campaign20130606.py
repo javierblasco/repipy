@@ -24,8 +24,8 @@ remove_images = ["focustelescope_20130606_sdssr_001.fits", \
                  "cig0812_20130606_sdssr_018.fits",    # wrong
                  ] + bad_bias
 
-nstars = 30  #number of stars used to align images
-max_FWHM = 6 # largest reasonable FWHM. Sometimes LEMON seeing does not give
+nstars = 40  #number of stars used to align images
+max_FWHM = 6     # largest reasonable FWHM. Sometimes LEMON seeing does not give
              # reasonable numbers (like 22 for the FWHM) and that messes up
              # the detection of stars. It does not need to be accurate, because 
              # seeing is used mainly to detect sources. But 22 is too much!
@@ -40,36 +40,9 @@ datek = "date-obs"
 telescope = "CAHA2.2"
 gaink = "CCDSENS"       # gain 
 read_noisek = "CCDRON"  # read-out noise
-
-
+pix_scale = 1         # pixel scale (arcsec)
+FoV = 0.1             # rough radius of the FoV for astrometry calculations
 
 # Directory with saved master flats. That will save calculating time later on.
-saved_dir = "/mnt/data/DEEP_OBS/20130606/saved/"
-if os.path.isfile(saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'):
-    print "Reading masterskyflats from:", saved_dir + "skyflats/"
-    master_skyflats = {datetime.datetime(2013, 6, 7, 4, 19, 10, 297297): 
-                      [saved_dir + 'skyflats/masterskyflat1_sdssr-small_scale.fits'], 
-                      datetime.datetime(2013, 6, 6, 20, 2, 38, 200000): 
-                      [saved_dir + 'skyflats/masterskyflat0_sdssr-small_scale.fits']}
-    list_mastersky = glob.glob(saved_dir + "skyflats/*")
-    if not os.path.isdir(directory + "skyflats"):
-        os.mkdir(directory + "skyflats")
-    for element in list_mastersky:
-        shutil.copy(element, directory + "skyflats/")        
-          
-if os.path.isfile(saved_dir + 'blanks/masterblank0_sdssr-sf-mf.fits'):
-    print "Reading masterblanks from:", saved_dir + "blanks/" 
-    master_blanks = {datetime.datetime(2013, 6, 7, 2, 24, 44, 333333): 
-                     [saved_dir + 'blanks/masterblank2_sdssr-sf-mf.fits'],
-                     datetime.datetime(2013, 6, 6, 22, 21, 16, 333333): 
-                     [saved_dir + 'blanks/masterblank0_sdssr-sf-mf.fits'], 
-                     datetime.datetime(2013, 6, 7, 3, 24, 21, 333333): 
-                     [saved_dir + '/blanks/masterblank3_sdssr-sf-mf.fits'], 
-                     datetime.datetime(2013, 6, 6, 23, 35, 39, 333333): 
-                     [saved_dir + 'blanks/masterblank1_sdssr-sf-mf.fits']}     
-    list_masterblank = glob.glob(saved_dir + "blanks/*")
-    if not os.path.isdir(directory + "blanks/"):
-        os.mkdir(directory + "blanks/")
-    for element in list_masterblank:
-        shutil.copy(element, directory + "blanks/")
+
 
