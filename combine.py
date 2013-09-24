@@ -185,6 +185,7 @@ def combine(args):
 
         # Now we can build a cube with all the images, masks included. 
         cube = cube_images(list1, args.mask_key, scales)
+        
         # If nlow != 0 or nhigh!=0 we need to remove the necessary pixels.
         # If user was odd enough to give args.median and args.nlow = args.nhigh
         # skip the minmax rejection.
@@ -202,17 +203,24 @@ def combine(args):
         map_cube = numpy.ma.count(cube, axis=0) # number non-masked values per pixel                                
         if args.average == "mean":
             image = numpy.ma.mean(cube, axis=0)
+            non_masked_equivalent = numpy.mean(cube.data, axis=0)
         elif args.average == "median":
             image = home_made_median(map_cube, cube)
-
+            non_masked_equivalent = numpy.median(cube.data, axis=0)
 
         # Image is a masked array, we need to fill in masked values with the 
-        # args.fill_val. Also, values with less than args.nmin valid values 
-        # should be masked out. 
+        # args.fill_val if user provided it. Also, values with less than 
+        # args.nmin valid values should be masked out. If user did not provide 
+        # a fill_val argument, we will substitute masked values with the 
+        # unmasked equivalent operation.
         image.mask[map_cube < args.nmin] = 1 
         mask = image.mask.astype(numpy.int0) # converto to binary 
-        image = image.filled(args.fill_val)
-             
+        if args.fill_val != '':
+            image = image.filled(args.fill_val)
+        else:       
+            image.data[mask == 1] = non_masked_equivalent[mask == 1]
+            image = image.data
+            
         # And save image
         newfile = os.path.join(args.out_dir, 
                                str(args.out_pattern) + "_" + filt + '.fits')
@@ -249,7 +257,7 @@ def combine(args):
             median = numpy.median(im[lx/3:lx*2/3,ly/3:ly*2/3])                                 
             msg =  "- NORMALIZED USING MEDIAN VALUE:"                      
             arith_images.main(arguments=["--message", msg, "--output", newfile,
-                                         "--mask_key", args.mask_key, "--fill", 
+                                         "--mask_key", args.mask_key, "--fill_val", 
                                          args.fill_val, newfile, "/", str(median)])
     return result
 
@@ -314,9 +322,11 @@ parser.add_argument("--output_mask", metavar="output_mask", dest='out_mask', \
                     'If none is provided, the program will create output.fits.msk '+\
                     'where output.fits is the name of the output image. ')
 parser.add_argument("--fill_val", metavar="fill_val", dest="fill_val", \
-                    action='store', default=0, type=int, help=' Keyword with which to '+\
-                    'fill a pixel if that pixel is masked in all the images. '+\
-                    'Default: 0')
+                    action='store', default='', help=' If present, this '+\
+                    'keyword contains a value with which to fill pixels '+\
+                    'that are masked in all image. By default there is no '+\
+                    'filling, and the unmasked equivalent of the operation '+\
+                    'is used in the resulting image for its masked values')
 
 def main(arguments = None):
   # Pass arguments to variable args
