@@ -10,6 +10,21 @@ import numpy as np
 from pyraf import iraf
 import datetime
 import astropy.io.fits as fits
+import astropy.units as u
+import astropy.coordinates as coords
+from astropy.time import Time
+import dateutil.parser
+
+def precess_to_2000(RA, DEC, time):
+    """ From the actual coordinates of an object in the sky for a certain 
+        time, recalculate the J2000 coordinates. This is util to look 
+        within catalogues. RA and DEC are in degree, time is a 
+        datetime.datetime object."""
+    fk5 = coords.FK5Coordinates(ra=RA, dec=DEC, unit=(u.degree, u.degree), 
+                                equinox=Time(time.year, format="jyear", 
+                                             scale="utc"))
+    fk_2000 = fk5.precess_to(Time(2000, format="jyear", scale="utc"))
+    return fk_2000.ra.degrees, fk_2000.dec.degrees
 
 def check_dimensions(image_list):
     """ Check that fits images in a list have all the same dimensions, so that 
