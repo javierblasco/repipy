@@ -37,7 +37,7 @@ def check_dimensions(image_list):
             print image, size        
         return False
     
-def read_image_with_mask(image, mask_keyword=None):
+def read_image_with_mask(image, mask_keyword=None, header=None):
     """ Read an image and a mask (from a keyword in the image), save it into a 
         numpy.ma array. The mask should contain 1 for pixels to be masked out. """
     data = fits.getdata(image)

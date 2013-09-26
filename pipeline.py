@@ -21,7 +21,7 @@ import numpy as np
 import datetime
 import repipy.utilities as utilities
 import repipy.combine as combine_images
-import repipy.arith as arith_images
+import repipy.arith as arith
 #import repipy.tidy_up2 as tidy_up
 import repipy.create_masks as create_masks
 import repipy.remove_cosmics as remove_cosmics
@@ -100,56 +100,54 @@ create_masks.main(arguments=["--max_val", "30000", "--min_val", "1000", "--stars
 print "Combining bias images"                
 whr = np.where(list_images["type"] == "bias")
 bias_images = list(list_images["filename"][whr])
-superbias = combine_images.main(arguments=["--average", "median", "--all_together",
-                                           "-o", "superbias", "--nlow", "0", 
-                                           "--mask_key", "mask",
+superbias = combine_images.main(arguments=["--average", "median", 
+                                           "--all_together", "-o", "superbias",
+                                           "--nlow", "0", "--mask_key", "mask",
                                            "--filterk", filterk] + bias_images[:])    
+
 
 # Subtract bias from all images.  
 print "Subtracting bias"
-newname = arith_images.main(arguments=["--suffix", " -b", "--message", 
+newname = arith.main(arguments=["--suffix", " -b", "--message", 
                                        "BIAS SUBTRACTED", "--mask_key", 
                                        "mask"] + list(list_images["filename"]) +
                                        [ "-", superbias["AllFilters"]])
 list_images["filename"][:] = newname
  
 # Combine skyflats using blocks to distinguish between sunset and sunrise flats.
-try:
-    dummy = len(master_skyflats)
-except NameError:
-    print "Combining sky flats"
-    skyflat_indices = np.where(list_images["type"] == "skyflats")    
-    times = list_images["time"][skyflat_indices]  # times of the skyflat images 
-    block_limits = utilities.group_images_in_blocks(times, limit=20)  
-    master_skyflats = {}
-    for ii in range(len(block_limits)-1): 
-        block = list_images["filename"][skyflat_indices][block_limits[ii]:block_limits[ii+1]]
-        time_block = utilities.mean_datetime(list_images["time"][skyflat_indices]
-                                        [block_limits[ii]:block_limits[ii+1]] )
-        skyflat = combine_images.main(arguments=["--average", "median", "--norm",
-                                               "--scale", "median", "--notest",
-                                               "-o", "masterskyflat{0}".format(ii), 
-                                               "--nhigh", "1", "--nlow", "0",
-                                               "--mask_key", "mask", "--notest",
-                                               "--filterk", filterk] + list(block)[:])    
-        master_skyflats[time_block] = skyflat.values()
-    
-    # Dividing the combined flat with a median-filtered version of itself the 
-    # large scale changes are removed, and only the pixel-to-pixel (p2p) 
-    # differences remain.         
-    print "Creating pixel-to-pixel combined images"
-    for key,image in master_skyflats.items():
-        print key
-        # first filter with median
-        filtered = median_filter.main(arguments= image + ["--mask_key", "mask",
-        "--side", "150", "--fill_val", "0"])
-        # then divide "image" by "filtered"
-        divided = arith_images.main(arguments=["--suffix", " -small_scale", 
-                                               "--message", 
-                                               "REMOVE LARGE SCALE STRUCT"] +
-                                               image + ["/"] + filtered)
-        master_skyflats[key] = divided    
-    print "master_skyflats ={", master_skyflats, "}"
+print "Combining sky flats"
+skyflat_indices = np.where(list_images["type"] == "skyflats")    
+times = list_images["time"][skyflat_indices]  # times of the skyflat images 
+block_limits = utilities.group_images_in_blocks(times, limit=20)  
+master_skyflats = {}
+for ii in range(len(block_limits)-1): 
+    block = list_images["filename"][skyflat_indices][block_limits[ii]:block_limits[ii+1]]
+    time_block = utilities.mean_datetime(list_images["time"][skyflat_indices]
+                                    [block_limits[ii]:block_limits[ii+1]] )
+    skyflat = combine_images.main(arguments=["--average", "median", "--norm",
+                                           "--scale", "median",
+                                           "-o", "masterskyflat{0}".format(ii), 
+                                           "--nhigh", "1", "--nlow", "0",
+                                           "--mask_key", "mask", "--notest",
+                                           "--filterk", filterk] + list(block)[:])    
+    master_skyflats[time_block] = skyflat.values()
+
+# Dividing the combined flat with a median-filtered version of itself the 
+# large scale changes are removed, and only the pixel-to-pixel (p2p) 
+# differences remain.         
+print "Creating pixel-to-pixel combined images"
+for key,image in master_skyflats.items():
+    print key
+    # first filter with median
+    filtered = median_filter.main(arguments= image + ["--mask_key", "mask",
+    "--radius", "50"])
+    # then divide "image" by "filtered"
+    divided = arith.main(arguments=["--suffix", " -small_scale", 
+                                           "--message", 
+                                           "REMOVE LARGE SCALE STRUCT"] +
+                                           image + ["/"] + filtered)
+    master_skyflats[key] = divided    
+print "master_skyflats ={", master_skyflats, "}"
 # Combine blanks also in blocks. In this case, we will combine images from  
 # every two consecutive blocks, because we only have three blanks per block
 # and the dithering is not large enough, so too many residuals were present. 
@@ -184,13 +182,13 @@ except NameError:
         closest = np.argmin(abs(time_diff))
         # correct pixel-to-pixel differences (from skyflats)
         print image, master_skyflats.values()[closest]
-        corrected = arith_images.main(arguments=["--suffix", " -sf", "--message",
+        corrected = arith.main(arguments=["--suffix", " -sf", "--message",
                                                  "REMOVE SMALL SCALE STRUCTURE",
                                                  "--mask_key", "mask"]+
                                                  image + ["/"] + 
                                                  master_skyflats.values()[closest])
         smoothed = median_filter.main(arguments= corrected + [ "--mask_key", "mask",
-            "--side", "150", "--fill_val", "0"])
+            "--radius", "150"])
         master_blanks[time] = smoothed
     print "master_blanks = {", master_blanks, "}"    
 
@@ -204,7 +202,7 @@ for index in range(len(list_images["filename"])):
     # First pixel-to-pixel
     time_diff = np.asarray(master_skyflats.keys()) - time
     closest = np.argmin(abs(time_diff))
-    corrected = arith_images.main(arguments=["--suffix", " -sf", "--message",
+    corrected = arith.main(arguments=["--suffix", " -sf", "--message",
                                              "REMOVE SMALL SCALE STRUCTURE",
                                              image] + ["/"] + 
                                              master_skyflats.values()[closest])
@@ -212,7 +210,7 @@ for index in range(len(list_images["filename"])):
     # Now the large scale using the blanks
     time_diff = np.asarray(master_blanks.keys()) - time 
     closest = np.argmin(abs(time_diff))
-    corrected = arith_images.main(arguments=["--suffix", " -bf", "--message",
+    corrected = arith.main(arguments=["--suffix", " -bf", "--message",
                                              "REMOVE LARGE SCALE STRUCTURE"] +
                                              corrected + ["/"] + 
                                              master_blanks.values()[closest])
@@ -226,6 +224,22 @@ for index in range(len(list_images["filename"])):
 #                   cosmic_dict["gain"], "--readnoise", cosmic_dict["readnoise"], \
 #                   "--sigclip", cosmic_dict["sigclip"], "--maxiter", "3", im])
 #            list_images["filename"][index] = newname
+
+print "Include world coordinate system"
+for index, image in enumerate(list_images["filename"]):
+    if list_images["type"][index] in ("cig", "standards", "clusters"):
+        hdr = fits.getheader(image)
+        RA, DEC = hdr[rak], hdr[deck]
+        subprocess.call(['solve-field', "--no-plots", "--overwrite", 
+                         "--no-fits2fits","--scale-units", "arcsecperpix", 
+                         "--scale-low", str(0.95 * pix_scale), "--scale-high", 
+                         str(1.05 * pix_scale), "--quad-size-max", "0.8", 
+                         "--quad-size-min", "0.1", "--ra", str(RA), "--dec", 
+                         str(DEC), "--radius", str(FoV), "--depth", "20,50,100",  
+                         "--solved", "solved.txt", np.str(image)]) 
+
+
+sys.exit()
 
 print "Estimate seeing from images"
 for index, image in enumerate(list_images["filename"]):
@@ -350,9 +364,9 @@ for current_object in objects_need_aligning:
                 x_new = np.append(x_new,float(line.split()[0]))
                 y_new = np.append(y_new,float(line.split()[1]))
                 mag_new = np.append(mag_new, float(line.split()[2]))
-            brightest_stars = np.argsort(mag_new)[:nstars]
-            x_new = x_new[brightest_stars]
-            y_new = y_new[brightest_stars]
+        brightest_stars = np.argsort(mag_new)[:nstars]
+        x_new = x_new[brightest_stars]
+        y_new = y_new[brightest_stars]
         os.remove("temp.txt")
         result = cross_match.main(xref=x_ref, yref=y_ref, xobj=x_new, 
                                   yobj=y_new, error=0.01, scale=1, angle=0, 
@@ -364,6 +378,16 @@ for current_object in objects_need_aligning:
 
 
 sys.exit()
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -516,7 +540,7 @@ sys.exit()
 ## update the list of images to the ones with the bias subtracted.
 #print "Subtracting bias"
 #for index, im in enumerate(list_images["filename"]):
-#        newname = arith_images.main(arguments=["--suffix", " -b", "--message", \
+#        newname = arith.main(arguments=["--suffix", " -b", "--message", \
 #                                   "BIAS SUBTRACTED", im, "-", superbias["AllFilters"]])
 #        list_images["filename"][index] = newname[0]
 #            
@@ -543,7 +567,7 @@ sys.exit()
 #                         "(?P<exp_num>)(?P<rest>.*)$", os.path.split(im)[1])
 #        current_filter = data_im.groupdict()["filt"]
 #        current_flat = superflats[current_filter]
-#        newname = arith_images.main(arguments=["--suffix", "f", "--message", \
+#        newname = arith.main(arguments=["--suffix", "f", "--message", \
 #                                    "FLAT-FIELD CORRECTION:", im, "/", \
 #                                    current_flat])
 #        list_images["filename"][index] = newname[0]  
