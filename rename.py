@@ -118,11 +118,13 @@ def distinguish_type(object_name):
         object_type = "clusters"
     elif object_name.count("cig") != 0:
         # cig usually folloed by a number
-        number = (object_name.split("cig"))[1]
-        if number.isdigit() == True and len(number) <= 4:
-            number = "{0:04d}".format(int(number))
-            object_name = "cig" + number
-            object_type = "cig"
+        cig, number = re.match(r'(cig)\s?(\d{1,4}).*').groups()[0:2]
+        object_name = cig + "{0:04d}".format(int(number))
+	  
+        #if number.isdigit() == True and len(number) <= 4:
+        #    number = "{0:04d}".format(int(number))
+        #    object_name = "cig" + number
+        #    object_type = "cig"
     # If "cig" is missing, but there is a number, add "cig":        
     elif object_name.isdigit() == True :
         object_name = "{0:04d}".format(int(object_name))

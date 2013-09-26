@@ -32,6 +32,7 @@ import repipy.rename as rename
 import repipy.median_filter as median_filter
 import repipy.cross_match as cross_match
 import astropy.io.fits as fits
+import dateutil.parser
 
 if len(sys.argv) != 2:
     print sys.exit("Give me a campaign file....")
@@ -71,7 +72,6 @@ def cosmic_removal_param(telescope = ''):
 ################################################################################
 ################################################################################
 
-
 # Change names of the files to a more comprehensive structure of names. 
 print "Changing names of fits files"
 list_images = rename.main(arguments=["--copy", "--objectk", objectk,\
@@ -91,7 +91,6 @@ print "Creating masks"
 whr = np.where(list_images["type"] != "blanks")
 create_masks.main(arguments=["--max_val", "50000", "--circular"] + 
                   list(list_images["filename"][whr]))        
-
 whr = np.where(list_images["type"] == "blanks")
 create_masks.main(arguments=["--max_val", "30000", "--min_val", "1000", "--stars",
                              "--circular"] + list(list_images["filename"][whr])) 
@@ -104,7 +103,6 @@ superbias = combine_images.main(arguments=["--average", "median",
                                            "--all_together", "-o", "superbias",
                                            "--nlow", "0", "--mask_key", "mask",
                                            "--filterk", filterk] + bias_images[:])    
-
 
 # Subtract bias from all images.  
 print "Subtracting bias"
@@ -137,7 +135,6 @@ for ii in range(len(block_limits)-1):
 # differences remain.         
 print "Creating pixel-to-pixel combined images"
 for key,image in master_skyflats.items():
-    print key
     # first filter with median
     filtered = median_filter.main(arguments= image + ["--mask_key", "mask",
     "--radius", "50"])
@@ -147,51 +144,45 @@ for key,image in master_skyflats.items():
                                            "REMOVE LARGE SCALE STRUCT"] +
                                            image + ["/"] + filtered)
     master_skyflats[key] = divided    
-print "master_skyflats ={", master_skyflats, "}"
+
 # Combine blanks also in blocks. In this case, we will combine images from  
 # every two consecutive blocks, because we only have three blanks per block
 # and the dithering is not large enough, so too many residuals were present. 
-try:
-    dummy = len(master_blanks)
-except NameError:
-    print "Combining blanks"
-    blank_indices = np.where(list_images["type"] == "blanks")[0]  #select blank images
-    times = list_images["time"][blank_indices]  # times of the blank images 
-    block_limits = utilities.group_images_in_blocks(times, limit=5)  
-    master_blanks = {} 
-    for ii in range(len(block_limits)-1): 
-        block = list_images["filename"][blank_indices][block_limits[ii]:block_limits[ii+1]]
-        time_block = utilities.mean_datetime(list_images["time"][blank_indices]
-                                        [block_limits[ii]:block_limits[ii+1]] )
-        blank = combine_images.main(arguments=["--average", "median", "--norm",\
-                                               "--scale", "median", "--mask_key",\
-                                               "mask", "-o", 
-                                               "masterblank{0}".format(ii), 
-                                               "--nhigh", "0", "--nlow", "0",
-                                               "--nmin", "2",
-                                               "--filterk", filterk] + 
-                                               list(block)[:])    
-        master_blanks[time_block] = blank.values()
-    
-    # Use the pixel-to-pixel differences in master_skyflats to correct the 
-    # master_blanks for this effect. 
-    print "Correcting combined blanks for pixel-to-pixel (small scale) variations"
-    for time, image in master_blanks.items():
-        # find closest flat
-        time_diff = np.asarray(master_skyflats.keys()) - np.asarray(time)
-        closest = np.argmin(abs(time_diff))
-        # correct pixel-to-pixel differences (from skyflats)
-        print image, master_skyflats.values()[closest]
-        corrected = arith.main(arguments=["--suffix", " -sf", "--message",
-                                                 "REMOVE SMALL SCALE STRUCTURE",
-                                                 "--mask_key", "mask"]+
-                                                 image + ["/"] + 
-                                                 master_skyflats.values()[closest])
-        smoothed = median_filter.main(arguments= corrected + [ "--mask_key", "mask",
-            "--radius", "150"])
-        master_blanks[time] = smoothed
-    print "master_blanks = {", master_blanks, "}"    
+print "Combining blanks"
+blank_indices = np.where(list_images["type"] == "blanks")[0]  #select blank images
+times = list_images["time"][blank_indices]  # times of the blank images 
+block_limits = utilities.group_images_in_blocks(times, limit=5)  
+master_blanks = {} 
+for ii in range(len(block_limits)-1): 
+    block = list_images["filename"][blank_indices][block_limits[ii]:block_limits[ii+1]]
+    time_block = utilities.mean_datetime(list_images["time"][blank_indices]
+                                    [block_limits[ii]:block_limits[ii+1]] )
+    blank = combine_images.main(arguments=["--average", "median", "--norm",\
+                                           "--scale", "median", "--mask_key",\
+                                           "mask", "-o", 
+                                           "masterblank{0}".format(ii), 
+                                           "--nhigh", "0", "--nlow", "0",
+                                           "--nmin", "2",
+                                           "--filterk", filterk] + 
+                                           list(block)[:])    
+    master_blanks[time_block] = blank.values()
 
+# Use the pixel-to-pixel differences in master_skyflats to correct the 
+# master_blanks for this effect. 
+print "Correcting combined blanks for pixel-to-pixel (small scale) variations"
+for time, image in master_blanks.items():
+    # find closest flat
+    time_diff = np.asarray(master_skyflats.keys()) - np.asarray(time)
+    closest = np.argmin(abs(time_diff))
+    # correct pixel-to-pixel differences (from skyflats)
+    corrected = arith.main(arguments=["--suffix", " -sf", "--message",
+                                             "REMOVE SMALL SCALE STRUCTURE",
+                                             "--mask_key", "mask"]+
+                                             image + ["/"] + 
+                                             master_skyflats.values()[closest])
+    smoothed = median_filter.main(arguments= corrected + [ "--mask_key", "mask",
+        "--radius", "150"])
+    master_blanks[time] = smoothed
 
 # Now we will correct each image with the closest sky flat field (for small
 # scale variations) and the closest blank field (for large scale flatfielding)
@@ -229,13 +220,15 @@ print "Include world coordinate system"
 for index, image in enumerate(list_images["filename"]):
     if list_images["type"][index] in ("cig", "standards", "clusters"):
         hdr = fits.getheader(image)
-        RA, DEC = hdr[rak], hdr[deck]
+        RA_header, DEC_header, time = hdr[rak], hdr[deck], hdr[datek]
+        time = dateutil.parser.parse(time)
+        RA, DEC = utilities.precess_to_2000(RA_header, DEC_header, time)        
         subprocess.call(['solve-field', "--no-plots", "--overwrite", 
                          "--no-fits2fits","--scale-units", "arcsecperpix", 
-                         "--scale-low", str(0.95 * pix_scale), "--scale-high", 
-                         str(1.05 * pix_scale), "--quad-size-max", "0.8", 
+                         "--scale-low", str(0.98 * pix_scale), "--scale-high", 
+                         str(1.03 * pix_scale), "--quad-size-max", "0.8", 
                          "--quad-size-min", "0.1", "--ra", str(RA), "--dec", 
-                         str(DEC), "--radius", str(FoV), "--depth", "20,50,100",  
+                         str(DEC), "--radius", str(FoV), "--depth", "100,250",  
                          "--solved", "solved.txt", np.str(image)]) 
 
 
