@@ -226,9 +226,9 @@ for index, image in enumerate(list_images["filename"]):
         subprocess.call(['solve-field', "--no-plots", "--overwrite", 
                          "--no-fits2fits","--scale-units", "arcsecperpix", 
                          "--scale-low", str(0.98 * pix_scale), "--scale-high", 
-                         str(1.03 * pix_scale), "--quad-size-max", "0.8", 
-                         "--quad-size-min", "0.1", "--ra", str(RA), "--dec", 
-                         str(DEC), "--radius", str(FoV), "--depth", "100,250",  
+                         str(1.03 * pix_scale), "--quad-size-max", "1.", 
+                         "--quad-size-min", "0.05", "--ra", str(RA), "--dec", 
+                         str(DEC), "--radius", str(FoV), "--depth", "100,250", 
                          "--solved", "solved.txt", np.str(image)]) 
 
 
