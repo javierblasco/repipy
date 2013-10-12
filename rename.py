@@ -49,14 +49,27 @@ def is_a_standar(object_name):
                             otherwise.
     """
     # Common names of the standard fields 
-    standards_list = ["bd+25", "bd+28", "bd+35", "kop27", "grw73", "pg1708", 
-                    "f110", "pg170", "wolf1346", "sa113", "hz15", "feige34", 
-                    "pg1633", "sa110", "pg1323", "pg16", "sao110" "hd84937",
-                    "f66", "h84", "hd84", "hd84937"]
-    for standard in standards_list:
-        if ((object_name).lower()).count(standard) != 0 :
-            return True
-    return False
+    standards_list = {"bd+25":"bd+25", 
+                      "bd+28":"bd+28", 
+                      "bd+35":"bd+35", 
+                      "kop27":"kop27", 
+                      "grw73":"grw73", 
+                      "pg1708":"pg1708", 
+                      "f110":"f110", 
+                      "pg170":"pg170", 
+                      "wolf1346":"wolf1346", 
+                      "sa113":"sa113", 
+                      "hz15":"hz15", 
+                      "feige34":"feige34",
+                      "pg1633":"pg1633", 
+                      "sa110":"sa110", 
+                      "pg1323":"pg1323", 
+                      "pg16":"pg16", 
+                      "sao110":"sao110", 
+                      "hd84937":"hd84937",
+                      "f66":"f66", 
+                      "h84":"hd84937", "hd84":"hd84937", "hd84937":"hd84937"}
+    return standards_list.get(object_name.lower())
 
 ##############################################################################
 def is_a_cluster(object_name):
@@ -111,8 +124,8 @@ def distinguish_type(object_name):
     elif object_name.lower().count("flat") != 0: # flat but no idea which type
         object_name = "flat"
         object_type = "flats"
-    elif is_a_standar(object_name.lower()) == True:
-        object_name = object_name.lower()
+    elif is_a_standar(object_name.lower()) is not None:
+        object_name = is_a_standar(object_name.lower())
         object_type = "standards"
     elif is_a_cluster(object_name.lower()) == True:
         object_name = object_name.lower()
@@ -160,7 +173,6 @@ def rename(args):
                   "type":empty_array, 
                   "objname":empty_array,
                   "time":empty_array}
-
 
     # If --copy was selected, copy all those files into a directory called backup
     if args.copy == True:
