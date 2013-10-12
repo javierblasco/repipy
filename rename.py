@@ -49,9 +49,10 @@ def is_a_standar(object_name):
                             otherwise.
     """
     # Common names of the standard fields 
-    standards_list = ["bd+25", "bd+28", "bd+35", "kop27", "grw73", "pg1708", \
-                    "f110", "pg170", "wolf1346", "sa113", "hz15", "feige34", \
-                    "pg1633", "sa110", "pg1323", "pg16", "sao110"]
+    standards_list = ["bd+25", "bd+28", "bd+35", "kop27", "grw73", "pg1708", 
+                    "f110", "pg170", "wolf1346", "sa113", "hz15", "feige34", 
+                    "pg1633", "sa110", "pg1323", "pg16", "sao110" "hd84937",
+                    "f66", "h84", "hd84", "hd84937"]
     for standard in standards_list:
         if ((object_name).lower()).count(standard) != 0 :
             return True
@@ -116,20 +117,16 @@ def distinguish_type(object_name):
     elif is_a_cluster(object_name.lower()) == True:
         object_name = object_name.lower()
         object_type = "clusters"
-    elif object_name.count("cig") != 0:
+    elif re.match(r'(cig|c)\s?(\d{1,4}).*', object_name) is not None:
         # cig usually folloed by a number
-        cig, number = re.match(r'(cig)\s?(\d{1,4}).*', object_name).groups()[0:2]
-        object_name = cig + "{0:04d}".format(int(number))
-	object_type = "cig"
-        #if number.isdigit() == True and len(number) <= 4:
-        #    number = "{0:04d}".format(int(number))
-        #    object_name = "cig" + number
-        #    object_type = "cig"
+        cig, number = re.match(r'(cig|c)\s?(\d{1,4}).*', object_name).groups()[0:2]
+        object_name = "cig" + "{0:04d}".format(int(number))
+        object_type = "cig"
     # If "cig" is missing, but there is a number, add "cig":        
     elif object_name.isdigit() == True :
         object_name = "{0:04d}".format(int(object_name))
         object_name = "cig" + object_name
-        object_type = "cig" + object_name
+        object_type = "cig"
     else:
         object_type = "unknown"
 
