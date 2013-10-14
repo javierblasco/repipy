@@ -155,12 +155,9 @@ def mask(args):
 
         # Add message to image header
         header.add_history("- Created mask of image, see mask keyword")
-        header.update("mask", maskname, "Mask of original image")        
-        im.flush()        
-        
-        
-
-
+        header.update(args.mask_key, maskname, "Mask of original image")        
+        im.flush()
+        im.close()        
             
 def main(arguments = None):
   # Pass arguments to variable args
@@ -185,10 +182,10 @@ parser = argparse.ArgumentParser(description='Create masks for images')
 parser.add_argument("image", metavar='image', action='store',\
                     help='Image(s) from which to create masks.', nargs='+')
 parser.add_argument("--max_val", metavar="maxval", dest='maxval', action='store',\
-                    default=50000, type=int, help='Maximum allowed value. '+\
+                    default=50000, type=float, help='Maximum allowed value. '+\
                     'Above this value, mask out. Default: 50000.')
 parser.add_argument("--min_val", metavar="minval", dest='minval', default=0, \
-                   type=int, action='store', help='Minimum allowed value. '+\
+                   type=float, action='store', help='Minimum allowed value. '+\
                    'Below this value, mask out. Default: 0.')
 parser.add_argument("--output", metavar="output", dest='output', action='store',\
                     default='', help='Name of the output mask. ' +\
@@ -211,6 +208,9 @@ parser.add_argument("--margin", metavar="margin", dest='margin', default=10, \
                    'which the mask is set to zero. If --circular is used '+\
                    'this margin will be reduced from the calculated radius. '+\
                    'Default: 10')
+parser.add_argument("--mask_key", metavar="mask_key", dest='mask_key', action='store',\
+                    default='mask', help='Name of the keyword in the header ' +\
+                    'that contains the name of the mask. Default: mask')
                    
 
 if __name__ == "__main__":
