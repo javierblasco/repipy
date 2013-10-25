@@ -13,6 +13,7 @@ import scipy
 import repipy.utilities as utils
 from scipy import ndimage
 from scipy import optimize
+from scipy.ndimage.filters import median_filter
 
 def gauss(x, *p):
     A,mu,sigma = p
@@ -36,25 +37,32 @@ def zero_edges(image, edge=5):
     image[:, image.shape[1]-edge:] = 0.
     return image    
 
-def detect_circular_FoV(data):
+def detect_circular_FoV(data, args):
     ''' A Sobel edge detection algorithm is used to detect a sharp circular edge 
         within a rectangular 2D numpy array. The array is the only input, while
         the centre of the image and the radius of the circle are provided as 
         outputs.     
     '''
     mag = apply_sobel_filter(data)  # Filter image
-    
-    
-    # Exclude edges of image. Sobel uses a filter of size 3:
+
+    # Exclude edges of image. Sobel uses a filter of size 3.  
     mag = zero_edges(mag, edge=3)
-
-    # Find those values in the highest 0.5%, the sharpest edges
-    percentile = numpy.percentile(mag, 99.5)
-    indices = numpy.where(mag > percentile)
+    
+    # Find those values in the highest 0.5%, the sharpest edge
+    percentile = numpy.percentile(mag, args.contrast)
+    indices = numpy.where((mag > percentile))
     x,y = indices
-
+           
     # Now fit resulting points to a circle 
     xc, yc, radius, radius_MAD = fit_to_circle(x, y)
+
+#    # Create an image of those points that were used to fit 
+    fitted_points = mag * 0.
+    fitted_points[indices] = 1
+    if os.path.isfile("fitted_points.fits"):
+        os.remove("fitted_points.fits")   
+    fits.writeto("fitted_points.fits", fitted_points )
+
 
     # If radius_MAD > 5% of the radius, data was not originally a circle
     if (radius_MAD / radius * 100) < 5:
@@ -64,19 +72,37 @@ def detect_circular_FoV(data):
     return result
 
 def fit_to_circle(x, y, xc=None, yc=None):
-    """ Fit to a circle using the method shown by the scipy cookbook:
+    """ Fit to a circle using a variant from the method shown by the scipy 
+        cookbook:
         http://wiki.scipy.org/Cookbook/Least_Squares_Circle """
     if not xc:
         estimate = numpy.median(x), numpy.median(y)  # first guess for centre
-    # optimize centre 
-    
-    (xc, yc), ier = optimize.leastsq(f_2, estimate, args=(x,y)) # fitted xc, yc
-    # calculate radii of points, median for best value, median absolute deviation
-    # (MAD) for error estimates.
-    radii_fit = calc_R(x, y, xc, yc)   
-    radius = numpy.median(radii_fit)   
-    radius_MAD =  numpy.median(numpy.abs(radii_fit-radius)) 
+
+    ii = 0
+    # until convergence
+    while True:    
+        # optimize centre 
+        (xc, yc), ier = optimize.leastsq(f_2, estimate, args=(x,y)) # fitted xc, yc
+
+        # calculate radii of points, median for best value, median absolute 
+        # deviation (MAD) for error estimates.
+        radii_fit = calc_R(x, y, xc, yc)   
+        radius = numpy.median(radii_fit)   
+        radius_MAD =  numpy.median(numpy.abs(radii_fit-radius)) 
+
+        # Use only those values within 5 times the median absolute deviation. 
+        # For a Gaussian distribution this would be > 3 sigma. 
+        whr_good = numpy.where((radii_fit > radius - 5 * radius_MAD) &
+                               (radii_fit < radius + 5 * radius_MAD))[0]
+        # convergence if all values are good                       
+        if len(whr_good) == len(radii_fit):
+            break
+        else:
+            x = x[whr_good]
+            y = y[whr_good]
+            ii += 1
     return xc, yc, radius, radius_MAD        
+            
 
 def calc_R(x, y, xc, yc):
     """ calculate the distance of each 2D points from the center (xc, yc) """
@@ -86,7 +112,7 @@ def f_2((xc, yc), x, y):
     """ calculate the algebraic distance between the data points and the mean 
         circle centered at c=(xc, yc) """
     Ri = calc_R(x, y, xc, yc)
-    return Ri - numpy.median(Ri)
+    return Ri - numpy.mean(Ri)
 
 def mask_circle(image, xc, yc, radius, value=0):
     ''' Mask with value (defect, value=0) a circle within an image '''
@@ -119,7 +145,7 @@ def mask(args):
         
         # If circular field of view within rectangular image:
         if args.circular:
-            result = detect_circular_FoV(data)
+            result = detect_circular_FoV(data, args)
             if result:
                 xc, yc, radius = result
                 radius = radius - args.margin   # avoid border effects
@@ -211,6 +237,17 @@ parser.add_argument("--margin", metavar="margin", dest='margin', default=10, \
 parser.add_argument("--mask_key", metavar="mask_key", dest='mask_key', action='store',\
                     default='mask', help='Name of the keyword in the header ' +\
                     'that contains the name of the mask. Default: mask')
+parser.add_argument("--contrast", metavar="contrast", dest="contrast", action='store',\
+                    default=99.5, type=float,\
+                    help="When a Sobel filter is applied, the " +\
+                    "result is an image with the contrast of the pixels "+\
+                    "respect the others in a box of 3x3. --contrast is set "+\
+                    "as the minimum contrast to be taken into account as "+\
+                    "the detection of a border. Default: 99.5, i.e. top 0.5. "+\
+                    "percent. This value is good for flats, images with long "+\
+                    "exposures... This method will not work for images with "+\
+                    "less contrast, between the exposed area and the bias "+\
+                    "level, such as short exposures with narrow filters")
                    
 
 if __name__ == "__main__":
