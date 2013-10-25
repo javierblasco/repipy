@@ -171,11 +171,14 @@ def homogeneous_filter_name(filt):
     for character in remove_characters:
         filt = filt.replace(character,"")
     filt_dict = {"rgu": "rGunn", "rgunn":"rGunn", "gunnr":"rGunn",\
-                 "johv":"VJoh", "vjoh":"VJoh",\
+                 "johv":"VJoh", "vjoh":"VJoh", "johnv":"VJoh",\
+                 "johr":"RJoh", "rjoh":"RJoh", "johnr":"RJoh",\
                  "sdssr":"sdssr", "rsdss":"sdssr", "r":"R", \
                  "sdssi":"sdssi", "isdss":"sdssi",\
                  "h6607":"H6607", "h07":"H6607", "6607":"H6607", \
                  "h6652":"H6652", "h52":"H6652", "6652":"H6652", \
+                 "h6633":"H6633", "6633":"H6633",\
+                 "h6625":"H6625", "6625":"H6625", \
                  "h6650":"H6650", "h50":"H6650", "6650":"H6650", \
                  "h6678":"H6678", "h78":"H6678", "6678":"H6678", \
                  "h6613":"H6613", "6613":"H6613",\
