@@ -28,7 +28,7 @@ def apply_sobel_filter(image):
     mag = numpy.hypot(dx, dy)    # magnitude
     return mag
     
-def Zero_edges(image, edge=5):
+def zero_edges(image, edge=5):
     """ Return same image with the edges reset to zero """
     image[0:edge, :] = 0.
     image[:, 0:edge] = 0.
@@ -46,7 +46,7 @@ def detect_circular_FoV(data):
     
     
     # Exclude edges of image. Sobel uses a filter of size 3:
-    mag = Zero_edges(mag, edge=3)
+    mag = zero_edges(mag, edge=3)
 
     # Find those values in the highest 0.5%, the sharpest edges
     percentile = numpy.percentile(mag, 99.5)
