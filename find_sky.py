@@ -26,8 +26,8 @@ def find_sky(args):
     data = fits.getdata(args.input[0])
     
     # If mask exist read it, otherwise build it with all values unmasked
-    if hdr.has_key(args.maskk) == True:
-        maskname = os.path.join(imdir, hdr[args.maskk])
+    if hdr.has_key(args.mask_key) == True:
+        maskname = os.path.join(imdir, hdr[args.mask_key])
         mask = fits.getdata(maskname)
     else :
         mask = numpy.ma.make_mask_none(data.shape)
@@ -40,7 +40,7 @@ def find_sky(args):
     #n, bins = numpy.histogram(data2,bins=20000, range=(10,5500))
     n, bins = numpy.histogram(data2, bins=range(1,55000))
     
-    bincenters = 0.5*(bins[1:]+bins[:-1])
+    bincenters = 0.5 * (bins[1:]+bins[:-1])
 
     # Find max position and value 
     maxpos = n.argmax()
@@ -87,7 +87,8 @@ parser.add_argument("input", metavar='input', action='store', nargs=1, \
                    help='list of input images for which to estimate sky.')
 parser.add_argument("--plot", dest='plot', action='store_true', default=False, \
                     help='Plot histogram of image to find sky.')
-parser.add_argument("--maskk", metavar='maskk', action='store', dest='maskk',\
+parser.add_argument("--mask_key", metavar='mask_key', action='store', 
+                    dest='mask_key', default="",
                    help='key where the mask image is stored in the header.')
 
 
