@@ -252,7 +252,7 @@ def combine(args):
        
         # To normalize calculate median and call arith_images to divide by it.
         if args.norm == True:
-            im = fits.getdata(newfile)
+            im = fits.getdata(newfile).astype(numpy.float64)
             lx, ly = im.shape
             median = numpy.median(im[lx/3:lx*2/3,ly/3:ly*2/3])                                 
             msg =  "- NORMALIZED USING MEDIAN VALUE:"                      

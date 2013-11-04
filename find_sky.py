@@ -23,7 +23,7 @@ def find_sky(args):
     # Read images
     im = fits.open(args.input[0], mode='update')
     hdr = im[0].header
-    data = fits.getdata(args.input[0])
+    data = fits.getdata(args.input[0]).astype(numpy.float64)
     
     # If mask exist read it, otherwise build it with all values unmasked
     if hdr.has_key(args.mask_key) == True:

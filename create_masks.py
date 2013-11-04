@@ -22,11 +22,11 @@ def gauss(x, *p):
 def apply_sobel_filter(image):
     """ Apply sobel filter on an image, return the filtered object. 
         This routine roughly follows the solution provided in:
-        http://stackoverflow.com/questions/7185655/applying-the-sobel-filter-using-scipy 
+        http://stackoverflow.com/questions/7185655/applying-the-sobel-filter-using-scipy         
     """
     dx = ndimage.sobel(image, 0)  # horizontal derivative
     dy = ndimage.sobel(image, 1)  # vertical derivative
-    mag = numpy.hypot(dx, dy)    # magnitude
+    mag = numpy.hypot(dx, dy)     # magnitude
     return mag
     
 def zero_edges(image, edge=5):
@@ -57,11 +57,11 @@ def detect_circular_FoV(data, args):
     xc, yc, radius, radius_MAD = fit_to_circle(x, y)
 
 #    # Create an image of those points that were used to fit 
-    fitted_points = mag * 0.
-    fitted_points[indices] = 1
-    if os.path.isfile("fitted_points.fits"):
-        os.remove("fitted_points.fits")   
-    fits.writeto("fitted_points.fits", fitted_points )
+#    fitted_points = mag * 0.
+#    fitted_points[indices] = 1
+#    if os.path.isfile("fitted_points.fits"):
+#        os.remove("fitted_points.fits")   
+#    fits.writeto("fitted_points.fits", fitted_points )
 
 
     # If radius_MAD > 5% of the radius, data was not originally a circle
@@ -139,7 +139,7 @@ def mask(args):
     '''
     for image in args.image:
         im = fits.open(image, mode='update')
-        data = im[0].data
+        data = im[0].data.astype(numpy.float64)
         header = im[0].header
         mask = numpy.ones(data.shape, dtype=numpy.int) * args.true_val #create mask
         

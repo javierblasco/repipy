@@ -55,7 +55,7 @@ def check_dimensions(image_list):
 def read_image_with_mask(image, mask_keyword=None, header=None):
     """ Read an image and a mask (from a keyword in the image), save it into a 
         numpy.ma array. The mask should contain 1 for pixels to be masked out. """
-    data = fits.getdata(image)
+    data = fits.getdata(image).astype(np.float64)
     if mask_keyword:
         header = fits.getheader(image)
         mask_name = header[mask_keyword]
@@ -325,5 +325,11 @@ def read_from_sextractor_catalogue(filename, *keys):
             line = f.readline().split()
         return values
          
-    
+def if_exists_remove(*filename):
+    """ Check if a file exists. If so, remove it"""
+    for f in filename:
+        if os.path.isfile(f):
+            os.remove(f)
+
+
         
