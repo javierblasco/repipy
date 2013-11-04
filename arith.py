@@ -42,7 +42,6 @@ def arith(args):
 
         # If args.fill_val is present, use it
         if args.fill_val != '':
-            print "Fill result", args.fill_val
             result.data[:] = result.filled(float(args.fill_val))
                     
         # If output exists use it, otherwise use the input. Prefix/suffix might
