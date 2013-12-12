@@ -21,12 +21,6 @@ def arith(args):
             im2 = numpy.ma.array([float(args.input2[0])],mask=[0])
         except (ValueError,TypeError):
             im2 = utils.read_image_with_mask(args.input2[0], args.mask_key)        
-            
-        # Case of mean or median for Input2 
-        if args.median == True:
-            im2 = numpy.ma.median(im2)
-        elif args.mean == True:
-            im2 = numpy.ma.mean(im2)
 
         # Do the actual operation. Result is a masked array which masks 
         # any pixel if it is masked either in im1 or in im2.
@@ -35,10 +29,20 @@ def arith(args):
                       "*":operator.mul,
                       "/":operator.div,
                       "**":operator.pow}
+
+        # Case of mean or median for Input2 
+        if args.median == True:
+            operand2 = numpy.ma.median(im2)
+        elif args.mean == True:
+            operand2 = numpy.ma.mean(im2)
+        else:
+            operand2 = im2.data
+
         oper = operations[args.operation[0]]
         result = numpy.zeros_like(im1)
-        result.data[:] = oper(im1.data, im2.data)  # Actual operation of images
+        result.data[:] = oper(im1.data, operand2)  # Actual operation of images                
         result.mask[:] = im1.mask | im2.mask       # If any is masked, result is       
+
 
         # If args.fill_val is present, use it
         if args.fill_val != '':
@@ -72,8 +76,8 @@ def arith(args):
             name2 = "mean(" + name2 + ") (" + str(im2) + ")"
             
         # Write a HISTORY element to the header    
-        hdr_im.add_history(" - Operation performed: " + image + " " + 
-                           args.operation[0] + " " + name2)
+        #hdr_im.add_history(" - Operation performed: " + image + " " + 
+        #                   args.operation[0] + " " + name2)
         try:
             hdr_mask = fits.PrimaryHDU(result.mask.astype(int)).header
         except:
