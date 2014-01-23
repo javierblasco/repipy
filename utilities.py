@@ -14,12 +14,47 @@ import astropy.units as u
 import astropy.coordinates as coords
 from astropy.time import Time
 import dateutil.parser
+import shutil
+
+def update_WCS(image_without_wcs, image_with_wcs):
+    """ Export the WCS information from an image to another one, by updating 
+        certain keywords in the header of the target image"""
+    image = fits.open(image_without_wcs, mode='update')
+    hdr_im = image[0].header
+    hdr_wcs = fits.getheader(image_with_wcs)
+    
+    # WCS parameters are:
+    change = ["wcsaxes", "ctype1", "ctype2", "equinox", "lonpole", 
+              "latpole", "crval1", "crval2", "crpix1", "crpix2", 
+              "cunit1", "cunit2", "cd1_1", "cd1_2", "cd2_1", "cd2_2"]          
+    for key in change:
+        hdr_im[key] = hdr_wcs[key]
+
+    # Remove unnecessary and confusing ones if they exist
+    delete_these = ["PC001001", "PC001002", "PC002001", "PC002002"]
+    for key in delete_these:
+        del hdr_im[key]
+
+    image.flush()
+    image.close()
+    return None 
+
+
+def get_from_header(image_name, *args):
+    """ From the header of an image, get the values corresponding to the 
+        keywords passed in args"""
+    return ( fits.getval(image_name, x) for x in args )
 
 def precess_to_2000(RA, DEC, time):
     """ From the actual coordinates of an object in the sky for a certain 
         time, recalculate the J2000 coordinates. This is util to look 
         within catalogues. RA and DEC are in degree, time is a 
-        datetime.datetime object."""
+        datetime.datetime object (or will be converted into it at the 
+        begining of the program)."""
+    try:
+        time = dateutil.parser.parse(time)
+    except: 
+        pass
     fk5 = coords.FK5Coordinates(ra=RA, dec=DEC, unit=(u.degree, u.degree), 
                                 equinox=Time(time.year, format="jyear", 
                                              scale="utc"))
@@ -331,5 +366,13 @@ def if_exists_remove(*filename):
         if os.path.isfile(f):
             os.remove(f)
 
-
-        
+def if_dir_not_exists_create(folder):
+    """ If a directory does not exist, create it. """
+    if not os.path.isdir(folder):
+        os.mkdir(folder)
+def move_list(file_list, target_dir):
+    """ Move each of the elements of a list to a given folder """ 
+    for item in file_list:             
+        shutil.move(item, target_dir)
+    return None
+    
