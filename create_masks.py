@@ -149,7 +149,7 @@ def mask(args):
             if result:
                 xc, yc, radius = result
                 radius = radius - args.margin   # avoid border effects
-                mask = mask_circle(mask, xc, yc, radius, value=args.false_val)
+                mask = mask_circle(mask, xc, yc, radius, value=2)
     
         # Maxval, minval masking
         bad_pixels = numpy.where((data < args.minval) | (data > args.maxval))
