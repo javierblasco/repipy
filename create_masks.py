@@ -149,7 +149,7 @@ def mask(args):
             if result:
                 xc, yc, radius = result
                 radius = radius - args.margin   # avoid border effects
-                mask = mask_circle(mask, xc, yc, radius, value=2)
+                mask = mask_circle(mask, xc, yc, radius, value=args.outside_val)
     
         # Maxval, minval masking
         bad_pixels = numpy.where((data < args.minval) | (data > args.maxval))
@@ -196,6 +196,11 @@ def main(arguments = None):
       sys.exit("\n\n ERROR: true_val and false_val are the same value: " + \
                str(args.false_val) + " Use --true_val and --false_val \n\n")
   
+  # Default for --outside_val is the same as false_val
+  if args.outside_val == numpy.nan:
+      args.outside_val = args.false_val
+  
+  
   # Call combine, keep name of the file created
   masknames = mask(args)
   return masknames   
@@ -228,7 +233,12 @@ parser.add_argument("--true_val", metavar="true_val", dest='true_val', default=0
                    'those you DO NOT want to mask out. Default: 0 ')
 parser.add_argument("--false_val", metavar="false_val", dest='false_val', default=1, \
                    type=int, action='store', help='Value for the INVALID points. '+\
-                   'those you DO want to mask out. Default: 1 ')                   
+                   'those you DO want to mask out. Default: 1 ')
+parser.add_argument("--outside_val", metavar="outside_val", dest="outside_val", 
+                    type=int, action="store", default=numpy.nan,
+                    help="If --circular is used, this is the value to be used "+\
+                    "to mask out the points outside the circular FoV. The default "+\
+                    "case is using the same as --false_val")                   
 parser.add_argument("--margin", metavar="margin", dest='margin', default=10, \
                    type=int, action='store', help='Margin around the edges for '+\
                    'which the mask is set to zero. If --circular is used '+\
