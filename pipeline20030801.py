@@ -169,7 +169,6 @@ for index, im in enumerate(list_images["filename"]):
         RA, DEC, radius = str(RA), str(DEC), str(FoV/2.5)   
     
         # Calculate WCS for filtered image
-        #filtered_name = utilities.add_suffix_prefix(im, prefix="filtered-")
         subprocess.call(["solve-field", "--no-plots", "--no-fits2fits", 
                          "--ra", RA, "--dec", DEC, "--radius", radius,
                          "--depth", "1-30", "--depth", "1-50", "--depth", 
@@ -177,7 +176,7 @@ for index, im in enumerate(list_images["filename"]):
                          "--use-sextractor", "--code-tolerance", "0.002",
                          "--overwrite", im])                         
 
-        solved = utilities.replace_extension(filtered_name, "solved")
+        solved = utilities.replace_extension(im, "solved")
         if not os.path.exists(solved):
             subprocess.call(["solve-field", "--no-plots", "--no-fits2fits", 
                              "--ra", RA, "--dec", DEC, "--radius", radius,
@@ -186,13 +185,11 @@ for index, im in enumerate(list_images["filename"]):
                              "--code-tolerance", "0.002", "--overwrite",
                              im])                         
         output_name = utilities.replace_extension(im, "new")
-        shutil.move(output_name, filtered_name)
+        shutil.move(output_name, im)
 
 
-        # Update the original (non-smoothed) header with the WCS parameters
-        # from the solved smoothed one.           
-        #filtered_wcs = utilities.replace_extension(filtered_name, "new")
-        #utilities.update_WCS(im, filtered_wcs)
+        # Update old WCS system PC matrices and so on to avoid confusion
+        utilities.update_WCS(im, im)
  
         # Build a catalogue with the coordinates of the stars found in 
         # X and Y, RA and DEC and the flux of the stars
@@ -204,22 +201,15 @@ for index, im in enumerate(list_images["filename"]):
             f.write(str(line[2]) + " " + str(line[3]) + "\n")            
         f.close()
         
-        # Move all filtered images related to im to their own directory
-        filtered_name = utilities.add_suffix_prefix(im, prefix="filtered")
-        directory, filename = os.path.split(filtered_name) 
-        filt_dir = os.path.join(directory, "filtered_images")
-        utilities.if_dir_not_exists_create(filt_dir)
-        
-        filename = utilities.replace_extension(filename, "*")
-        filename = utilities.add_suffix_prefix(filename, prefix="filtered")
-        filt_files = glob.glob( os.path.join(directory, filename))
-        utilities.move_list(filt_files, filt_dir)        
+#        # Move all filtered images related to im to their own directory
+#        directory, filename = os.path.split(im) 
+#        wcs_dir = os.path.join(directory, "wcs_images")
+#        utilities.if_dir_not_exists_create(wcs_dir)
+#        
+#        filename = utilities.replace_extension(filename, "*")
+#        filt_files = glob.glob( os.path.join(directory, filename))
+#        utilities.move_list(filt_files, wcs_dir)        
 
-
-            
-
-
-sys.exit()
 
                                                           
 print "Estimate seeing for each image"
