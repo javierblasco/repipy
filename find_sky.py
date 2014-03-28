@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+
 import scipy
 import numpy
 import astropy.io.fits as fits

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 """
 @author: javier blasco herrera
 @e-mail: blasco@iaa.es  javier.blasco.herrera@gmail.com 

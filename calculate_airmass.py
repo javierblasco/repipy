@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+
 import astropy.io.fits as fits
 import sys
 import repipy.utilities as utils
