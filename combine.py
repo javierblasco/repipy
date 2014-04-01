@@ -267,6 +267,7 @@ def combine(args):
 
 # Create parser
 parser = argparse.ArgumentParser(description='Combine images')
+
 # Add necessary arguments to parser
 parser.add_argument("in_pattern", metavar='input', action='store', \
                  help='input pattern that the program will look for at the' +\
