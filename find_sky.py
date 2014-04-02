@@ -29,10 +29,10 @@ def find_sky(args):
     data = fits.getdata(args.input[0]).astype(numpy.float64)
     
     # If mask exist read it, otherwise build it with all values unmasked
-    if hdr.has_key(args.mask_key) == True:
+    try:
         maskname = os.path.join(imdir, hdr[args.mask_key])
         mask = fits.getdata(maskname)
-    else :
+    except KeyError:
         mask = numpy.ma.make_mask_none(data.shape)
 
     # Make a copy of the array, but only with the unmasked pixels
