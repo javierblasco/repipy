@@ -64,7 +64,7 @@ def precess_to_2000(RA, DEC, time):
                                 equinox=Time(time.year, format="jyear", 
                                              scale="utc"))
     fk_2000 = fk5.precess_to(Time(2000, format="jyear", scale="utc"))
-    return fk_2000.ra.degrees, fk_2000.dec.degrees
+    return fk_2000.ra.degree, fk_2000.dec.degree
 
 def check_dimensions(image_list):
     """ Check that fits images in a list have all the same dimensions, so that 
