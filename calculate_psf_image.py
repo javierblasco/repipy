@@ -37,7 +37,7 @@ def psf(args):
                      sigma=sigma, datamax=args.maxval, datamin=args.minval,
                      ccdread=args.ron_key, gain=args.gain_key, exposure=args.expt_key,
                      airmass=args.airm_key, annulus=6*seeing, dannulus=3*seeing, 
-                     apert=2*seeing, verbose="no", verify="no")
+                     apert=2*seeing, verbose="no", verify="no", interac="no")
 
     # Select stars on the image                 
     #print "pstselect: \n"
