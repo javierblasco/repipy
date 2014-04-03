@@ -59,8 +59,8 @@ print "Include homogeneous filter names into the filter keyword"
 for im in list_images["filename"]:
     imfilt, = utilities.get_from_header(im, filterk)
     imfilt2 = utilities.homogeneous_filter_name(imfilt)
-    utilities.header_update_keyword(im, filterk+"_OLD", imfilt2, "Original filter name")
-    utilities.header_update_keyword(im, filterk,        imfilt, "Revised filter name")
+    utilities.header_update_keyword(im, filterk+"_OLD", imfilt, "Original filter name")
+    utilities.header_update_keyword(im, filterk,        imfilt2, "Revised filter name")
     
 
 print "Ignore images as selected by user, if any."
@@ -97,6 +97,9 @@ for ii, im in enumerate(list_images["filename"]):
                                 "--mask_key", "mask", type_of_subtraction, 
                                 im, "-", superbias["AllFilters"]])
     list_images["filename"][ii] = newname[0]  
+
+
+
 
 print "Combine flats"
 flat_indices = np.where(list_images["type"] == "skyflats")    
