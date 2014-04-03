@@ -213,6 +213,7 @@ def homogeneous_filter_name(filt):
     filt_dict = {"rgu": "rGunn", "rgunn":"rGunn", "gunnr":"rGunn",\
                  "johv":"VJoh", "vjoh":"VJoh", "johnv":"VJoh",\
                  "johr":"RJoh", "rjoh":"RJoh", "johnr":"RJoh",\
+                 "cousr":"RCous", "rcous":"RCous", \
                  "sdssr":"sdssr", "rsdss":"sdssr", "r":"R", \
                  "sdssi":"sdssi", "isdss":"sdssi",\
                  "h6607":"H6607", "h07":"H6607", "6607":"H6607", \
