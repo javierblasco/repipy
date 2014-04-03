@@ -40,6 +40,7 @@ datek = "date-obs"
 telescope = "CAHA2.2"
 gaink = "CCDSENS"       # gain 
 read_noisek = "CCDRON"  # read-out noise
+airmassk = "airmass"    # airmass
 pix_scale = 1.05         # pixel scale (arcsec)
 FoV = 0.15             # rough radius of the FoV for astrometry calculations
 
