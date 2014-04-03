@@ -216,6 +216,7 @@ def homogeneous_filter_name(filt):
                  "cousr":"RCous", "rcous":"RCous", \
                  "sdssr":"sdssr", "rsdss":"sdssr", "r":"R", \
                  "sdssi":"sdssi", "isdss":"sdssi",\
+                 "sdssg":"sdssg", "gsdss":"sdssg",\
                  "h6607":"H6607", "h07":"H6607", "6607":"H6607", \
                  "h6652":"H6652", "h52":"H6652", "6652":"H6652", \
                  "h6633":"H6633", "6633":"H6633",\
