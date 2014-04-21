@@ -172,7 +172,10 @@ def main(arguments = None):
   if args.output == '' and args.prefix == '' and args.suffix == '' and args.overwrite == False:  
       sys.exit("Error! Introduce a prefif, a suffix, the --overwrite option or the --output option. \
 			  For help: python arith.py -h ") 
-  newname = arith(args)  
+  newname = arith(args) 
+  
+  if len(newname) == 1:   # If just one element, send back an element, not a list
+      newname = newname[0]
   return newname    
      
 if __name__ == "__main__":
