@@ -224,6 +224,7 @@ def homogeneous_filter_name(filt):
                  "h6650":"H6650", "h50":"H6650", "6650":"H6650", \
                  "h6678":"H6678", "h78":"H6678", "6678":"H6678", \
                  "h6613":"H6613", "6613":"H6613",\
+                 "67418":"H6741", "h6741":"H6741",\
                  "clear":"Clear", "cle":"Clear", "clear":"Clear",\
                  "free":"Clear",\
                  "none":"Clear", "No":"Clear" , "i":"I", "v":"V"}
