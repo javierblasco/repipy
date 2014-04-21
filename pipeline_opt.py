@@ -64,10 +64,14 @@ for im in list_images["filename"]:
     
 
 print "Ignore images as selected by user, if any."
-for im in remove_images:
-    index = [i for i,v in enumerate(list_images["filename"]) if str(im) in v]
-    for key in list_images.keys():  # remove that item from all the lists
-        list_images[key] = np.delete(list_images[key], index)
+try:
+    for im in remove_images:
+        index = [i for i,v in enumerate(list_images["filename"]) if str(im) in v]
+        for key in list_images.keys():  # remove that item from all the lists
+            list_images[key] = np.delete(list_images[key], index)
+except NameError: # variable remove_images not defined
+    pass
+
 
 print "Create masks for images"
 for ii,im in enumerate(list_images["filename"]):
@@ -87,16 +91,14 @@ superbias = combine_images.main(arguments=["--average", "median",
                                            "--mask_key", "mask",
                                            "--filterk", filterk] +\
                                            bias_images[:])
-
-print "Superbias:", superbias["AllFilters"]
-                                           
+                                          
 print "Subtract bias"
 type_of_subtraction = "--median"   # bias has tiny structure, worth subtracting single number
 for ii, im in enumerate(list_images["filename"]):
     newname = arith.main(arguments=["--suffix", " -b", "--message", "BIAS SUBTRACTED",
                                 "--mask_key", "mask", type_of_subtraction, 
                                 im, "-", superbias["AllFilters"]])
-    list_images["filename"][ii] = newname[0]  
+    list_images["filename"][ii] = newname 
 
 
 
@@ -122,7 +124,7 @@ for ii,im in enumerate(list_images["filename"]):
         newname = arith.main(arguments=["--suffix", " -f", "--message", 
                                         "FLAT CORRECTED", "--mask_key", 
                                         "mask", im, "/", current_flat])
-        list_images["filename"][ii] = newname[0]  
+        list_images["filename"][ii] = newname 
         
         
 print "Zero the area outside the FoV"
@@ -185,7 +187,8 @@ for index, im in enumerate(list_images["filename"]):
                          "--ra", RA, "--dec", DEC, "--radius", radius,
                          "--depth", "1-30", "--depth", "1-50", "--depth", 
                          "1-100", "--depth", "10,20,30,40,50,60,70,80,90,100",
-                         "--use-sextractor", "--code-tolerance", "0.002",
+                         "--no-tweak",
+ #                        "--use-sextractor", "--code-tolerance", "0.002",
                          "--overwrite", im])                         
 
         solved = utilities.replace_extension(im, "solved")
