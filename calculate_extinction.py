@@ -58,4 +58,4 @@ def calculate_extinction(airmasses, magnitudes, err_magnitudes=None):
      #                                                 err_magnitudes))
      pop, pcov = curve_fit(single_slope_curvefit, airmasses, magnitudes.flatten(),
                            sigma=err_magnitudes.flatten(), p0=guess)    
-     return pop[0], pcov[0,0]
+     return pop[0], pcov[0,0] #np.sqrt(pcov[0,0])
