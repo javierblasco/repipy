@@ -153,7 +153,7 @@ for index, image in enumerate(list_images["filename"]):
     if list_images["type"][index] in ["cig","standards","clusters"]:
         find_sky.main(arguments=[list_images["filename"][index]])  
         
-#print "Removing cosmic rays from images"
+print "Removing cosmic rays from images"
 for index, im in enumerate(list_images["filename"]):
     if list_images["type"][index] in ["cig", "standards", "clusters"]:        
             newname = remove_cosmics.main(arguments=["--suffix", " -c", 
@@ -187,8 +187,7 @@ for index, im in enumerate(list_images["filename"]):
                          "--ra", RA, "--dec", DEC, "--radius", radius,
                          "--depth", "1-30", "--depth", "1-50", "--depth", 
                          "1-100", "--depth", "10,20,30,40,50,60,70,80,90,100",
-                         "--no-tweak",
- #                        "--use-sextractor", "--code-tolerance", "0.002",
+                         "--use-sextractor", "--code-tolerance", "0.01",
                          "--overwrite", im])                         
 
         solved = utilities.replace_extension(im, "solved")
@@ -235,7 +234,7 @@ for index, im in enumerate(list_images["filename"]):
         print im
         im_cat = utilities.replace_extension(im, "radec")
         estimate_seeing.main(arguments=["--cat", im_cat, "--wcs", "world", im])
-        
+
 print "Do photometry for each image"
 for index, im in enumerate(list_images["filename"]):
     if list_images["type"][index] in ["standards", "cig", "clusters"]:
