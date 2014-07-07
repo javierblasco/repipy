@@ -62,7 +62,7 @@ def psf(args):
                      datamin=args.minval, ccdread=args.ron_key, gain=args.gain_key, 
                      exposure=args.expt_key, function="moffat25", nclean=1, 
                      psfrad=12, fitrad=seeing, maxnstar=20, interactive="no",
-                     verbose="no",verify="no")
+                     varorder=-1, verbose="no",verify="no")
                      
     # Use seepsf to build the image of the psf
     psffile_name = args.input + ".psf.fits" 
