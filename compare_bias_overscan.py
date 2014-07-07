@@ -19,8 +19,8 @@ def main(images, over, margin=10):
         Do a linear fit. 
         INPUT arguments: 
            images - names of the bias images 
-           overscan - region to be considered as overscan (x0,y0,x1,y1). Careful, 
-                      axis1 is the second axis for astropy 
+           overscan - region to be considered as overscan (y0,x0, y1,x1). Careful, 
+                      axis1 is the second axis for astropy
                       (http://docs.astropy.org/en/latest/io/fits/index.html)
            margin - marging to be left around both the bias and overscan areas
                     in order to avoid border effects. 
@@ -32,6 +32,7 @@ def main(images, over, margin=10):
     bias_array = np.zeros((2, len(images)), dtype=np.float64)
     for index, image in enumerate(images):
         im_data = fits.getdata(image).astype(np.float128)
+        
         # Construct overscan and bias areas
         over_y0, over_x0, over_y1, over_x1 = np.array(over) + \
                               np.array([margin, margin, -1*margin, -1*margin])
@@ -56,22 +57,24 @@ def main(images, over, margin=10):
         
         overscan_array[:,index] = over_mean, over_MAD
         bias_array[:,index] = bias_mean, bias_MAD
-    
+
+   
 #    diff = bias_array[0,:] - overscan_array[0,:]
 #    print "Difference bias - overscan (median, stddev):", np.median(diff), \
 #                                    np.std(diff)
 #    
     # Linear fit
-#    slope, intercept, r_value, p_value, std_err = \
-#                        stats.linregress(overscan_array[0,:], bias_array[0,:])
-#    print slope, intercept, r_value, p_value, std_err
+    slope, intercept, r_value, p_value, std_err = \
+                        stats.linregress(overscan_array[0,:], bias_array[0,:])
+    print "Result of the fit:"
+    print slope, intercept, r_value, p_value, std_err, "\n" * 3
+    print "Residuals of the fit:"
+    print bias_array[0,:] - (overscan_array[0,:] * slope + intercept)
     
-    t1 = time.ctime()
-    print t1    
-    
+   
     # Now we plot bias vs overscan
-    plt.plot(bias_array[0,:] - overscan_array[0,:], 'o')
-#    plt.plot(overscan_array[0,:], overscan_array[0,:] * slope + intercept)
+    plt.plot(overscan_array[0,:], bias_array[0,:], 'o')
+    plt.plot(overscan_array[0,:], overscan_array[0,:] * slope + intercept)
     plt.show()
 #    
     return None
