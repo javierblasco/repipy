@@ -37,7 +37,6 @@ def calculate_seeing(args):
         q.close()
         iraf.noao()
         iraf.obsutil()
-        print im
         iraf.module.psfmeasure(im, coords = "mark1", size = "MFWHM", 
                                sbuffer = 10, swidth=10,radius=10,
                                satura = 55000, ignore = "yes", 
