@@ -49,7 +49,8 @@ print "List of files after rename in list_files.txt"
 # Strip the path from the filenames and calculate the longest of them
 file_list = [os.path.split(name)[1] for name in list_images["filename"]]
 longest_name = max([len(name) for name in file_list])
-f = open("list_files.txt", "w")
+output_log = os.path.join(directory, "list_files.txt")
+f = open(output_log, "w")
 for nn, tt in zip(file_list, list_images["time"]):
     nn = nn + " " * (longest_name - len(nn))  # use spaces for padding
     f.write("{}     {}\n".format(nn, tt.isoformat()))
@@ -75,7 +76,7 @@ except NameError: # variable remove_images not defined
 
 print "Create masks for images"
 for ii,im in enumerate(list_images["filename"]):
-    create_masks.main(arguments=["--max_val", "50000", "--min_val", 
+    create_masks.main(arguments=["--max_val", max_counts, "--min_val",
                                  "0", "--mask_key", "mask", "--circular",
                                  "--outside_val", "2", im])   
                                  
@@ -235,25 +236,28 @@ for index, im in enumerate(list_images["filename"]):
         im_cat = utilities.replace_extension(im, "radec")
         estimate_seeing.main(arguments=["--cat", im_cat, "--wcs", "world", im])
 
-print "Do photometry for each image"
-for index, im in enumerate(list_images["filename"]):
-    if list_images["type"][index] in ["standards", "cig", "clusters"]:
-        im_cat = utilities.replace_extension(im, "radec")
-        seeing = fits.getval(im, "seeing")
-        sigma_sky = fits.getval(im, "sky_std")
-        coords_type = "world"   #world coordinate system
-        photom_file = im + ".mag.1"
-        utilities.if_exists_remove(photom_file)
-        iraf.noao()
-        iraf.digiphot()
-        iraf.apphot()
-        iraf.module.phot(im, coords=im_cat, fwhmpsf=seeing, sigma=sigma_sky,
-                         datamin=-100, datamax=50000, ccdread=read_noisek,
-                         gain=gaink, exposure=exptimek, airmass=airmassk, 
-                         filter=filterk, obstime=datek, maxshift=2, 
-                         annulus=str(8*seeing), dannulus=str(2*seeing), 
-                         apertures=str(4*seeing), zmag=0, radplot="no", 
-                         wcsin=coords_type, verify="no", display="no", 
-                         interactive="no", icommands="", output=photom_file)
+# print "Do photometry for each image"
+# for index, im in enumerate(list_images["filename"]):
+#     if list_images["type"][index] in ["standards", "cig", "clusters"]:
+#         im_cat = utilities.replace_extension(im, "radec")
+#         seeing = fits.getval(im, "seeing")
+#         sigma_sky = fits.getval(im, "sky_std")
+#         coords_type = "world"   #world coordinate system
+#         photom_file = im + ".mag.1"
+#         utilities.if_exists_remove(photom_file)
+#         iraf.noao()
+#         iraf.digiphot()
+#         iraf.apphot()
+#         iraf.module.phot(im, coords=im_cat, fwhmpsf=seeing, sigma=sigma_sky,
+#                          datamin=-100, datamax=50000, ccdread=read_noisek,
+#                          gain=gaink, exposure=exptimek, airmass=airmassk,
+#                          filter=filterk, obstime=datek, maxshift=2,
+#                          annulus=str(8*seeing), dannulus=str(2*seeing),
+#                          apertures=str(4*seeing), zmag=0, radplot="no",
+#                          wcsin=coords_type, verify="no", display="no",
+#                          interactive="no", icommands="", output=photom_file)
 
         
+print "For each object and filter, do photometry on all images"
+# List of objects
+object_list = set(x for x in list_images["objname"])

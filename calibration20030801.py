@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
@@ -13,8 +14,9 @@ if len(sys.argv) != 2:
                    "packages")
 execfile(sys.argv[1])
 
-def search_images():
+def search_images(dir="."):
     """ Given the patterns for the CIGs, cluster and standard images that we 
+    :param dir: directory where data should be
     need, read them and sort them into a dictionary"""
     in_pattern = {}
     in_pattern["cig"] = "^(?P<name>cig)(?P<cig_num>\d{4})_(?P<date>\d{8})_" +\
@@ -27,7 +29,7 @@ def search_images():
                               "(?P<filt>.*)_(?P<exp_num>\d{3})(?P<rest>.*-c\.fits)$"
     in_pattern["blanks"] = "^(?P<name>blank)_(?P<date>\d{8})_(?P<filt>.*)_" +\
                          "(?P<exp_num>\d{3})(?P<rest>.*-c\.fits)$"
-    list_images = utilities.locate_images2(".", in_pattern)
+    list_images = utilities.locate_images2(dir, in_pattern)
     return list_images
 
     
@@ -98,7 +100,7 @@ print "Extinction coefficient for Halpha: ", ext_coeff, "+/-", sigma_ext_coeff, 
 ext_coeff = 0.253
 sigma_ext_coeff = 0.006
 
-
+    
 # From the Halpha images of Kopff 27:
 airmass_kp27_Halpha = np.array([1.178, 1.735, 2.969])
 magnitudes_kp27_Halpha = np.array([-10.133, -9.987, -9.696]) -\
@@ -145,8 +147,7 @@ print "Zero point for Halpha:", zp, "+/-", sigma_zp
 zp = 37.829
 sigma_zp = 0.0003
 
-list_images = search_images()
-
+list_images = search_images(directory)
 
 
 print "Correct from atmosphere"
@@ -158,12 +159,13 @@ for index, im in enumerate(list_images["filename"]):
         newname = utilities.add_suffix_prefix(im, suffix="-e")
         utilities.if_exists_remove(newname)
         fits.writeto(newname, image[0].data, image[0].header)
+        # Update header
+        utilities.header_update_keyword(newname, airmassk, 0, "Corrected for atmosphere")
         list_images["filename"][index] = newname
         image.close()
 
 print "Align images"
 #print "Objects:", set(list_images["object"])
-print list_images
 
  
 # Para ser más eficiente con astrometry.net 
