@@ -47,7 +47,7 @@ def calculate_extinction(airmasses, magnitudes, err_magnitudes=None):
      # In the unlikely case you send magnitudes without errors (do your 
      # homework, dude!) zero error will be assigned to all values. 
      if err_magnitudes == None:
-         err_magnitudes = magnitudes - magnitudes
+         err_magnitudes = np.ones_like(magnitudes)
      
      # Initial guess for extinction coefficient is the first value. 
      # The initial guess of the intercept for each star is the mean of the 
@@ -58,4 +58,4 @@ def calculate_extinction(airmasses, magnitudes, err_magnitudes=None):
      #                                                 err_magnitudes))
      pop, pcov = curve_fit(single_slope_curvefit, airmasses, magnitudes.flatten(),
                            sigma=err_magnitudes.flatten(), p0=guess)    
-     return pop[0], pcov[0,0] #np.sqrt(pcov[0,0])
+     return pop[0], np.sqrt(pcov[0,0])
