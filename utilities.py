@@ -20,7 +20,6 @@ def collect_from_images(image_list, keyword):
     """ From a list of images collect a single keyword """ 
     return [fits.getval(im, keyword) for im in image_list]
 
-
 def update_WCS(image_without_wcs, image_with_wcs):
     """ Export the WCS information from an image to another one, by updating 
         certain keywords in the header of the target image"""
@@ -42,8 +41,7 @@ def update_WCS(image_without_wcs, image_with_wcs):
 
     image.flush()
     image.close()
-    return None 
-
+    return None
 
 def get_from_header(image_name, *args):
     """ From the header of an image, get the values corresponding to the 
@@ -285,7 +283,6 @@ def locate_images2(directory, pattern):
                                                       name)
     return final_dict
 
-
 def create_lists(pattern, directory):
     """ Given a list of patterns for re.search make a list of files according 
     to them in a certain directory. """  
@@ -378,6 +375,7 @@ def if_dir_not_exists_create(folder):
     """ If a directory does not exist, create it. """
     if not os.path.isdir(folder):
         os.mkdir(folder)
+
 def move_list(file_list, target_dir):
     """ Move each of the elements of a list to a given folder """ 
     for item in file_list:             
