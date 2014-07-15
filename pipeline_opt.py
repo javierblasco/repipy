@@ -76,9 +76,11 @@ except NameError: # variable remove_images not defined
 
 print "Create masks for images"
 for ii,im in enumerate(list_images["filename"]):
-    create_masks.main(arguments=["--max_val", max_counts, "--min_val",
-                                 "0", "--mask_key", "mask", "--circular",
-                                 "--outside_val", "2", im])   
+    # Arguments to be passed to create_masks
+    args = ["--max_val", max_counts, "--min_val", "0", "--mask_key", "mask", "--outside_val", "2", im]
+    if circular_FoV:  # from the campaign file
+        args = ["--circular"] + args
+    create_masks.main(arguments=args )
                                  
 print "Combine bias"
 whr = np.where(list_images["type"] == "bias")
@@ -94,15 +96,12 @@ superbias = combine_images.main(arguments=["--average", "median",
                                            bias_images[:])
                                           
 print "Subtract bias"
-type_of_subtraction = "--median"   # bias has tiny structure, worth subtracting single number
 for ii, im in enumerate(list_images["filename"]):
-    newname = arith.main(arguments=["--suffix", " -b", "--message", "BIAS SUBTRACTED",
-                                "--mask_key", "mask", type_of_subtraction, 
-                                im, "-", superbias["AllFilters"]])
+    args = ["--suffix", " -b", "--message", "BIAS SUBTRACTED", "--mask_key", "mask", im, "-", superbias["AllFilters"]]
+    if type_of_bias_subtraction:
+        args = [type_of_bias_subtraction] + args
+    newname = arith.main(arguments=args)
     list_images["filename"][ii] = newname 
-
-
-
 
 print "Combine flats"
 flat_indices = np.where(list_images["type"] == "skyflats")    
@@ -131,23 +130,24 @@ for ii,im in enumerate(list_images["filename"]):
 print "Zero the area outside the FoV"
 # Since the areas outside the FoV of a flatfield will be clearly masked with 
 # the value 2 (as we indicated when creating the masks), we can use one of 
-# them to zero the area outside the FoV. 
-flat_indices = np.where( (list_images["type"] == "skyflats")  |
+# them to zero the area outside the FoV for all the images.
+if circular_FoV:
+    flat_indices = np.where( (list_images["type"] == "skyflats")  |
                          (list_images["type"] == "flats")     |
                          (list_images["type"] == "domeflats")   )[0]
-# Find a suitable mask, which contains number 2
-for index in flat_indices:
-    print index
-    print list_images["filename"][index]
-    mask_name = fits.getval(list_images["filename"][index], "mask")
-    mask = fits.getdata(mask_name)
-    if np.any(mask == 2):
-        break
-for im in list_images["filename"]:
-    image = fits.open(im, mode="update")
-    image[0].data[mask==2] = 0
-    image.flush()
-    image.close()
+    # Find a suitable mask, which contains number 2
+    for index in flat_indices:
+        print index
+        print list_images["filename"][index]
+        mask_name = fits.getval(list_images["filename"][index], "mask")
+        mask = fits.getdata(mask_name)
+        if np.any(mask == 2):
+            break
+    for im in list_images["filename"]:
+        image = fits.open(im, mode="update")
+        image[0].data[mask==2] = 0
+        image.flush()
+        image.close()
              
 print "Estimate sky for images of CIG(s), standard(s) and cluster(s) "
 for index, image in enumerate(list_images["filename"]):
