@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# Routine created by Victor Terron, modified by Javier Blasco to suit his needs. 
+# Routine created by Victor Terron, modified by Javier Blasco to suit his needs.
 # LEMON modules
 import lemon.database as database
 import matplotlib.pyplot as plt
@@ -37,6 +37,7 @@ def main(db_name):
     query = """
            SELECT airmass
            FROM images
+           WHERE sources = 0
            """
     db._execute(query)
     num_airmasses = len(set(_ for _ in db._rows))
