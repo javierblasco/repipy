@@ -1,4 +1,6 @@
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
@@ -11,6 +13,7 @@ import sys
 import astropy.io.fits as fits
 import os
 import shutil
+import pickle
 
 import lemon.photometry as photometry
 
@@ -95,33 +98,49 @@ def search_images(dir="."):
 #                         [2.035, 1.044, 1.018]   ] )
 
 
-
 list_images = search_images(directory)
 
 print "For each object and filter, do photometry on all images"
-# List of image names, objects, type of images and filters that are CIGT, standard or cluster
+# List of image names, objects, type and filters that are standard
 obj_names = list_images["objname"]
 obj_types = list_images["type"]
-object_set = set(x for x,t in zip(obj_names, obj_types) if t in ["cig", "standards", "clusters"] )
+object_set = set(x for x,t in zip(obj_names, obj_types) if t == "standards")
 
-for obj in object_set: # for each of the objects
-    obj_images = list(list_images["filename"][np.where(list_images["objname"] == obj)])
-    # Problem with lemon photometry is that it expects a reference image, and the time of it can not coincide with any
-    # of the science images, so I will make a copy of the first image, call it "reference.fits", change the date and
-    # pretend that nothing happened. This is obviously ugly, Victor Terron, ideas?
-    im1_dir, im1_name = os.path.split(obj_images[0])
-    ref_name = os.path.join( im1_dir, "reference.fits" )
-    utilities.if_exists_remove(ref_name)
-    shutil.copy(obj_images[0], ref_name)
-    utilities.header_update_keyword(ref_name, datek, "1981-05-17T00:00:00")
+for obj in object_set: # for each of the standards
+    obj_images = list(list_images["filename"][np.where( (list_images["objname"] == obj))])
 
-    # Finally, do the photometry
+    # Do the photometry
     output_db = os.path.join(directory, obj+".db")
+    utilities.if_exists_remove(output_db)
     coord_file = utilities.replace_extension(obj_images[0], "radec")
-    photometry.main(arguments=["--filter", "rGunn", "--maximum", "50000", "--uik", "", "--margin", "20", "--gaink", gaink,
-                              "--aperture", "3", "--annulus", "5", "--dannulus", "2", "--individual-fwhm", "--objectk", objectk,
+    photometry.main(arguments=["--filter", "H-alpha 6678", "--maximum", "50000", "--uik", "", "--margin", "20", "--gaink", gaink,
+                              "--aperture", "4.", "--annulus", "6", "--dannulus", "2", "--individual-fwhm", "--objectk", objectk,
                               "--filterk", filterk, "--datek", datek, "--expk", exptimek, "--fwhmk", seeingk, "--airmk", airmassk,
-                              "--coordinates", coord_file, ref_name] + obj_images + [output_db])
+                              "--coordinates", coord_file, obj_images[0]] + obj_images + [output_db])
+
+    airmasses, magnitudes = extract.main(output_db)
+
+    # sort by magnitudes and use the 10 brightest stars
+    average_magnitudes = np.mean(magnitudes, 1)
+    if obj == "bd+28":
+        sort_indices = np.argsort(average_magnitudes) [:20]
+    else:
+        sort_indices = np.argsort(average_magnitudes) [:20]
+
+    airmasses = airmasses[sort_indices]
+    magnitudes = magnitudes[sort_indices]
+    print "Median(magnitudes) = ",np.median(magnitudes)
+
+
+    with open(obj+".pickle", "wt") as f:
+        pickle.dump([airmasses, magnitudes], f)
+
+    if len(airmasses) > 0 and len(airmasses[0]) > 2:
+        ext_coeff, sigma_ext_coeff = calculate_extinction(airmasses,magnitudes)
+        print "\n" * 5, "Extinction coefficient for " , obj, " for filter rGunn: ", ext_coeff, "+/-", sigma_ext_coeff, "\n" * 2
+    else:
+        print "\n" * 5, "Not used: ", obj, ". Not enough measurements"
+
 
 
 sys.exit()
@@ -134,8 +153,6 @@ object_images = [os.path.join(directory, "standards/kop27_20030801_rGunn_002-b-f
 
 
 
-# Reference image not util anymore
-utilities.if_exists_remove(ref_name)
 
 
 
