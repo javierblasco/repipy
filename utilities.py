@@ -16,9 +16,13 @@ from astropy.time import Time
 import dateutil.parser
 import shutil
 
+
 def collect_from_images(image_list, keyword):
-    """ From a list of images collect a single keyword """ 
-    return [fits.getval(im, keyword) for im in image_list]
+    """ From a list of images collect a single keyword """
+    try:
+        return [fits.getval(im, keyword) for im in image_list]
+    except KeyError:
+        sys.exit("Keyword %s does not exist in image %s" % (keyword, im))
 
 def update_WCS(image_without_wcs, image_with_wcs):
     """ Export the WCS information from an image to another one, by updating 
@@ -89,18 +93,30 @@ def check_dimensions(image_list):
         for image, size in zip(image_list, dimensions):
             print image, size        
         return False
-    
-def read_image_with_mask(image, mask_keyword=None, header=None):
-    """ Read an image and a mask (from a keyword in the image), save it into a 
-        numpy.ma array. The mask should contain 1 for pixels to be masked out. """
-    data = fits.getdata(image).astype(np.float64)
-    if mask_keyword:
-        header = fits.getheader(image)
-        mask_name = header[mask_keyword]
-        mask = fits.getdata(mask_name)
+
+def read_image_with_mask(image, mask_keyword=None, limits = 0, header=None):
+    """ Read an image and a mask (from a keyword in the image), save it into a numpy.ma array.
+    The mask should contain 1 for pixels to be masked out. Limits allows to read only a part of an image, avoiding
+    the need to read it all into memory. Limit should be limits = (min_x, min_y, max_x, max_y), use limit=0 to use all
+    image (DEFAULT: all image)."""
+
+    # Set the limits
+    header = fits.getheader(image)
+    if limits == 0:
+        min_x, min_y = (0, 0)
+        max_x, max_y = header["NAXIS2"], header["NAXIS1"]
     else:
-        mask = np.zeros_like(data)
-    return np.ma.array(data, mask=mask)         
+        min_x, min_y, max_x, max_y = limits
+
+
+    # Open both image and mask (if present)
+    with fits.open(image, memtype=True) as im:
+        data = im[0].data[min_x:max_x, min_y:max_y]
+        if mask_keyword:
+            mask = fits.open(header[mask_keyword], memtype=True)[0].data[min_x:max_x, min_y:max_y]
+        else:
+            mask = np.zeros_like(data)
+    return np.ma.array(data, mask=mask, dtype=np.float64)
 
 def mean_datetime(datetimes):
     """ This function returns the average datetime from a given set of datetime 
@@ -117,7 +133,7 @@ def group_images_in_blocks(times, limit=3):
         field of the sky. For example, five blank fields, then the object, then 
         another 4 blank fields, then the object... We might want to distinguish 
         those blocks, in order to, e.g., combine the blank fields of each block, 
-        correct a block of images of the object with a certain blank or bias 
+        correct a block of imafges of the object with a certain blank or bias
         image... This routine gets the datetime.datetime objects that indicate
         the date and time of observations, and separates them in blocks, giving 
         back an array:
@@ -372,9 +388,15 @@ def if_exists_remove(*filename):
             os.remove(f)
 
 def if_dir_not_exists_create(folder):
-    """ If a directory does not exist, create it. """
-    if not os.path.isdir(folder):
+    """ If a directory does not exist, create it. Recursively create any intermediate subfolders. """
+    abs_path = os.path.abspath(folder)
+    previous_folder = os.path.split(abs_path)[0]
+    if not os.path.isdir(folder):  # Folder does not exist
+        # Create the previous folder first
+        if_dir_not_exists_create(previous_folder)
         os.mkdir(folder)
+
+
 
 def move_list(file_list, target_dir):
     """ Move each of the elements of a list to a given folder """ 
@@ -382,3 +404,4 @@ def move_list(file_list, target_dir):
         shutil.move(item, target_dir)
     return None
     
+
