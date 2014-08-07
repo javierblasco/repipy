@@ -24,6 +24,7 @@ def home_made_median(map_cube, cube):
         N//2 and (N-1)//2, where N is the value of map for the given pixel.
         That is what we call indicesz_above and below. We will average
         the two resulting images. """
+
     lx, ly = map_cube.shape 
     indicesz_above = (map_cube // 2).flatten() 
     indicesz_below = ((map_cube-1) // 2).flatten()
@@ -33,233 +34,170 @@ def home_made_median(map_cube, cube):
     image = (image_above + image_below) / 2.
     return image
 
-
-def minmax_reject(cube, nlow, nhigh):
-    """ Cube is a numpy.ma.array with shape (lz, lx, ly) where lz is the number 
-        of combined images, each with sizes (lx,ly). The cube was build from 
-        masked images, and its own mask reflects which elements are to be used 
-        (valid=0, invalid=1). We need to reject the lowest nlow and the
-        highest nhigh values for each pixel. For that, we can use masks and 
-        'simple' logic operations.   """
-    # First, sort the cube, for each pixel cube[:,ii,jj] is in increasing order
-    # with the masked values as the highest values.
-    cube.sort(axis=0)    
-    lz, lx, ly = cube.shape
-
-    # Using the logic "and" operator, we can mask out the highest value of each
-    # pixel quickly by looping backwards. It is not straightforward, but works!
-    for ii in range(nhigh): # every time just one more value is masked!
-        a = numpy.ones((lx,ly))
-        # The pixels of the array a will become zeros as they mask one more 
-        # element. Then they will have no effect on the rest of cube. Clever, huh?
-        for ii in range(lz-1,-1,-1):
-            cube.mask[ii,:,:], a = a, numpy.logical_and(a, cube.mask[ii,:,:])
-            if numpy.all(a == 0): #all zeros? no need to continuethe inner loop
-               break                 
-    
-    # Fortunately it is easier with the lowest values. Since the cube is sorted
-    # with the non-valid values as the highest ones, we just need to mask the 
-    # slice that we do not want from the "bottom" of the array. Actually, 
-    # we will cut it away, since it is of no use and would get in the middle 
-    # when calculating the median.
-    cube = cube[nlow:,:,:]        
-    return cube
-
 ################################################################################
-def cube_images(input_images, mask_key, scales):
+def cube_images(input_images, mask_key, scales, limits=0):
     """ From a set of images (input_images), and once divided by their scales, 
         form a cube with all the images. """
-    # Initialize the cube and the mask. 
-    lx, ly = fits.getdata(input_images[0]).shape
+    # Set the limits to build the piece of the cube
+    header = fits.getheader(input_images[0])
+    if limits == 0:
+        min_x, min_y = (0, 0)
+        max_x, max_y = header["NAXIS2"], header["NAXIS1"]
+    else:
+        min_x, min_y, max_x, max_y = limits
+
+    # Initialize the cube and the mask.
+    lx, ly = max_x - min_x, max_y - min_y
     lz = len(input_images)
     mask = numpy.zeros([lz,lx,ly])  # initialized to zero, all pixels are valid
     cube = numpy.ma.array(mask, mask=mask) 
 
     # Now read all the images (and masks, if present), into the cube
     for index, image in enumerate(input_images):
-        im = utils.read_image_with_mask(image, mask_keyword = mask_key)
+        im = utils.read_image_with_mask(image, mask_keyword = mask_key, limits=[min_x, min_y, max_x, max_y])
         cube.data[index,:,:] = im.data/scales[index]
         cube.mask[index,:,:] = im.mask
     return cube    
     
 ################################################################################
-def compute_scales(input_images, scale, mask_key):
-    """ From the list of input images use the central third of the image to 
-        calculate the scale necessary to get all the images to the same level
-        of flux, using the scale (median, mode, mean, none) given by user. """
+def compute_scales(input_images, scale_type, mask_key):
+    """ From the list of images, use the central third of the image to
+        calculate the scaling factor requested by user. """
     lx, ly = fits.getdata(input_images[0]).shape
+    centre = [lx/3, ly/3, lx*2/3, ly*2/3]  # min_x, min_y, max_x, max_y
     scales = []
     for image in input_images:
-        im = utils.read_image_with_mask(image, mask_keyword=mask_key)
-        centre = im[lx/3:lx*2/3, ly/3:ly*2/3]
-        if scale == "median":
-            new_item = numpy.ma.median(centre)
-        elif scale == "mean":
-            new_item = numpy.ma.mean(centre)
-        elif scale == "none":
+        im = utils.read_image_with_mask(image, mask_keyword=mask_key, limits=centre)
+        if scale_type == "median":
+            new_item = numpy.ma.median(im)
+        elif scale_type == "mean":
+            new_item = numpy.ma.mean(im)
+        elif scale_type == "none":
             new_item = 1
-        if new_item is numpy.ma.masked:  # If all elements where masked
+        if new_item is numpy.ma.masked:  # Result if all elements where masked
             new_item = 1
-            print "All elements of the central part of image " + image + \
-                  " seem to be masked. Replacing scale calculation by 1." 
+            print "All elements of the central part of image %s seem to be masked. "+\
+                  "Replacing scale calculation by 1." % image
         scales.append(new_item)
-    return scales  # cases where of all elements were masked                                            
-                                                                
-################################################################################
-def run_test(args, list1, filt):
-    testdir = os.path.join(args.out_dir, "tests"+str(args.out_pattern))
-    if os.path.isdir(testdir) == False:
-        os.makedirs(testdir)
-    print "PRINTING TEST FILES WITH IMAGES DIVIDED AMONG THEMSELVES: \n "
-    for jj, im1 in enumerate(list1):  
-        print str(jj+1) + " " + im1  # Identify to keep track of them:
-        for kk, im2 in enumerate(list1[jj+1:]): # avoid duplicity
-            newname =  str(args.out_pattern) + "_test_" + filt + \
-                           "_"+str(jj+1)+"_"+str(kk+jj+2)+".fits"
-            filename = os.path.join(testdir, newname)
-            if os.path.isfile(filename) == True: 
-                os.remove(filename)  # iraf does not overwrite
-            arith_images.main(arguments=["--output", filename, "--mask_key",\
-                                         args.mask_key, im1, "/", im2]) 		
-
-################################################################################
-def build_filter_list(args):
-    """ From a set of images read the headers and build a list of the 
-        filters present and another one with which filter each image has. """    
-    images_filters = []
-    for obj in args.in_pattern: # For every image in the input.
-        hdr_obj = fits.getheader(obj)
-        if args.filterk != "":
-            filter_obj = hdr_obj[args.filterk]
-        else:               
-            keywords = find_keywords.get_keywords(hdr_obj, ["filter"], args)
-            filter_obj = hdr_obj[keywords["filter"]]
-              
-        # Homogeneous name for the filter names!
-        filter_obj = utils.homogeneous_filter_name(filter_obj)
-
-        # Add the filter of this image to the list
-        images_filters.append(filter_obj)
-    filter_list = list(set(images_filters))
-
-    # If alltogether is set, then ignore the different filters and use all the 
-    # images as if they had just one filter (e.g., to combine bias images)
-    if args.alltogether == True:
-        filter_list = ["AllFilters"]
-    return filter_list, images_filters
+    return scales  # cases where of all elements were masked
 
 ###################################################################################
 def combine(args):
-    # If output directory does not exist, create it. 
-    if os.path.isdir(args.out_dir) == False:
-        os.makedirs(args.out_dir)
+    # Create the folders that do not already exist for the output file
+    outdir, outfile = os.path.split(os.path.abspath(args.output))
+    utils.if_dir_not_exists_create(outdir)
 
-    # Build a list of filters present and another one with the filter of each image
-    filter_list, images_filters = build_filter_list(args)
-    	
+    # Build a list of the filter of each image
+    #filter_list, images_filters = build_filter_list(args)
+    images_filters = utils.collect_from_images(args.input, args.filterk)
+
+    # If user wants all images to be combined together, regardless of filter:
+    if args.all_together:
+        images_filters = ["AllFilters"] * len(images_filters)
+
     # Create a default dictionary for the resulting images
     result = collections.defaultdict(str)    
     
-    # For each of the filters present do two things: divide all images by each 
-    # other (and write to a test folder) and combine the images (and write)
-    for filt in filter_list:	   
-        # If user provided a specific filter to be combined, use just that one
-        if filt != args.filter and args.filter != "":
-            print "skipping filter", filt, "User provided --filter option."
-            continue
-
-        # list of objects with current filter (exception: allfilters is true) 
-        list1 = [args.in_pattern[p] for p,f in enumerate(images_filters) if 
-                     (f == filt or filt == "AllFilters") ]
+    # For each of the filters present combine the images (and write)
+    for filt in set(images_filters):
+        # list of objects with current filter (exception: allfilters is true)
+        list1 = [args.input[p] for p,f in enumerate(images_filters) if f == filt ]
 
         # Check that all images have same dimension. If not, exit program
         if not utils.check_dimensions(list1):
             sys.exit("Dimensions of images to combine are different!")
 
-        # Divide each object by all the others and generate files called 
-        # test+out_pattern+filter+num1+num2
-        if args.notest == False:
-            run_test(args, list1, filt)
-
-        # In order to combine, we first need to calculate the scales, so that 
-        # they are all at the same flux level
+        # Calculate scale of images
         scales = compute_scales(list1, args.scale, args.mask_key)
 
-        # Now we can build a cube with all the images, masks included. 
-        cube = cube_images(list1, args.mask_key, scales)
-        
-        # If nlow != 0 or nhigh!=0 we need to remove the necessary pixels.
-        # If user was odd enough to give args.median and args.nlow = args.nhigh
-        # skip the minmax rejection.
-        if (args.nlow or args.nhigh):
-            if not (args.average == "median" and args.nlow == args.nhigh):
-               cube = minmax_reject(cube, args.nlow, args.nhigh)
+
+        # Get the sizes of the images
+        lx, ly = utils.get_from_header(list1[0], "NAXIS2", "NAXIS1")
+
+        # Now, in order to avoid loading many images in memory, we need to slice the images in pieces and combine a slice
+        # of all the images at a time
+        n_slices = 32          # divide the slow axis in this many pieces
+
+        # Define the whole image and set all elements of mask to False
+        whole_image = numpy.ma.zeros([lx,ly])
+        whole_image.mask = numpy.zeros_like(whole_image.data)
+
+        for xmin in range(0, lx, lx/n_slices):
+            xmax = min(xmin + lx/n_slices, lx)
+
+            # Now we can build and sort a section of the cube with all the images
+            cube = cube_images(list1, args.mask_key, scales, limits=[xmin, 0, xmax, ly])
+            cube.sort(axis=0)
+
+            # Finally, average! Remember that the cube is sorted so that
+            # cube[0,ii,jj] < cube[1,ii,jj] and that the highest values of all
+            # are the masked elements. We will take advantage of it if the median
+            # is selected, because nowadays the masked median is absurdly slow:
+            # https://github.com/numpy/numpy/issues/1811
+            map_cube = numpy.ma.count(cube, axis=0) # number non-masked values per pixel
+            if args.average == "mean":
+                image = numpy.ma.mean(cube, axis=0)
+                non_masked_equivalent = numpy.mean(cube.data, axis=0)
+            elif args.average == "median":
+                image = home_made_median(map_cube, cube)
+                non_masked_equivalent = numpy.median(cube.data, axis=0)
+
+            # Image is a masked array, we need to fill in masked values with the
+            # args.fill_val if user provided it. Also, values with less than
+            # args.nmin valid values should be masked out. If user did not provide
+            # a fill_val argument, we will substitute masked values with the
+            # unmasked equivalent operation.
+            image.mask[map_cube < args.nmin] = 1
+            mask = image.mask
+            if args.fill_val != '':
+                image = image.filled(args.fill_val)
+            else:
+                image.data[mask == True] = non_masked_equivalent[mask == True]
+                image = image.data
+
+            whole_image.data[xmin:xmax, 0:ly] = image[:,:]
+            whole_image.mask[xmin:xmax, 0:ly] = mask[:,:]
+
+        import pickle
+        with open("whole_image", "w") as fd:
+            pickle.dump(whole_image, fd)
+
+
+        # And save images. If all_together is activated, use the file name given by user. If not, we need
+        # to separate by filter, so compose a new name with the one given by the user adding the filter
+        if args.all_together:
+            newfile = args.output
         else:
-            cube.sort(axis=0)  # In any case, we need cube to be sorted
+            newfile = os.path.join(out_dir, utils.add_suffix_prefix(outfile, suffix="_" + filt) )
 
-        # Finally, average! Remember that the cube is sorted so that
-        # cube[0,ii,jj] < cube[1,ii,jj] and that the highest values of all 
-        # are the masked elements. We will take advantage of it if the median 
-        # is selected, because nowadays the masked median is absurdly slow: 
-        # https://github.com/numpy/numpy/issues/1811
-        map_cube = numpy.ma.count(cube, axis=0) # number non-masked values per pixel                                
-        if args.average == "mean":
-            image = numpy.ma.mean(cube, axis=0)
-            non_masked_equivalent = numpy.mean(cube.data, axis=0)
-        elif args.average == "median":
-            image = home_made_median(map_cube, cube)
-            non_masked_equivalent = numpy.median(cube.data, axis=0)
-
-        # Image is a masked array, we need to fill in masked values with the 
-        # args.fill_val if user provided it. Also, values with less than 
-        # args.nmin valid values should be masked out. If user did not provide 
-        # a fill_val argument, we will substitute masked values with the 
-        # unmasked equivalent operation.
-        image.mask[map_cube < args.nmin] = 1 
-        mask = image.mask.astype(numpy.int0) # converto to binary 
-        if args.fill_val != '':
-            image = image.filled(args.fill_val)
-        else:       
-            image.data[mask == 1] = non_masked_equivalent[mask == 1]
-            image = image.data
-            
-        # And save image
-        newfile = os.path.join(args.out_dir, 
-                               str(args.out_pattern) + "_" + filt + '.fits')
         if args.out_mask != "":
             name_mask = args.out_mask
         else:
             name_mask = newfile + ".msk"
-        if os.path.isfile(newfile): 
-            os.remove(newfile)  
+        if os.path.isfile(newfile):
+            os.remove(newfile)
         if os.path.isfile(name_mask):
             os.remove(name_mask)
-        fits.writeto(newfile,image)
-        fits.writeto(name_mask, mask)
-        result[filt] = newfile  
-        if os.path.isfile(newfile) == False:
-            sys.exit(newfile + " does not exist")
- 
+        fits.writeto(newfile, whole_image.data)
+        fits.writeto(name_mask, whole_image.mask.astype(numpy.int))
+        result[filt] = newfile
+
         # Add comments to the headers
         string1 = " - Image built from the combination of the images: "+\
-                 " ,".join(list1) 
-        string2 = " combine = " + args.average + ", scale = " + args.scale +\
-                 ", reject = minmax, nhigh = " + str(args.nhigh) + ", nlow = "+\
-                 str(args.nlow)
-        utils.add_history_line(newfile, string1 + string2 )  
+                 " ,".join(list1)
+        string2 = "\n combine = " + args.average + ", scale = " + args.scale
+        utils.add_history_line(newfile, string1 + string2 )
         utils.add_history_line(name_mask, " - Mask of image: " + newfile)
         if args.mask_key != "":
-            utils.header_update_keyword(newfile, args.mask_key, name_mask, 
-                                        "Mask for this image")        
-       
+            utils.header_update_keyword(newfile, args.mask_key, name_mask,
+                                        "Mask for this image")
+
         # To normalize calculate median and call arith_images to divide by it.
         if args.norm == True:
-            im = fits.getdata(newfile).astype(numpy.float64)
-            lx, ly = im.shape
-            median = numpy.median(im[lx/3:lx*2/3,ly/3:ly*2/3])                                 
-            msg =  "- NORMALIZED USING MEDIAN VALUE:"                      
+            median = compute_scales([newfile], args.scale, args.mask_key)[0]
+            msg =  "- NORMALIZED USING MEDIAN VALUE:"
             arith_images.main(arguments=["--message", msg, "--output", newfile,
-                                         "--mask_key", args.mask_key, "--fill_val", 
+                                         "--mask_key", args.mask_key, "--fill_val",
                                          args.fill_val, newfile, "/", str(median)])
     return result
 
@@ -269,67 +207,43 @@ def combine(args):
 parser = argparse.ArgumentParser(description='Combine images')
 
 # Add necessary arguments to parser
-parser.add_argument("in_pattern", metavar='input', action='store', \
-                 help='input pattern that the program will look for at the' +\
-                 'beginning of the files to combine', nargs='+')
-parser.add_argument("-o", metavar="output", dest='out_pattern', \
-                   action='store', help='How the output file will be called')
-parser.add_argument("--out_dir", metavar="out_dir", dest='out_dir', default='',\
-                   action='store', help=' Directory to print output file' +\
-                   'Default: same folder as input images.')
+parser.add_argument("input", metavar='input', action='store', \
+                 help='input images to combine.', nargs='+', type=str)
+parser.add_argument("--output", metavar="output", dest='output', \
+                   action='store', help='Name for output file.')
 parser.add_argument("--average", metavar='average', type=str, default='median', \
                    help='type of average (median, mean) to combine ' +\
                    'the images. Default: median')
 parser.add_argument("--scale", metavar='scale', type=str, default='none', \
                    help='scaling function (median, mean, mode, none) to apply' +\
                    'to	the images before combining them. Default: none' )
-parser.add_argument("--all_together", action="store_true", dest="alltogether", \
+parser.add_argument("--all_together", action="store_true", dest="all_together", \
                    default=False, help=' Force all the files to be combined'+ \
                    'together, i.e. do not separate by filter (e.g. for bias)') 
 parser.add_argument("--norm", action="store_true", dest="norm", default=False, \
                     help="Normalize resulting image? Default: No")
-parser.add_argument("--nlow", metavar="nlow", type=int, dest='nlow', action='store', \
-                   default='0', help='Number of low pixels to be rejected by'+ \
-                   ' the combining procedure. Default: 0')
-parser.add_argument("--nhigh", metavar="nhigh", type=int, dest='nhigh', action='store', \
-                   default='1', help='Number of highpixels to be rejected by' +\
-                   'the combining procedure. Default: 1')
 parser.add_argument("--nmin", metavar="nmin", type=int, dest="nmin", action='store', \
                     default=1, help="Minimum number of images with valid "+\
                     "(i.e. non masked, non rejected) pixels. If the valid pixels "+\
                     "are less than nmin, the fill_val value is used as result, "+\
                     "and the pixel is masked. Default: 1.")
-parser.add_argument("--notest", action="store_true", dest="notest", default=False, \
-                    help="Do not print the tests. Default: False")
-parser.add_argument("--config_file", action="store", dest="config", default="", \
-                    help="Config file to introduce the names of the keywords "+\
-                    "in the headers of the images. The file should have "+\
-                    "a line per keyword, where we give the common name, "+ \
-                    "a '=' and the name of the keyword. E.g. for CAHA 2.2m: \n"\
-                    "OBJECT = OBJECT \n FILTER = INSFLNAM \n DATE = DATE-OBS \n" +\
-                    " At least the keyword FILTER should be included for this " +\
-                    "routine to work. " )
-parser.add_argument("--filterk", action="store", dest="filterk", default='', \
+parser.add_argument("--filterk", action="store", dest="filterk", default='filter', \
                     help="Keyword in the header that contains the name of "+\
                     "the filter. Alternatively you can provide the filter "+\
                     "name itself with the argument '--filter'")
-parser.add_argument("--filter", action="store", dest="filter", default='', \
-                    help="Name of the filter we want to combine. If images with "+\
-                         "several filters are present, only this one will be used.")
 parser.add_argument("--mask_key", metavar="mask_key", dest='mask_key', \
-                    action='store', default="", help=' Keyword in the header ' +\
+                    action='store', default="MASK", help=' Keyword in the header ' +\
                     'of the image that contains the name of the mask. The mask '+\
                     'will contain ones (1) in those pixels to be MASKED OUT.')
 parser.add_argument("--output_mask", metavar="output_mask", dest='out_mask', \
                     action='store', default="", help=' Name of the output mask. '
-                    'If none is provided, the program will create output.fits.msk '+\
-                    'where output.fits is the name of the output image. ')
+                    'If none is provided, the program will add .msk '+\
+                    'to the output name ( output.fits is the name of the output image. ')
 parser.add_argument("--fill_val", metavar="fill_val", dest="fill_val", \
                     action='store', default='', help=' If present, this '+\
-                    'keyword contains a value with which to fill pixels '+\
-                    'that are masked in all image. By default there is no '+\
-                    'filling, and the unmasked equivalent of the operation '+\
-                    'is used in the resulting image for its masked values')
+                    'keyword contains a value that substitutes the result '+\
+                    'in those pixels that are masked in all images. For example,  '+\
+                    'you might want to zero all values that had no valid values. ')
 
 def main(arguments = None):
   # Pass arguments to variable args
@@ -343,10 +257,10 @@ def main(arguments = None):
                "necessary to determine the filter of the images. Type python "+\
                "combine.py -h for help.")
 
-  # Manipulate arguments
-  if args.out_dir == '':
-      args.out_dir = os.path.dirname(args.in_pattern[0])
-  args.out_dir = os.path.abspath(args.out_dir)
+  import pickle
+  with open("mierda2.pickle", "w") as f:
+      pickle.dump(args, f)
+
 	
   # Call combine, keep name of the file created
   newfile = combine(args)
