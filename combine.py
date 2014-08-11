@@ -158,11 +158,6 @@ def combine(args):
             whole_image.data[xmin:xmax, 0:ly] = image[:,:]
             whole_image.mask[xmin:xmax, 0:ly] = mask[:,:]
 
-        import pickle
-        with open("whole_image", "w") as fd:
-            pickle.dump(whole_image, fd)
-
-
         # And save images. If all_together is activated, use the file name given by user. If not, we need
         # to separate by filter, so compose a new name with the one given by the user adding the filter
         if args.all_together:
@@ -184,8 +179,8 @@ def combine(args):
 
         # Add comments to the headers
         string1 = " - Image built from the combination of the images: "+\
-                 " ,".join(list1)
-        string2 = "\n combine = " + args.average + ", scale = " + args.scale
+                 ", ".join(list1)
+        string2 = " \n combine = " + args.average + ", scale = " + args.scale
         utils.add_history_line(newfile, string1 + string2 )
         utils.add_history_line(name_mask, " - Mask of image: " + newfile)
         if args.mask_key != "":
@@ -256,11 +251,6 @@ def main(arguments = None):
       sys.exit("ERROR! Either --filterk or a --config_file are "+\
                "necessary to determine the filter of the images. Type python "+\
                "combine.py -h for help.")
-
-  import pickle
-  with open("mierda2.pickle", "w") as f:
-      pickle.dump(args, f)
-
 	
   # Call combine, keep name of the file created
   newfile = combine(args)
