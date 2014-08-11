@@ -85,6 +85,9 @@ def compute_scales(input_images, scale_type, mask_key):
 def combine(args):
     # Create the folders that do not already exist for the output file
     outdir, outfile = os.path.split(os.path.abspath(args.output))
+    if outdir == "":
+        outdir = "."
+
     utils.if_dir_not_exists_create(outdir)
 
     # Build a list of the filter of each image
@@ -163,7 +166,7 @@ def combine(args):
         if args.all_together:
             newfile = args.output
         else:
-            newfile = os.path.join(out_dir, utils.add_suffix_prefix(outfile, suffix="_" + filt) )
+            newfile = os.path.join(outdir, utils.add_suffix_prefix(outfile, suffix="_" + filt) )
 
         if args.out_mask != "":
             name_mask = args.out_mask
