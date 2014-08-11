@@ -77,7 +77,7 @@ except NameError: # variable remove_images not defined
 print "Create masks for images"
 for ii,im in enumerate(list_images["filename"]):
     # Arguments to be passed to create_masks
-    args = ["--max_val", max_counts, "--min_val", "0", "--mask_key", "mask", "--outside_val", "2", im]
+    args = ["--max_val", str(max_counts), "--min_val", "0", "--mask_key", "mask", "--outside_val", "2", im]
     if circular_FoV:  # from the campaign file
         args = ["--circular"] + args
     create_masks.main(arguments=args )
@@ -88,9 +88,7 @@ bias_images = list(list_images["filename"][whr])
 print "Bias images", bias_images
 superbias = combine_images.main(arguments=["--average", "median", 
                                            "--all_together", 
-                                           "-o", "superbias",
-                                           "--nlow", "0", 
-                                           "--nhigh","0",
+                                           "--output", "superbias.fits",
                                            "--mask_key", "mask",
                                            "--filterk", filterk] +\
                                            bias_images[:])
@@ -106,9 +104,8 @@ for ii, im in enumerate(list_images["filename"]):
 print "Combine flats"
 flat_indices = np.where(list_images["type"] == "skyflats")    
 flats = combine_images.main(arguments=["--average", "median", "--norm",
-                                         "--scale", "median", "-o", 
-                                         "masterskyflat", "--nhigh", "1", 
-                                         "--nlow", "0", "--mask_key", "mask", 
+                                         "--scale", "median", "--output",
+                                         "masterskyflat.fits", "--mask_key", "mask",
                                          "--filterk", filterk] + 
                                          list(list_images["filename"][flat_indices]))   
 
