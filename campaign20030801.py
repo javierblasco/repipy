@@ -48,7 +48,7 @@ seeingk = "seeing"
 # there is always a need to run the pipeline several times, and decide upon specific things. Another example of things
 # to decide is the images not to be used, that for the moment is done only after renaming the images, for simplicity.
 
-type_of_subtraction = "--median"   # options: "--median", "--mean", ""  . Mean/median to subtract the mean/median of an
+type_of_bias_subtraction = "--median"   # options: "--median", "--mean", ""  . Mean/median to subtract the mean/median of an
                                    #          image when using repipy.arith, nothing to subtract the whole image
                                    #          because it has structure.
 
