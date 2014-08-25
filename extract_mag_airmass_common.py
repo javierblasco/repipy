@@ -45,6 +45,7 @@ def main(db_name):
     # Create numpy arrays to store airmasses and magnitudes
     airmasses = np.zeros([num_stars, num_airmasses], dtype=np.float64)
     magnitudes = np.zeros([num_stars, num_airmasses], dtype=np.float64)
+    filters = np.array([""] * num_stars * num_airmasses, dtype="S10").reshape(num_stars, num_airmasses)
 
     for ii, id_ in enumerate(star_ids):
         query = """
@@ -63,5 +64,6 @@ def main(db_name):
             star_id, filter_name, magnitude, airmass = row
             airmasses[ii,jj] = airmass
             magnitudes[ii,jj] = magnitude
+            filters[ii, jj] = filter_name
 
-    return airmasses, magnitudes
+    return airmasses, magnitudes, filters
