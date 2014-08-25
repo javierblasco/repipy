@@ -86,9 +86,10 @@ print "Combine bias"
 whr = np.where(list_images["type"] == "bias")
 bias_images = list(list_images["filename"][whr])
 print "Bias images", bias_images
+output_bias = os.path.join(directory, "superbias.fits")
 superbias = combine_images.main(arguments=["--average", "median", 
                                            "--all_together", 
-                                           "--output", "superbias.fits",
+                                           "--output", output_bias,
                                            "--mask_key", "mask",
                                            "--filterk", filterk] +\
                                            bias_images[:])
@@ -102,10 +103,11 @@ for ii, im in enumerate(list_images["filename"]):
     list_images["filename"][ii] = newname 
 
 print "Combine flats"
+output_flats = os.path.join(directory, "masterskyflat.fits")
 flat_indices = np.where(list_images["type"] == "skyflats")    
 flats = combine_images.main(arguments=["--average", "median", "--norm",
                                          "--scale", "median", "--output",
-                                         "masterskyflat.fits", "--mask_key", "mask",
+                                         output_flats, "--mask_key", "mask",
                                          "--filterk", filterk] + 
                                          list(list_images["filename"][flat_indices]))   
 
