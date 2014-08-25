@@ -37,4 +37,4 @@ def calculate_zeropoint(obs_magnitudes, std_magnitudes, err_magnitudes=None):
     guess = np.median(obs_magnitudes - std_magnitudes)
     pop, pcov = optimize.curve_fit(intercept, obs_magnitudes, std_magnitudes,
                            sigma=err_magnitudes, p0=guess)  
-    return pop[0], pcov[0]
+    return pop[0], np.sqrt(pcov[0][0])
