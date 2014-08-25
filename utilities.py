@@ -50,7 +50,10 @@ def update_WCS(image_without_wcs, image_with_wcs):
 def get_from_header(image_name, *args):
     """ From the header of an image, get the values corresponding to the 
         keywords passed in args"""
-    return ( fits.getval(image_name, x) for x in args )
+    if len(args) == 1:
+        return fits.getval(image_name, args[0])
+    else:
+        return (fits.getval(image_name, x) for x in args)
 
 def precess_to_2000(RA, DEC, time):
     """ From the actual coordinates of an object in the sky for a certain 
