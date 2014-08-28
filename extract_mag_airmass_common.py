@@ -33,9 +33,9 @@ def main(db_name):
     num_stars = len(star_ids)
 
 
-    # (2) Identify the number of airmasses (images) involved so that we can plot airmass vs magnitude for all the stars
+    # (2) Identify the number of images involved so that we can return airmass and magnitude of stars in all images
     query = """
-           SELECT airmass
+           SELECT id
            FROM images
            WHERE sources = 0
            """
