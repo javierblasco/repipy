@@ -66,7 +66,8 @@ for obj in AllObj_set: # for each of the standards
 print "Find extinction coefficient from photometry of standards"
 standards_set = set(x for x,t in zip(list_images["objname"], list_images["type"]) if t == "standards")
 for obj in standards_set:
-    airmasses, magnitudes, filters = extract.main(output_db)
+    input_db = os.path.join(directory, obj+".db")
+    airmasses, magnitudes, filters = extract.main(input_db)
     for filt in set(filters.flatten()):
         # find columns with the current filter
         columns = [ii for ii in range(len(filters[0, :])) if filters[0,ii] == filt]
@@ -203,15 +204,19 @@ for obj in SciObj_set:
             current_object = objects_list[obj]
         else:
             current_object = astronomical_object(obj_name=obj, obj_type="galaxy", keywords=keywords)
-
-        if filt[0:2].lower() == "ha":
+        if filt[0].lower() == "h":
             current_object.narrow_final = output_name
         elif filt[0].lower() == "r":
             current_object.cont_final = output_name
         objects_list[obj] = current_object
 
-# 
 
+print "Scale continuum images using stars"
+for current_object in objects_list.values():
+    print "Current_object narrow and cont", current_object.narrow_final, current_object.cont_final
+    if current_object.narrow_final and current_object.cont_final:
+        print "Scaling {}".format(current_object.Name)
+        current_object.scale_cont()
 
 
 
