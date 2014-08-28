@@ -10,6 +10,7 @@ import repipy.match_psfs as match_psfs
 import repipy.utilities as utils
 import repipy.combine as combine_images
 import repipy.astrometry as astrometry
+from repipy.objects import astronomical_object
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -180,10 +181,13 @@ for im_name in list_images["filename"]:
         utils.header_update_keyword(im_name, "ZP", zp, "AB magnitude zero point." )
         utils.header_update_keyword(im_name, "ZP_err", sigma_zp, "Zero point 1-sigma. ")
 
-science_objects = {"obj":[], "Ha_im":[], "rG_im":[]}
 print "Combine images of same object and filter"
 iraf.images(_doprint=0)
 iraf.immatch(_doprint=0)
+
+keywords = dict(filterk=filterk, objectk=objectk, gaink=gaink, datek=datek, exptimek=exptimek,
+                fwhmk="seeing", airmassk=airmassk)
+objects_list = dict()
 for obj in SciObj_set:
     obj_images = list(list_images["filename"][np.where(list_images["objname"] == obj)])
     obj_filters = [utils.get_from_header(im_name, filterk) for im_name in obj_images]
@@ -191,11 +195,22 @@ for obj in SciObj_set:
         input_images = [im_name for im_name, im_filt in zip(obj_images, obj_filters) if im_filt == filt]
         output_name = os.path.join(directory, obj + "_combined_" + filt + ".fits")
         input_names = ",".join(input_images)
+        utilities.if_exists_remove(output_name)
         iraf.imcombine(input_names, output=output_name, combine="median", offsets="wcs")
 
+        # Save all this in an astronomical object (see objects.py)
+        if obj in objects_list.keys():
+            current_object = objects_list[obj]
+        else:
+            current_object = astronomical_object(obj_name=obj, obj_type="galaxy", keywords=keywords)
 
+        if filt[0:2].lower() == "ha":
+            current_object.narrow_final = output_name
+        elif filt[0].lower() == "r":
+            current_object.cont_final = output_name
+        objects_list[obj] = current_object
 
-
+# 
 
 
 
@@ -206,47 +221,5 @@ sys.exit()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-print "Correct from atmosphere"
-for index, im in enumerate(list_images["filename"]):
-    if list_images["type"][index] in ["cig", "standards", "clusters"]:  
-        airm, = utilities.get_from_header(im, airmassk)
-        image = fits.open(im)
-        image[0].data = image[0].data * 10**(ext_coeff * airm/2.5)
-        newname = utilities.add_suffix_prefix(im, suffix="-e")
-        utilities.if_exists_remove(newname)
-        fits.writeto(newname, image[0].data, image[0].header)
-        # Update header
-        utilities.header_update_keyword(newname, airmassk, 0, "Corrected for atmosphere")
-        list_images["filename"][index] = newname
-        image.close()
-
-print "Align images"
-#print "Objects:", set(list_images["object"])
-
- 
-# Para ser más eficiente con astrometry.net 
-#solve-field cig0895_20030801_H6678_003-b-f-c.fits --overwrite --no-fits2fits 
-#--ra 315.2901 --dec 10.303 --radius 0.5 --no-plots --use-sextractor --resort 
-#--depth 30 --code-tolerance 0.002
 
 
