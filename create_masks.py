@@ -159,9 +159,14 @@ def mask(args):
         
         # Star masking fitting sky
         if args.stars:  # if stars in the image
-            unmasked = data[mask == 0].flatten()        
-            n, bins = numpy.histogram(unmasked, bins=range(min(unmasked),
-                                                           max(unmasked),50))
+            unmasked = data[mask == 0].flatten()
+	    try:         
+                n, bins = numpy.histogram(unmasked, bins=range(int(min(unmasked)),
+                                                               int(max(unmasked)),50))
+	    except TypeError:
+                print "Error in image: ", image
+                raise
+
             bincenters = 0.5*(bins[1:]+bins[:-1])   
             max_pos = n.argmax()
             max_value = bincenters[max_pos]  #value of the sky
