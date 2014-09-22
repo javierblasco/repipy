@@ -100,9 +100,8 @@ print "Combining bias images"
 whr = np.where(list_images["type"] == "bias")
 bias_images = list(list_images["filename"][whr])
 superbias = combine_images.main(arguments=["--average", "median", 
-                                           "--all_together", "-o", "superbias",
-                                           "--nlow", "0", "--mask_key", "mask",
-                                           "--filterk", filterk] + bias_images[:])    
+                                           "--all_together", "--output", "superbias.fits",
+                                           "--mask_key", "mask", "--filterk", filterk] + bias_images[:])    
 
 # Subtract bias from all images.  
 print "Subtracting bias"
@@ -124,10 +123,8 @@ for ii in range(len(block_limits)-1):
                                     [block_limits[ii]:block_limits[ii+1]] )
     skyflat = combine_images.main(arguments=["--average", "median", "--norm",
                                            "--scale", "median",
-                                           "-o", "masterskyflat{0}".format(ii), 
-                                           "--nhigh", "1", "--nlow", "0",
-                                           "--mask_key", "mask", "--notest",
-                                           "--filterk", filterk] + list(block)[:])    
+                                           "--output", "masterskyflat{0}".format(ii) + ".fits", 
+                                           "--mask_key", "mask", "--filterk", filterk] + list(block)[:])    
     master_skyflats[time_block] = skyflat.values()
 
 # Dividing the combined flat with a median-filtered version of itself the 
@@ -157,14 +154,10 @@ for ii in range(len(block_limits)-1):
     block = list_images["filename"][blank_indices][block_limits[ii]:block_limits[ii+1]]
     time_block = utilities.mean_datetime(list_images["time"][blank_indices]
                                     [block_limits[ii]:block_limits[ii+1]] )
-    blank = combine_images.main(arguments=["--average", "median", "--norm",\
-                                           "--scale", "median", "--mask_key",\
-                                           "mask", "-o", 
-                                           "masterblank{0}".format(ii), 
-                                           "--nhigh", "0", "--nlow", "0",
-                                           "--nmin", "2",
-                                           "--filterk", filterk] + 
-                                           list(block)[:])    
+    blank = combine_images.main(arguments=["--average", "median", "--norm",
+                                           "--scale", "median", "--mask_key",
+                                           "mask", "--output", "masterblank{0}".format(ii) + ".fits", 
+                                           "--nmin", "2", "--filterk", filterk] + list(block)[:])    
     master_blanks[time_block] = blank.values()
 
 # Use the pixel-to-pixel differences in master_skyflats to correct the 
