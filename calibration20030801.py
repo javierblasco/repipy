@@ -216,7 +216,7 @@ for current_object in objects_list.values():
     print "Current_object narrow and cont", current_object.narrow_final, current_object.cont_final
     if current_object.narrow_final and current_object.cont_final:
         print "Scaling {}".format(current_object.Name)
-        current_object.scale_cont()
+        scale_factor = current_object.scale_cont()
 
 
 
