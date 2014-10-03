@@ -54,6 +54,9 @@ class header(object):
     def telescope(self):
         return self._get_telescope()[1]
 
+    @property
+    def filter_ID(self):
+        pass
 
     @property
     def filter_wavelength(self):
@@ -61,9 +64,14 @@ class header(object):
         pass
 
     @property
+    def filter_width(self):
+        pass
+
+    @property
     def filter_curve(self):
         """ Find the filter used """
         pass
+
 
 
 
@@ -76,9 +84,19 @@ class header(object):
          INSTRUMENT_TELESCOPE key of the dictionary _KEYWORDS_ALIASES above.
 
         """
-        #keywords = " ".join((self.HDR.get(ii).upper() for ii in self._KEYWORDS_ALIASES['INSTRUMENT_TELESCOPE']))
+
         key, value = self.find_in_header(self._KEYWORDS_ALIASES['TELESCOPE'], self._TELESCOPES_ALIASES)
         return key, value
+
+    @utils.memoize
+    def _get_filterID(self):
+        """ Try to find the ID of the filter used for the image.
+
+        I know, right? Crazy to uniquely identify a filter in the header of the image...
+        """
+
+        value = self.value_in_header(self._KEYWORDS_ALIASES['FILTER_ID'])
+        return value
 
 
     def find_in_header(self, list_keywords, dict_patterns):
@@ -99,6 +117,16 @@ class header(object):
                 if any( ii in target_value for ii in pattern_value ):
                     return target_key, pattern_key
         return None, None
+
+    def value_in_header(self, keywords):
+        """ Find if any of the unique keywords is in the header. Return its value
+
+        Look fot all the keywords in the header, if any is present and is not empty, return its value
+        """
+
+        for key in keywords:
+            if self.hdr.get(key):
+                return self.hdr.get(key)
 
 
 
