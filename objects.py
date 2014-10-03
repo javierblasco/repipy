@@ -1,4 +1,5 @@
 import lemon.photometry as photometry
+import lemon.passband as passband
 import repipy.extract_mag_airmass_common as extract
 import repipy.utilities as utilities
 import os
@@ -8,7 +9,7 @@ class astronomical_object(object):
         self.Name = obj_name
         self.obj_type = obj_type
         self.keywords = keywords
-        self.objtype = None
+        self.objtype = obj_type
         self.narrow_images = None
         self.cont_images = None
         self.narrow_final = None
@@ -27,6 +28,13 @@ class astronomical_object(object):
                               "--expk", self.keywords["exptimek"], "--fwhmk", "seeing", "--airmk", self.keywords["airmassk"],
                               self.cont_final, self.narrow_final,  self.cont_final, output_db])
         airmasses, magnitudes, filters = extract.main(output_db)
+        narrow_filter, cont_filter = utilities.collect_from_images([self.narrow_final, self.cont_final], self.keywords["filter"])
+        narrow_filter, cont_filter = (passband.Passband(filt).__str__() for filt in (narrow_filter, cont_filter))
+
+        magnitudes_narrow = magnitudes[filters == narrow_filter]
+        magnitudes_cont = magnitudes[filters == cont_filter]
+        #scaling_factor =
+
         print "\n"
         for a, mag, ff in zip(airmasses, magnitudes, filters):
             print a, mag, ff
