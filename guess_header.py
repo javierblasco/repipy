@@ -34,7 +34,7 @@ class header(object):
         AIRMASS = ['AIRMASS'],
         FILTER_WAVELENGTH = ['INSFLWL'],
         FILTER_WIDTH = ['INSFLDWL'],
-        FILTER_ID = ['ALFLID', 'FAFTLID', 'JAGID'],
+        FILTER_ID = ['ALFLID', 'FAFTLID', 'JAGID', 'INSFLID'],
         TELESCOPE = ['TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID']
     )
 
@@ -56,7 +56,7 @@ class header(object):
 
     @property
     def filter_ID(self):
-        pass
+        return self._get_filterID()
 
     @property
     def filter_wavelength(self):
@@ -94,7 +94,7 @@ class header(object):
 
         I know, right? Crazy to uniquely identify a filter in the header of the image...
         """
-
+        print "Trying to get filter ID"
         value = self.value_in_header(self._KEYWORDS_ALIASES['FILTER_ID'])
         return value
 
@@ -135,7 +135,7 @@ class header(object):
 hdr1 = header("./pruebas/NOT1.fits")
 print hdr1.telescope
 
-hdr2 = header("/mnt/data/OPTICAL_DATA/OPTICO/CAHA2.2/2004/FEB_04/fits54.fits")
+hdr2 = header("./CAHA1.fits")
 print hdr2.telescope
 
 #
