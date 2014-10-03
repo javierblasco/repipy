@@ -17,6 +17,20 @@ import dateutil.parser
 import shutil
 
 
+import functools
+
+def memoize(f):
+    """ Minimalistic memoization decorator.
+    http://code.activestate.com/recipes/577219-minimalistic-memoization/ """
+
+    cache = {}
+    @functools.wraps(f)
+    def memf(*x):
+        if x not in cache:
+            cache[x] = f(*x)
+        return cache[x]
+    return memf
+
 def collect_from_images(image_list, keyword):
     """ From a list of images collect a single keyword """
     try:
