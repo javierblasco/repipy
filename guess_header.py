@@ -7,6 +7,8 @@
 import astropy.io.fits as fits
 import sys
 import repipy.utilities as utils
+import numpy as np
+import os
 
 class NotFoundKeyword(KeyError):
     mssg = ("ERROR! None of the known keywords for {} is found in the header of image {}."
@@ -26,7 +28,7 @@ class header(object):
         and the keywords for the most important parameters: airmass, object, exposure time, ...
     """
     _KEYWORDS_ALIASES = dict(
-        FILTER = ['INSFLNAM', 'FILTER', 'JAGFBAND'],
+        FILTER = ['INSFLNAM', 'FILTER', 'JAGFBAND', 'ALFLTNM'],
         EXPTIME = ['EXPTIME'],
         OBJECT = ['OBJECT'],
         DATE = ['DATE-OBS'],
@@ -34,7 +36,7 @@ class header(object):
         AIRMASS = ['AIRMASS'],
         FILTER_WAVELENGTH = ['INSFLWL'],
         FILTER_WIDTH = ['INSFLDWL'],
-        FILTER_ID = ['ALFLID', 'FAFTLID', 'JAGID', 'INSFLID'],
+        FILTER_ID = ['ALFLTID', 'FAFTLID', 'JAGID', 'INSFLID'],
         TELESCOPE = ['TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID']
     )
 
@@ -56,24 +58,77 @@ class header(object):
 
     @property
     def filter_ID(self):
-        return self._get_filterID()
+        """ Identify the filter ID.
+
+        Some telescopes identify the filter ID in the header of the images. Unfortunately, the filters in
+        CAHA don't use the same ID in the filter curves in the webpages and in the headers, so it's difficult to link
+        them. """
+        if self.telescope.lower() == "caha":
+            return self.telescope.lower() + "_" + str(self.filter_wavelength) + "." + str(self.filter_width)
+        else:
+            return self.telescope.lower() + "_" + str(self._get_filterID())
 
     @property
     def filter_wavelength(self):
-        """ IF the wavelength of the filter is present, try to find it. """
-        pass
+        """ IF the wavelength of the filter is present, try to find it.
+
+        The wavelengths are usually in nanometers with one decimal digit.
+         """
+        wav = self._get_filterwav()[0]
+        if wav: # If not None
+            wav = int(round(float(wav)))
+        return wav
 
     @property
     def filter_width(self):
-        pass
+        """ Find width of filter. """
+
+        width = self._get_filterwav()[1]
+        if width: # If not None
+            width = int(round(float(width)))
+        return width
 
     @property
     def filter_curve(self):
-        """ Find the filter used """
-        pass
+        """ Read the filter curve from the collection in the repipy/filters folder"""
+        dir = '/home/blasco/Desktop/librerias_python/repipy/filters/'
+        file = os.path.join(dir, self.filter_ID)
+        return np.genfromtxt(file)
 
+    @property
+    def filterk(self):
+        """ Determine the keyword that keeps the name of the filter in the header."""
+        return self._get_filterk()
 
+    @property
+    def filterk(self):
+        """ Determine the keyword that keeps the name of the filter in the header."""
+        return self._get_keyword(self._KEYWORDS_ALIASES['FILTER'])
 
+    @property
+    def airmassk(self):
+        """ Determine the keyword that keeps the name of the filter in the header."""
+        return self._get_keyword(self._KEYWORDS_ALIASES['AIRMASS'])
+
+    @property
+    def exptimek(self):
+        """ Determine the keyword that keeps the name of the filter in the header."""
+        return self._get_keyword(self._KEYWORDS_ALIASES['EXPTIME'])
+
+    @property
+    def objectk(self):
+        """ Determine the keyword that keeps the name of the filter in the header."""
+        return self._get_keyword(self._KEYWORDS_ALIASES['OBJECT'])
+
+    @property
+    def datek(self):
+        """ Determine the keyword that keeps the name of the filter in the header."""
+        return self._get_keyword(self._KEYWORDS_ALIASES['DATE'])
+
+    @property
+    def timek(self):
+        """ Determine the keyword that keeps the name of the filter in the header."""
+        return self._get_keyword(self._KEYWORDS_ALIASES['TIME'])
 
     @utils.memoize
     def _get_telescope(self):
@@ -94,9 +149,28 @@ class header(object):
 
         I know, right? Crazy to uniquely identify a filter in the header of the image...
         """
-        print "Trying to get filter ID"
+
         value = self.value_in_header(self._KEYWORDS_ALIASES['FILTER_ID'])
         return value
+
+    @utils.memoize
+    def _get_filterwav(self):
+        """ Try to find the central wavelength of the filter used for the image.
+
+        I know, right? Crazy to uniquely identify a filter in the header of the image...
+        """
+
+        wavelength = self.value_in_header(self._KEYWORDS_ALIASES['FILTER_WAVELENGTH'])
+        width = self.value_in_header(self._KEYWORDS_ALIASES['FILTER_WIDTH'])
+        return wavelength, width
+
+    @utils.memoize
+    def _get_keyword(self, keywords):
+        """ Try keywords from the dictionary until you find which one is the one that keeps the filter name"""
+        return self.value_in_header(keywords)
+
+
+
 
 
     def find_in_header(self, list_keywords, dict_patterns):
@@ -135,7 +209,7 @@ class header(object):
 hdr1 = header("./pruebas/NOT1.fits")
 print hdr1.telescope
 
-hdr2 = header("./CAHA1.fits")
+hdr2 = header("./pruebas/CAHA1.fits")
 print hdr2.telescope
 
 #
