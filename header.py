@@ -28,24 +28,22 @@ class header(object):
         and the keywords for the most important parameters: airmass, object, exposure time, ...
     """
     _KEYWORDS_ALIASES = dict(
-        FILTER = ['INSFLNAM', 'FILTER', 'JAGFBAND', 'ALFLTNM'],
-        EXPTIME = ['EXPTIME'],
-        OBJECT = ['OBJECT'],
-        DATE = ['DATE-OBS'],
-        TIME = ['TIME-OBS'],
-        AIRMASS = ['AIRMASS'],
-        FILTER_WAVELENGTH = ['INSFLWL'],
-        FILTER_WIDTH = ['INSFLDWL'],
-        FILTER_ID = ['ALFLTID', 'FAFTLID', 'JAGID', 'INSFLID'],
-        TELESCOPE = ['TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID']
+        FILTER = ('INSFLNAM', 'FILTER', 'JAGFBAND', 'ALFLTNM'),
+        EXPTIME = ('EXPTIME',),
+        OBJECT = ('OBJECT',),
+        DATE = ('DATE-OBS',),
+        TIME = ('TIME-OBS',),
+        AIRMASS = ('AIRMASS',),
+        FILTER_WAVELENGTH = ('INSFLWL',),
+        FILTER_WIDTH = ('INSFLDWL',),
+        FILTER_ID = ('ALFLTID', 'FAFTLID', 'JAGID', 'INSFLID'),
+        TELESCOPE = ('TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID')
     )
 
     _TELESCOPES_ALIASES = dict( NOT = ['ALFOSC', 'NOT'],
                                CAHA = ['DSAZ', 'CAFOS', 'CA-2.2', 'CAHA']
     )
 
-
-    #_MANDATORY = ['FILTER', 'EXPTIME', 'OBJECT', 'DATE', 'AIRMASS']
 
     def __init__(self, image):
         self.image = image
@@ -130,6 +128,8 @@ class header(object):
         """ Determine the keyword that keeps the name of the filter in the header."""
         return self._get_keyword(self._KEYWORDS_ALIASES['TIME'])
 
+
+
     @utils.memoize
     def _get_telescope(self):
         """ Try to find the telescope name from which the image comes.
@@ -143,6 +143,7 @@ class header(object):
         key, value = self.find_in_header(self._KEYWORDS_ALIASES['TELESCOPE'], self._TELESCOPES_ALIASES)
         return key, value
 
+
     @utils.memoize
     def _get_filterID(self):
         """ Try to find the ID of the filter used for the image.
@@ -150,7 +151,7 @@ class header(object):
         I know, right? Crazy to uniquely identify a filter in the header of the image...
         """
 
-        value = self.value_in_header(self._KEYWORDS_ALIASES['FILTER_ID'])
+        value = self._get_value(self._KEYWORDS_ALIASES['FILTER_ID'])
         return value
 
     @utils.memoize
@@ -160,14 +161,19 @@ class header(object):
         I know, right? Crazy to uniquely identify a filter in the header of the image...
         """
 
-        wavelength = self.value_in_header(self._KEYWORDS_ALIASES['FILTER_WAVELENGTH'])
-        width = self.value_in_header(self._KEYWORDS_ALIASES['FILTER_WIDTH'])
+        wavelength = self._get_value(self._KEYWORDS_ALIASES['FILTER_WAVELENGTH'])
+        width = self._get_value(self._KEYWORDS_ALIASES['FILTER_WIDTH'])
         return wavelength, width
 
     @utils.memoize
     def _get_keyword(self, keywords):
-        """ Try keywords from the dictionary until you find which one is the one that keeps the filter name"""
-        return self.value_in_header(keywords)
+        """ Try keywords from the dictionary until you find one that exists. Return the keyword. """
+        return self._key_and_value(keywords)[0]
+
+    @utils.memoize
+    def _get_value(self, keywords):
+        """ Try keywords from the dictionary until you find one that exists. Return the value. """
+        return self._key_and_value(keywords)[1]
 
 
 
@@ -185,21 +191,22 @@ class header(object):
 
         """
 
+        k, p = None, None
         dict_targets = {key: self.hdr.get(key) for key in list_keywords}
         for pattern_key, pattern_value in dict_patterns.iteritems():
             for target_key, target_value in dict_targets.iteritems():
                 if any( ii in target_value for ii in pattern_value ):
-                    return target_key, pattern_key
-        return None, None
+                    k, p =  target_key, pattern_key
+        return k, p
 
-    def value_in_header(self, keywords):
+    def _key_and_value(self, keywords):
         """ Find if any of the unique keywords is in the header. Return its value
 
         Look fot all the keywords in the header, if any is present and is not empty, return its value
         """
-
+        k, v = None, None
         for key in keywords:
             if self.hdr.get(key):
-                return self.hdr.get(key)
-
-
+                k,v = key, self.hdr.get(key)
+                break
+        return k, v
