@@ -9,6 +9,8 @@ import numpy
 import re
 import astropy.wcs as wcs
 import scipy
+from repipy import __path__ as repipy_path
+
 
 regexp_dict = {'.*BIAS.*'             : 'bias',
                '(?=.*SKY)(?=.*FLAT)'  : 'skyflat',
@@ -26,6 +28,9 @@ class target(object):
         self.header = header.header(image)
         self.image = image
 
+    def __str__(self):
+        return re.sub('[-+\s_]', "", self.objname.lower())
+
     @property
     def objtype(self):
         """ Find out what type of image (bias, flat, cig, standard, ...) this object is"""
@@ -38,11 +43,33 @@ class target(object):
 
     @property
     def RA(self):
-        return self._get_RaDec()[0]
+        return float(self._get_RaDec()[0])
 
     @property
     def DEC(self):
-        return self._get_RaDec()[1]
+        return float(self._get_RaDec()[1])
+
+
+    @property
+    def spectra(self):
+        """ Read in the spectra  of the standards from repipy/standard_spectra/"""
+        dir = os.path.join(repipy_path[0], "standard_spectra")
+        file = os.path.join(dir, self.__str__())
+
+        # Determine how long is the header:
+        with open(file, 'r') as ff:
+            for ii, line in enumerate(ff):
+                try:
+                    a, b = line.split()
+                    a, b = float(a), float(b)
+                    nn = ii  # number of lines to skip
+                    break
+                except ValueError:
+                    continue
+
+        return numpy.genfromtxt(file, skip_header=nn)
+
+
 
 
     @utilities.memoize
@@ -82,19 +109,21 @@ class target(object):
         type, name = 'Unknown', 'Unknown'
         w = wcs.wcs.WCS(self.header.hdr)
         ly, lx = fits.getdata(self.image).shape
+        # ra_min, dec_min will be the coordinates of pixel (0,0)
+        # ra_max, dec_max the coordinates of the upper right corner of the image.
+        # But beware, the orientation could be such that ra_min > ra_max if the image is not oriented North
+        ra_min, dec_min = w.all_pix2world(numpy.array(zip([0],[0])), 1)[0]
+        ra_max, dec_max = w.all_pix2world(numpy.array(zip([lx], [ly])), 1)[0]
         for ii, star in enumerate(stds['std_names']):
             ra, dec = stds['ra'][ii], stds['dec'][ii]
-            try:
-                xpix, ypix = w.all_world2pix(numpy.array(zip([ra], [dec])), 1)[0]
-                if (0 < xpix < lx) and (0 <  ypix < ly): # within the image
+            if min(ra_min, ra_max) < ra < max(ra_min, ra_max) and min(dec_min, dec_max) < dec < max(dec_min, dec_max):
                     type, name = 'standard', star
                     break
-            except scipy.optimize.nonlin.NoConvergence:
-                pass
         return type, name
 
 
-image = target("./pruebas/CAHA1.fits")
+
+
 
 
 
