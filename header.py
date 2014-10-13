@@ -16,11 +16,11 @@ class NotFoundKeyword(KeyError):
 
     def __init__(self, keyword, image, valid):
         self.keyword = keyword
-        self.image = image
+        self.im_name = image
         self.valid = valid
 
     def __str__(self):
-        return self.mssg.format(self.keyword, self.image, ", ".join(self.valid))
+        return self.mssg.format(self.keyword, self.im_name, ", ".join(self.valid))
 
 
 class header(object):
@@ -33,11 +33,13 @@ class header(object):
         OBJECT = ('OBJECT',),
         DATE = ('DATE-OBS',),
         TIME = ('TIME-OBS',),
+        GAIN = ('CCDSENS', 'GAIN' ),
         AIRMASS = ('AIRMASS',),
         FILTER_WAVELENGTH = ('INSFLWL',),
         FILTER_WIDTH = ('INSFLDWL',),
         FILTER_ID = ('ALFLTID', 'FAFTLID', 'JAGID', 'INSFLID'),
-        TELESCOPE = ('TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID')
+        TELESCOPE = ('TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID'),
+        SEEING = ('SEEING', 'FWHM', 'LEMON FWHM')
     )
 
     _TELESCOPES_ALIASES = dict( NOT = ['ALFOSC', 'NOT'],
@@ -46,52 +48,13 @@ class header(object):
 
 
     def __init__(self, image):
-        self.image = image
-        self.hdr = fits.getheader(self.image)
+        self.im_name = image
+        self.hdr = fits.getheader(self.im_name)
 
 
     @property
     def telescope(self):
         return self._get_telescope()[1]
-
-    @property
-    def filter_ID(self):
-        """ Identify the filter ID.
-
-        Some telescopes identify the filter ID in the header of the images. Unfortunately, the filters in
-        CAHA don't use the same ID in the filter curves in the webpages and in the headers, so it's difficult to link
-        them. """
-        if self.telescope.lower() == "caha":
-            return self.telescope.lower() + "_" + str(self.filter_wavelength) + "." + str(self.filter_width)
-        else:
-            return self.telescope.lower() + "_" + str(self._get_filterID())
-
-    @property
-    def filter_wavelength(self):
-        """ IF the wavelength of the filter is present, try to find it.
-
-        The wavelengths are usually in nanometers with one decimal digit.
-         """
-        wav = self._get_filterwav()[0]
-        if wav: # If not None
-            wav = int(round(float(wav)))
-        return wav
-
-    @property
-    def filter_width(self):
-        """ Find width of filter. """
-
-        width = self._get_filterwav()[1]
-        if width: # If not None
-            width = int(round(float(width)))
-        return width
-
-    @property
-    def filter_curve(self):
-        """ Read the filter curve from the collection in the repipy/filters folder"""
-        dir = '/home/blasco/Desktop/librerias_python/repipy/filters/'
-        file = os.path.join(dir, self.filter_ID)
-        return np.genfromtxt(file)
 
     @property
     def filterk(self):
@@ -128,6 +91,15 @@ class header(object):
         """ Determine the keyword that keeps the name of the filter in the header."""
         return self._get_keyword(self._KEYWORDS_ALIASES['TIME'])
 
+    @property
+    def seeingk(self):
+        """ Determine the keyword that keeps the seeing in the header."""
+        return self._get_keyword(self._KEYWORDS_ALIASES['SEEING'])
+
+    @property
+    def seeingk(self):
+        """ Determine the keyword that keeps the gain in the header."""
+        return self._get_keyword(self._KEYWORDS_ALIASES['GAIN'])
 
 
     @utils.memoize
@@ -153,17 +125,6 @@ class header(object):
 
         value = self._get_value(self._KEYWORDS_ALIASES['FILTER_ID'])
         return value
-
-    @utils.memoize
-    def _get_filterwav(self):
-        """ Try to find the central wavelength of the filter used for the image.
-
-        I know, right? Crazy to uniquely identify a filter in the header of the image...
-        """
-
-        wavelength = self._get_value(self._KEYWORDS_ALIASES['FILTER_WAVELENGTH'])
-        width = self._get_value(self._KEYWORDS_ALIASES['FILTER_WIDTH'])
-        return wavelength, width
 
     @utils.memoize
     def _get_keyword(self, keywords):
