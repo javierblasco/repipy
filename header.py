@@ -97,7 +97,7 @@ class header(object):
         return self._get_keyword(self._KEYWORDS_ALIASES['SEEING'])
 
     @property
-    def seeingk(self):
+    def gaink(self):
         """ Determine the keyword that keeps the gain in the header."""
         return self._get_keyword(self._KEYWORDS_ALIASES['GAIN'])
 
