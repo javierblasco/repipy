@@ -10,6 +10,8 @@ import re
 import astropy.wcs as wcs
 import scipy
 from repipy import __path__ as repipy_path
+import pyraf.iraf as iraf
+import subprocess
 
 
 regexp_dict = {'.*BIAS.*'             : 'bias',
@@ -26,7 +28,7 @@ stds = numpy.genfromtxt("standards.csv", delimiter=",", dtype=None, autostrip=Tr
 class target(object):
     def __init__(self, image):
         self.header = header.header(image)
-        self.image = image
+        self.im_name = image
 
     def __str__(self):
         return re.sub('[-+\s_]', "", self.objname.lower())
@@ -49,6 +51,11 @@ class target(object):
     def DEC(self):
         return float(self._get_RaDec()[1])
 
+    @property
+    def counts(self):
+        """ Do photometry in the object to get the counts/sec of the source. """
+        return self._get_photometry()
+
 
     @property
     def spectra(self):
@@ -69,6 +76,31 @@ class target(object):
 
         return numpy.genfromtxt(file, skip_header=nn)
 
+
+    @utilities.memoize
+    def _get_photometry(self):
+        """ Get the photometry for the target.
+
+        If the target is a standard star, aperture photometry will be performed. For the moment nothing is done with
+        the others, but in due time (TODO) photometry.py will be included here. """
+
+        coords_file = "remove_this.txt"
+        with open("remove_this.txt", 'w') as ff:
+            ff.write(str(self.RA) + " " + str(self.DEC))
+        if self.objtype == "standard":
+            iraf.noao(_doprint=0)
+            iraf.digiphot(_doprint=0)
+            iraf.apphot(_doprint=0)
+            seeing = self.header.hdr[self.header.seeingk]
+            photfile_name = self.im_name + ".mag.1"
+            utilities.if_exists_remove(photfile_name)
+            iraf.module.phot(self.im_name, output=photfile_name, coords=coords_file,
+                      wcsin='world', fwhm=seeing, gain=self.header.gaink, exposure=self.header.exptimek,
+                      airmass=self.header.airmassk, annulus=6*seeing, dannulus=3*seeing,
+                      apert=2*seeing, verbose="no", verify="no", interac="no")
+            [counts] = iraf.module.txdump(photfile_name, 'FLUX', 'yes', Stdout=subprocess.PIPE)
+            utilities.if_exists_remove(coords_file)
+            return counts
 
 
 
@@ -108,7 +140,7 @@ class target(object):
         """
         type, name = 'Unknown', 'Unknown'
         w = wcs.wcs.WCS(self.header.hdr)
-        ly, lx = fits.getdata(self.image).shape
+        ly, lx = fits.getdata(self.im_name).shape
         # ra_min, dec_min will be the coordinates of pixel (0,0)
         # ra_max, dec_max the coordinates of the upper right corner of the image.
         # But beware, the orientation could be such that ra_min > ra_max if the image is not oriented North
