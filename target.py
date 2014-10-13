@@ -56,6 +56,10 @@ class target(object):
         """ Do photometry in the object to get the counts/sec of the source. """
         return self._get_photometry()
 
+    @utilities.memoize
+    def _get_RaDec(self):
+        index =  numpy.where(stds['std_names'] == self.objname)[0]
+        return stds['ra'][index], stds['dec'][index]
 
     @property
     def spectra(self):
@@ -85,13 +89,16 @@ class target(object):
         the others, but in due time (TODO) photometry.py will be included here. """
 
         coords_file = "remove_this.txt"
-        with open("remove_this.txt", 'w') as ff:
+        with open(coords_file, 'w') as ff:
             ff.write(str(self.RA) + " " + str(self.DEC))
+
         if self.objtype == "standard":
             iraf.noao(_doprint=0)
             iraf.digiphot(_doprint=0)
             iraf.apphot(_doprint=0)
             seeing = self.header.hdr[self.header.seeingk]
+            #seeing = 2.5
+            print "seeing =", seeing
             photfile_name = self.im_name + ".mag.1"
             utilities.if_exists_remove(photfile_name)
             iraf.module.phot(self.im_name, output=photfile_name, coords=coords_file,
@@ -102,12 +109,6 @@ class target(object):
             utilities.if_exists_remove(coords_file)
             return counts
 
-
-
-    @utilities.memoize
-    def _get_RaDec(self):
-        index =  numpy.where(stds['std_names'] == self.objname)[0]
-        return stds['ra'][index], stds['dec'][index]
 
     @utilities.memoize
     def _get_object(self):
@@ -131,6 +132,13 @@ class target(object):
         else:  # If none of the above was found, try to match the coordinates of the image with the list of standards
             type, name = self._name_using_coordinates()
         return type, name
+
+    @utilities.memoize
+    def _get_flux(self):
+        """ Get the flux of the object under the filter by multiplying one with the other"""
+
+
+
 
     def _name_using_coordinates(self):
         """ Check if any of the standard stars is within the image.
