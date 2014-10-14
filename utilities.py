@@ -243,12 +243,14 @@ def homogeneous_filter_name(filt):
         filt = filt.replace(character,"")
     filt_dict = {"rgu": "rGunn", "rgunn":"rGunn", "gunnr":"rGunn",\
                  "johv":"VJoh", "vjoh":"VJoh", "johnv":"VJoh",\
+                 "b":"B",\
                  "johr":"RJoh", "rjoh":"RJoh", "johnr":"RJoh",\
                  "cousr":"RCous", "rcous":"RCous", \
                  "sdssr":"sdssr", "rsdss":"sdssr", "r":"R", \
                  "sdssi":"sdssi", "isdss":"sdssi",\
                  "sdssg":"sdssg", "gsdss":"sdssg",\
                  "h6607":"H6607", "h07":"H6607", "6607":"H6607", \
+                 "ha6607":"H6607",\
                  "h6652":"H6652", "h52":"H6652", "6652":"H6652", \
                  "h6633":"H6633", "6633":"H6633",\
                  "h6625":"H6625", "6625":"H6625", \
