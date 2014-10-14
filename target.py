@@ -9,9 +9,12 @@ import numpy
 import re
 import astropy.wcs as wcs
 import scipy
+from scipy.interpolate import interp1d
+from scipy.integrate import simps
 from repipy import __path__ as repipy_path
 import pyraf.iraf as iraf
 import subprocess
+
 
 
 regexp_dict = {'.*BIAS.*'             : 'bias',
@@ -26,8 +29,9 @@ stds = numpy.genfromtxt("standards.csv", delimiter=",", dtype=None, autostrip=Tr
 
 
 class target(object):
-    def __init__(self, image):
-        self.header = header.header(image)
+    def __init__(self, image, hdr, filt):
+        self.header = hdr
+        self.filter = filt
         self.im_name = image
 
     def __str__(self):
@@ -56,29 +60,38 @@ class target(object):
         """ Do photometry in the object to get the counts/sec of the source. """
         return self._get_photometry()
 
+    @property
+    def flux(self):
+        """ If you have both a spectra for the object and the filter curve, calculate the flux under the filter"""
+        if self.spectra != None and self.filter.filter_curve != None:
+            return self._get_flux()
+
+
     @utilities.memoize
     def _get_RaDec(self):
         index =  numpy.where(stds['std_names'] == self.objname)[0]
         return stds['ra'][index], stds['dec'][index]
 
+
     @property
     def spectra(self):
         """ Read in the spectra  of the standards from repipy/standard_spectra/"""
-        dir = os.path.join(repipy_path[0], "standard_spectra")
-        file = os.path.join(dir, self.__str__())
+        if self.objtype == 'standard':
+            dir = os.path.join(repipy_path[0], "standard_spectra")
+            file = os.path.join(dir, self.__str__())
 
-        # Determine how long is the header:
-        with open(file, 'r') as ff:
-            for ii, line in enumerate(ff):
-                try:
-                    a, b = line.split()
-                    a, b = float(a), float(b)
-                    nn = ii  # number of lines to skip
-                    break
-                except ValueError:
-                    continue
+            # Determine how long is the header:
+            with open(file, 'r') as ff:
+                for ii, line in enumerate(ff):
+                    try:
+                        a, b = line.split()
+                        a, b = float(a), float(b)
+                        nn = ii  # number of lines to skip
+                        break
+                    except ValueError:
+                        continue
 
-        return numpy.genfromtxt(file, skip_header=nn)
+            return numpy.genfromtxt(file, skip_header=nn)
 
 
     @utilities.memoize
@@ -135,7 +148,50 @@ class target(object):
 
     @utilities.memoize
     def _get_flux(self):
-        """ Get the flux of the object under the filter by multiplying one with the other"""
+        """ Get the flux of the object under the filter by convolving the filter curve with the spectra of the object
+
+        This program follows one called convol.pro from Jorge Iglesias, IAA.
+        """
+
+        # Get the spectra of the star and the filter curve. The spectra must be in A
+        wavelength_star = self.spectra.transpose()[0]
+        magnitude_star = self.spectra.transpose()[1]
+        wavelength_filter = self.filter.filter_curve.transpose()[0]
+        transmittance_filter = self.filter.filter_curve.transpose()[1]
+
+        # We will use only the area where filter and star overlap, tipically the spectra of the star is much larger
+        wav_min = max(wavelength_filter.min(), wavelength_star.min())
+        wav_max = min(wavelength_filter.max(), wavelength_star.max())
+
+
+        # Now use those cuts
+        magnitude_star = magnitude_star[numpy.where(   (wav_min < wavelength_star) & (wavelength_star < wav_max))[0]]
+        wavelength_star = wavelength_star[numpy.where( (wav_min < wavelength_star) & (wavelength_star < wav_max) )[0]]
+        transmittance_filter = transmittance_filter[numpy.where( (wav_min < wavelength_filter) &
+                                                                 (wavelength_filter < wav_max) )]
+        wavelength_filter = wavelength_filter[numpy.where( (wav_min < wavelength_filter) &
+                                                           (wavelength_filter < wav_max) ) ]
+
+        # We convert from AB magnitudes to flux in erg/s/cm2/Hz.
+        flux_star = 10**((-48.6-magnitude_star)/2.5)
+
+        # Then from F_nu we need to convert to F_lambda
+        delta_lambda = wavelength_star[1] - wavelength_star[0]
+        flux_star = flux_star * 3e18 / wavelength_star ** 2
+
+
+        # Then we need to sample the transmittance of the filter at the wavelengths of the star.
+        f = interp1d(wavelength_filter, transmittance_filter, kind='cubic', fill_value=0, bounds_error=False)
+        transmisttance_interpolated = f(wavelength_star)
+
+        # Finally, we integrate the multiplication of both curves
+        y = transmisttance_interpolated * flux_star
+        x = wavelength_star
+        result = sum(y * delta_lambda)
+        print "Integral = ", result
+        return result
+
+
 
 
 
