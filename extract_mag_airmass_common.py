@@ -65,5 +65,4 @@ def main(db_name):
             airmasses[ii,jj] = airmass
             magnitudes[ii,jj] = magnitude
             filters[ii, jj] = filter_name
-
     return airmasses, magnitudes, filters
