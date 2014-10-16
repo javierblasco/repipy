@@ -10,7 +10,8 @@ import repipy.match_psfs as match_psfs
 import repipy.utilities as utils
 import repipy.combine as combine_images
 import repipy.astrometry as astrometry
-from repipy.objects import astronomical_object
+import repipy.astroim as astroim
+#from repipy.objects import astronomical_object
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,6 +23,9 @@ import os
 import shutil
 import pickle
 import pyraf.iraf as iraf
+from collections import defaultdict
+import warnings
+warnings.filterwarnings("ignore")
 
 import lemon.photometry as photometry
 
@@ -65,6 +69,7 @@ for obj in AllObj_set: # for each of the standards
 
 print "Find extinction coefficient from photometry of standards"
 standards_set = set(x for x,t in zip(list_images["objname"], list_images["type"]) if t == "standards")
+coefficient_list = []
 for obj in standards_set:
     input_db = os.path.join(directory, obj+".db")
     airmasses, magnitudes, filters = extract.main(input_db)
@@ -74,57 +79,56 @@ for obj in standards_set:
         # if there are more than two images
         if len(airmasses[0,columns]) > 0 and len(airmasses[0,columns]) > 2:
             ext_coeff, sigma_ext_coeff = calculate_extinction(airmasses[:, columns], magnitudes[:, columns])
+            coefficient_list.append(ext_coeff)
             print "Extinction coefficient for ", obj, " for filter ", filt, ":", ext_coeff, "+/-", sigma_ext_coeff
         else:
             print "Not used ",  obj, " with filter " + filt + ". Too few elements."
 
-########################################################################################################################
-# After studying the values given by the different filters and fields of standards, we decide to use the value:
-ext_coeff = 0.235
-sigma_ext_coeff = 0.015
+ext_coeff, sigma_ext_coeff =  np.mean(coefficient_list), np.std(coefficient_list)
+print "Extinction = ", ext_coeff, "+/-", sigma_ext_coeff
 
-# From the Halpha images of Kopff 27:
-airmass_kp27_Halpha = np.array([1.178, 1.735, 2.969])
-magnitudes_kp27_Halpha = np.array([-10.133, -9.987, -9.696]) -\
-                                              ext_coeff * airmass_kp27_Halpha
-# Assuming random errors, the error of the magnitude estimation and the one 
-# from the extinction correction should add quadratically.                                               
-err_mag_kp27_Halpha = np.array([0.003, 0.003, 0.004])
-err_extinction_kp27 = np.array([sigma_ext_coeff] * len(magnitudes_kp27_Halpha))*\
-                  airmass_kp27_Halpha
-err_kp27_Halpha = np.sqrt(err_mag_kp27_Halpha**2 + err_extinction_kp27**2)                  
-#print "Magnitudes of Kopff 27 in Halpha:", magnitudes_kp27_Halpha
-#print "Error of the magnitudes:", err_kp27_Halpha
-
-# Now the fluxes of the standard star Kopff 27:
-flux_kp27_Halpha = 1.05451e-11
-m0_kp27_Halpha = - 2.5 * np.log10(flux_kp27_Halpha)
-
-# From the Halpha images of bd+28
-airmass_bd28_Halpha = np.array([1.955,1.039,1.020])
-magnitudes_bd28_Halpha = np.array([-9.343,-9.547,-9.531]) -\
-                                              ext_coeff * airmass_bd28_Halpha
-err_mag_bd28_Halpha = np.array([0.002, 0.003, 0.002])                                              
-err_extinction_bd28 = np.array([sigma_ext_coeff] * len(magnitudes_bd28_Halpha)) *\
-                  airmass_bd28_Halpha 
-err_bd28_Halpha = np.sqrt(err_mag_bd28_Halpha**2 + err_extinction_bd28**2)                  
-#print "Magnitudes of bd28:", magnitudes_bd28_Halpha
-#print "Error of the magnitudes:", err_bd28_Halpha
-
-# Fluxes
-flux_bd28_Halpha = 6.30523e-12
-m0_bd28_Halpha = -2.5 * np.log10(flux_bd28_Halpha)
-
-# Concatenate all together
-obs_magnitudes = np.array(list(magnitudes_kp27_Halpha) + list(magnitudes_bd28_Halpha))
-err_mag = np.array(list(err_kp27_Halpha) + list(err_bd28_Halpha))
-std_magnitudes = np.array([m0_kp27_Halpha] * 3 + [m0_bd28_Halpha] * 3)
-zp, sigma_zp = calculate_zeropoint(obs_magnitudes, std_magnitudes, err_mag)
-#plt.plot(obs_magnitudes[0:3], std_magnitudes[0:3], 'o' )
-#plt.plot(obs_magnitudes[3:], std_magnitudes[3:], 'o' )
-#plt.show()
-print "Zero point for Halpha:", zp, "+/-", sigma_zp
-###################################################################################################################
+# # From the Halpha images of Kopff 27:
+# airmass_kp27_Halpha = np.array([1.178, 1.735, 2.969])
+# magnitudes_kp27_Halpha = np.array([-10.133, -9.987, -9.696]) -\
+#                                               ext_coeff * airmass_kp27_Halpha
+# # Assuming random errors, the error of the magnitude estimation and the one
+# # from the extinction correction should add quadratically.
+# err_mag_kp27_Halpha = np.array([0.003, 0.003, 0.004])
+# err_extinction_kp27 = np.array([sigma_ext_coeff] * len(magnitudes_kp27_Halpha))*\
+#                   airmass_kp27_Halpha
+# err_kp27_Halpha = np.sqrt(err_mag_kp27_Halpha**2 + err_extinction_kp27**2)
+# #print "Magnitudes of Kopff 27 in Halpha:", magnitudes_kp27_Halpha
+# #print "Error of the magnitudes:", err_kp27_Halpha
+#
+# # Now the fluxes of the standard star Kopff 27:
+# flux_kp27_Halpha = 1.05451e-11
+# m0_kp27_Halpha = - 2.5 * np.log10(flux_kp27_Halpha)
+#
+# # From the Halpha images of bd+28
+# airmass_bd28_Halpha = np.array([1.955,1.039,1.020])
+# magnitudes_bd28_Halpha = np.array([-9.343,-9.547,-9.531]) -\
+#                                               ext_coeff * airmass_bd28_Halpha
+# err_mag_bd28_Halpha = np.array([0.002, 0.003, 0.002])
+# err_extinction_bd28 = np.array([sigma_ext_coeff] * len(magnitudes_bd28_Halpha)) *\
+#                   airmass_bd28_Halpha
+# err_bd28_Halpha = np.sqrt(err_mag_bd28_Halpha**2 + err_extinction_bd28**2)
+# #print "Magnitudes of bd28:", magnitudes_bd28_Halpha
+# #print "Error of the magnitudes:", err_bd28_Halpha
+#
+# # Fluxes
+# flux_bd28_Halpha = 6.30523e-12
+# m0_bd28_Halpha = -2.5 * np.log10(flux_bd28_Halpha)
+#
+# # Concatenate all together
+# obs_magnitudes = np.array(list(magnitudes_kp27_Halpha) + list(magnitudes_bd28_Halpha))
+# err_mag = np.array(list(err_kp27_Halpha) + list(err_bd28_Halpha))
+# std_magnitudes = np.array([m0_kp27_Halpha] * 3 + [m0_bd28_Halpha] * 3)
+# zp, sigma_zp = calculate_zeropoint(obs_magnitudes, std_magnitudes, err_mag)
+# #plt.plot(obs_magnitudes[0:3], std_magnitudes[0:3], 'o' )
+# #plt.plot(obs_magnitudes[3:], std_magnitudes[3:], 'o' )
+# #plt.show()
+# print "Zero point for Halpha:", zp, "+/-", sigma_zp
+# # ###################################################################################################################
 
 
 # Equate PSFs for scientific objects
@@ -161,7 +165,7 @@ for ii, im_name in enumerate(list_images["filename"]):
 
 print "Correct for atmospheric extinction."
 for ii, im_name in enumerate(list_images["filename"]):
-    if list_images["type"][ii] in ["cig", "clusters"]:
+    if list_images["type"][ii] in ["cig", "clusters", "standards"]:
         airmass = float(utils.get_from_header(im_name, airmassk))
         correcting_factor = 10**(ext_coeff * airmass / 2.5)
         newname = utils.add_suffix_prefix(im_name, suffix="-e")
@@ -171,9 +175,30 @@ for ii, im_name in enumerate(list_images["filename"]):
                                      "--mask_key", "MASK",
                                      im_name, "*", str(correcting_factor)])
         mssg = "Before correcting for atmosphere: " + str(airmass)
-        utils.header_update_keyword(im_name, airmassk, 0, comment=mssg)
-        utils.header_update_keyword(im_name, "k_coeff", ext_coeff, comment="Extinction coefficient")
-        utils.header_update_keyword(im_name, "k_err", sigma_ext_coeff, comment="Extinction coefficient 1-sigma")
+        utils.header_update_keyword(newname, airmassk, 0, comment=mssg)
+        utils.header_update_keyword(newname, "k_coeff", ext_coeff, comment="Extinction coefficient")
+        utils.header_update_keyword(newname, "k_err", sigma_ext_coeff, comment="Extinction coefficient 1-sigma")
+        list_images["filename"][ii] = newname
+
+print "Calculate zero point from the standards"
+zp = defaultdict(list)
+for ii, im_name in enumerate(list_images["filename"]):
+    if list_images["type"][ii] in ['standards']:
+        image = astroim.astroim(im_name)
+        zp[image.filter.filter_ID].append(image.zero_point)
+
+
+for kk, vv in zp.iteritems():
+    zp[kk] = np.median(vv), np.median( np.abs(np.array(vv)-np.median(vv)))
+
+
+
+
+
+
+
+
+zp, sigma_zp = 37.7, 0.03
 
 # Add zero point to the header of all the Halpha images
 for im_name in list_images["filename"]:
@@ -182,13 +207,14 @@ for im_name in list_images["filename"]:
         utils.header_update_keyword(im_name, "ZP", zp, "AB magnitude zero point." )
         utils.header_update_keyword(im_name, "ZP_err", sigma_zp, "Zero point 1-sigma. ")
 
+
 print "Combine images of same object and filter"
 iraf.images(_doprint=0)
 iraf.immatch(_doprint=0)
 
 keywords = dict(filterk=filterk, objectk=objectk, gaink=gaink, datek=datek, exptimek=exptimek,
                 fwhmk="seeing", airmassk=airmassk)
-objects_list = dict()
+objects_list = defaultdict(list)
 for obj in SciObj_set:
     obj_images = list(list_images["filename"][np.where(list_images["objname"] == obj)])
     obj_filters = [utils.get_from_header(im_name, filterk) for im_name in obj_images]
@@ -198,26 +224,45 @@ for obj in SciObj_set:
         input_names = ",".join(input_images)
         utilities.if_exists_remove(output_name)
         iraf.imcombine(input_names, output=output_name, combine="median", offsets="wcs")
+        objects_list[obj].append(output_name)
 
-        # Save all this in an astronomical object (see objects.py)
-        if obj in objects_list.keys():
-            current_object = objects_list[obj]
-        else:
-            current_object = astronomical_object(obj_name=obj, obj_type="galaxy", keywords=keywords)
-        if filt[0].lower() == "h":
-            current_object.narrow_final = output_name
-        elif filt[0].lower() == "r":
-            current_object.cont_final = output_name
-        objects_list[obj] = current_object
+print objects_list
 
+print "Do photometry in combined images"
+for target in SciObj_set:
+    target_images = objects_list[target]
+    output_db = os.path.join(directory, target+".db")
+    utilities.if_exists_remove(output_db)
+    photometry.main(arguments=["--maximum", str(max_counts), "--uik", "", "--margin", "20", "--gaink", gaink,
+                              "--aperture", "4.", "--annulus", "6", "--dannulus", "2", "--individual-fwhm", "--objectk", objectk,
+                              "--filterk", filterk, "--datek", datek, "--expk", exptimek, "--fwhmk", seeingk, "--airmk", airmassk,
+                               target_images[0]] + target_images + [output_db])
+
+print "Calculate scaling factors"
+scaling_factors = list()
+for target in SciObj_set:
+    print "Current_object narrow and cont", objects_list[target]
+    if len(objects_list[target]) == 2: # both continuum and Halpha present
+        input_db = os.path.join(directory, target+".db")
+        airmasses, magnitudes, filters = extract.main(input_db)
+        magnitudes_Halpha = [mm for mm, ff in zip(magnitudes, filters) if 'ha' in str(ff).lower()]
+        magnitudes_rGunn =  [mm for mm, ff in zip(magnitudes, filters) if 'gunn' in str(ff).lower()]
+        scale_factor =  10 ** ( (np.array(magnitudes_Halpha) - np.array(magnitudes_rGunn)) / (-2.5))
+        scaling_factors = np.append(scaling_factors, scale_factor)
+
+scaling_factor = np.median(scaling_factors)
+print "Scaling factors: ", scaling_factors
 
 print "Scale continuum images using stars"
-for current_object in objects_list.values():
-    print "Current_object narrow and cont", current_object.narrow_final, current_object.cont_final
-    if current_object.narrow_final and current_object.cont_final:
-        print "Scaling {}".format(current_object.Name)
-        scale_factor = current_object.scale_cont()
-        print "Scale factor: {}".format(scale_factor)
+for target in SciObj_set:
+    im_cont = [im for im in objects_list[target] if 'rgunn' in im.lower()][0]
+    newname = utils.add_suffix_prefix(im_cont, suffix="-scaled")
+    mssg = 'Scaled to Halpha image'
+    arith_images.main(arguments=["--output", newname, "--message", mssg, "--mask_key", "MASK", im_name, "*", scaling_factor])
+
+    
+
+
 
 
 
