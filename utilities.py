@@ -79,10 +79,11 @@ def precess_to_2000(RA, DEC, time):
         time = dateutil.parser.parse(time)
     except: 
         pass
-    fk5 = coords.FK5Coordinates(ra=RA, dec=DEC, unit=(u.degree, u.degree), 
+    fk5 = coords.FK5(ra=RA, dec=DEC, unit=(u.degree, u.degree),
                                 equinox=Time(time.year, format="jyear", 
                                              scale="utc"))
-    fk_2000 = fk5.precess_to(Time(2000, format="jyear", scale="utc"))
+    fknew = coords.FK5(equinox='J2000')
+    fk_2000 = fk5.transform_to(fknew)
     return fk_2000.ra.degree, fk_2000.dec.degree
 
 def check_dimensions(image_list):
