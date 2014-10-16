@@ -61,47 +61,6 @@ class header(object):
         """ Determine the keyword that keeps the name of the filter in the header."""
         return self._get_filterk()
 
-    @property
-    def filterk(self):
-        """ Determine the keyword that keeps the name of the filter in the header."""
-        return self._get_keyword(self._KEYWORDS_ALIASES['FILTER'])
-
-    @property
-    def airmassk(self):
-        """ Determine the keyword that keeps the name of the filter in the header."""
-        return self._get_keyword(self._KEYWORDS_ALIASES['AIRMASS'])
-
-    @property
-    def exptimek(self):
-        """ Determine the keyword that keeps the name of the filter in the header."""
-        return self._get_keyword(self._KEYWORDS_ALIASES['EXPTIME'])
-
-    @property
-    def objectk(self):
-        """ Determine the keyword that keeps the name of the filter in the header."""
-        return self._get_keyword(self._KEYWORDS_ALIASES['OBJECT'])
-
-    @property
-    def datek(self):
-        """ Determine the keyword that keeps the name of the filter in the header."""
-        return self._get_keyword(self._KEYWORDS_ALIASES['DATE'])
-
-    @property
-    def timek(self):
-        """ Determine the keyword that keeps the name of the filter in the header."""
-        return self._get_keyword(self._KEYWORDS_ALIASES['TIME'])
-
-    @property
-    def seeingk(self):
-        """ Determine the keyword that keeps the seeing in the header."""
-        return self._get_keyword(self._KEYWORDS_ALIASES['SEEING'])
-
-    @property
-    def gaink(self):
-        """ Determine the keyword that keeps the gain in the header."""
-        return self._get_keyword(self._KEYWORDS_ALIASES['GAIN'])
-
-
     @utils.memoize
     def _get_telescope(self):
         """ Try to find the telescope name from which the image comes.
@@ -171,3 +130,26 @@ class header(object):
                 k,v = key, self.hdr.get(key)
                 break
         return k, v
+
+
+def _add_property(name, keyword):
+    """ Dynamically add a property to the 'header' class.
+
+    Add to the 'header' class the property 'name', whose getter function is
+    header._get_keyword(), called with header._KEYWORDS_ALIASES[keyword] as
+    its sole argument.
+
+    """
+
+    def getter(self):
+        return self._get_keyword(self._KEYWORDS_ALIASES[keyword])
+    setattr(header, name, property(getter))
+
+_add_property('filterk', 'FILTER')
+_add_property('airmassk', 'AIRMASS')
+_add_property('exptimek', 'EXPTIME')
+_add_property('objectk', 'OBJECT')
+_add_property('datek', 'DATE')
+_add_property('timek', 'TIME')
+_add_property('seeingk', 'SEEING')
+_add_property('gaink', 'GAIN')
