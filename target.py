@@ -24,8 +24,8 @@ regexp_dict = {'.*BIAS.*'             : 'bias',
                '(.* BLANK)'         : 'blank',
                '(?P<name>C(?:IG)?)(?P<number>\d{1,4})'    : 'cig'
                }
-
-stds = numpy.genfromtxt("standards.csv", delimiter=",", dtype=None, autostrip=True, names=['std_names', 'ra', 'dec'])
+standards_file = os.path.join(repipy_path[0], "standards.csv")
+stds = numpy.genfromtxt(standards_file, delimiter=",", dtype=None, autostrip=True, names=['std_names', 'ra', 'dec'])
 
 
 class target(object):
@@ -63,7 +63,7 @@ class target(object):
     @property
     def flux(self):
         """ If you have both a spectra for the object and the filter curve, calculate the flux under the filter"""
-        if self.spectra != None and self.filter.filter_curve != None:
+        if self.spectra is not None and self.filter.filter_curve is not None:
             return self._get_flux()
 
 
@@ -110,8 +110,6 @@ class target(object):
             iraf.digiphot(_doprint=0)
             iraf.apphot(_doprint=0)
             seeing = self.header.hdr[self.header.seeingk]
-            #seeing = 2.5
-            print "seeing =", seeing
             photfile_name = self.im_name + ".mag.1"
             utilities.if_exists_remove(photfile_name)
             kwargs =  dict(output=photfile_name, coords=coords_file,
@@ -121,7 +119,7 @@ class target(object):
             iraf.module.phot(self.im_name, **kwargs)
             [counts] = iraf.module.txdump(photfile_name, 'FLUX', 'yes', Stdout=subprocess.PIPE)
             utilities.if_exists_remove(coords_file)
-            return counts
+            return float(counts)
 
 
     @utilities.memoize
@@ -151,43 +149,36 @@ class target(object):
     def _get_flux(self):
         """ Get the flux of the object under the filter by convolving the filter curve with the spectra of the object
 
-        This program follows one called convol.pro from Jorge Iglesias, IAA.
+        This program follows one in IDL called convol.pro from Jorge Iglesias, IAA.
         """
-        if self.target.spectra is not None:  # For standards, where the spectra are used to calibrate in flux
+        if self.spectra is not None:  # For standards, where the spectra are used to calibrate in flux
             # Get the spectra of the star and the filter curve. The spectra must be in A
             wavelength_star = self.spectra.transpose()[0]
             magnitude_star = self.spectra.transpose()[1]
             wavelength_filter = self.filter.filter_curve.transpose()[0]
             transmittance_filter = self.filter.filter_curve.transpose()[1]
 
-            # We will use only the area where filter and star overlap, tipically the spectra of the star is much larger
-            wav_min = max(wavelength_filter.min(), wavelength_star.min())
-            wav_max = min(wavelength_filter.max(), wavelength_star.max())
+            # We will use the area under the filter, just right of the first point, left of the last
+            wav_min = int(numpy.ceil(wavelength_filter.min()))
+            wav_max = int(numpy.floor(wavelength_filter.max()))
+            wavelength = numpy.arange(wav_min, wav_max)
 
+            # Now interpolate the magnitude of the star and the transmittance of the filter
+            f = interp1d(wavelength_filter, transmittance_filter, kind='cubic', fill_value=0, bounds_error=False)
+            transmisttance_interpolated = f(wavelength)
+            g = interp1d(wavelength_star, magnitude_star, kind= 'linear', fill_value=0, bounds_error=False)
+            magnitude_interpolated = g(wavelength)
 
-            # Now use those cuts
-            magnitude_star = magnitude_star[numpy.where(   (wav_min < wavelength_star) & (wavelength_star < wav_max))[0]]
-            wavelength_star = wavelength_star[numpy.where( (wav_min < wavelength_star) & (wavelength_star < wav_max) )[0]]
-            transmittance_filter = transmittance_filter[numpy.where( (wav_min < wavelength_filter) &
-                                                                     (wavelength_filter < wav_max) )]
-            wavelength_filter = wavelength_filter[numpy.where( (wav_min < wavelength_filter) &
-                                                               (wavelength_filter < wav_max) ) ]
 
             # We convert from AB magnitudes to flux in erg/s/cm2/Hz.
-            flux_star = 10**((-48.6-magnitude_star)/2.5)
+            flux_star = 10**((-48.6-magnitude_interpolated)/2.5)
+            delta_lambda = wavelength[1] - wavelength[0]
+            flux_star = flux_star * 3e18 / wavelength ** 2
 
-            # Then from F_nu we need to convert to F_lambda
-            delta_lambda = wavelength_star[1] - wavelength_star[0]
-            flux_star = flux_star * 3e18 / wavelength_star ** 2
-
-
-            # Then we need to sample the transmittance of the filter at the wavelengths of the star.
-            f = interp1d(wavelength_filter, transmittance_filter, kind='cubic', fill_value=0, bounds_error=False)
-            transmisttance_interpolated = f(wavelength_star)
 
             # Finally, we integrate the multiplication of both curves
             y = transmisttance_interpolated * flux_star
-            x = wavelength_star
+            x = wavelength
             # Assuming delta_lambda is sufficiently small that there is no large changes in y
             result = sum(y * delta_lambda)
             return result
