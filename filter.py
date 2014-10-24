@@ -2,7 +2,7 @@ import utilities as utils
 import os
 import numpy
 
-class filter(object):
+class Filter(object):
     def __init__(self, header):
         self.header = header
 

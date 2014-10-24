@@ -23,7 +23,7 @@ class NotFoundKeyword(KeyError):
         return self.mssg.format(self.keyword, self.im_name, ", ".join(self.valid))
 
 
-class header(object):
+class Header(object):
     """ Object with the information we can gather from the header of the image about observatory, telescope, instrument,
         and the keywords for the most important parameters: airmass, object, exposure time, ...
     """
