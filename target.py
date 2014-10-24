@@ -28,7 +28,7 @@ standards_file = os.path.join(repipy_path[0], "standards.csv")
 stds = numpy.genfromtxt(standards_file, delimiter=",", dtype=None, autostrip=True, names=['std_names', 'ra', 'dec'])
 
 
-class target(object):
+class Target(object):
     def __init__(self, image, hdr, filt):
         self.header = hdr
         self.filter = filt
