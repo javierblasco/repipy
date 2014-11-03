@@ -126,7 +126,7 @@ class Header(object):
         """
         k, v = None, None
         for key in keywords:
-            if self.hdr.get(key):
+            if self.hdr.get(key) is not None:
                 k,v = key, self.hdr.get(key)
                 break
         return k, v
@@ -143,7 +143,7 @@ def _add_property(name, keyword):
 
     def getter(self):
         return self._get_keyword(self._KEYWORDS_ALIASES[keyword])
-    setattr(header, name, property(getter))
+    setattr(Header, name, property(getter))
 
 _add_property('filterk', 'FILTER')
 _add_property('airmassk', 'AIRMASS')
