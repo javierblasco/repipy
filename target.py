@@ -14,6 +14,7 @@ from scipy.integrate import simps
 from repipy import __path__ as repipy_path
 import pyraf.iraf as iraf
 import subprocess
+import tempfile
 
 
 
@@ -101,9 +102,9 @@ class Target(object):
         If the target is a standard star, aperture photometry will be performed. For the moment nothing is done with
         the others, but in due time (TODO) photometry.py will be included here. """
 
-        coords_file = "remove_this.txt"
-        with open(coords_file, 'w') as ff:
-            ff.write(str(self.RA) + " " + str(self.DEC))
+        basename = "standards"
+        fd, coords_file = tempfile.mkstemp(prefix=basename, suffix=".coords")
+        os.write(fd, "{0} {1} \n".format(self.RA, self.DEC))
 
         if self.objtype == "standard":
             iraf.noao(_doprint=0)
@@ -116,7 +117,7 @@ class Target(object):
                       wcsin='world', fwhm=seeing, gain=self.header.gaink, exposure=self.header.exptimek,
                       airmass=self.header.airmassk, annulus=6*seeing, dannulus=3*seeing,
                       apert=2*seeing, verbose="no", verify="no", interac="no")
-            iraf.module.phot(self.im_name, **kwargs)
+            iraf.phot(self.im_name, **kwargs)
             [counts] = iraf.module.txdump(photfile_name, 'FLUX', 'yes', Stdout=subprocess.PIPE)
             utilities.if_exists_remove(coords_file)
             return float(counts)
