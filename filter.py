@@ -1,10 +1,16 @@
 import utilities as utils
 import os
 import numpy
+import repipy.target as target
 
 class Filter(object):
     def __init__(self, header):
         self.header = header
+
+    @utils.memoize
+    def zero_point(self, target):
+        """ Return the zero point, given this target """
+        return  2.5 * (numpy.log10(target.counts / self.header.hdr[self.header.exptimek]) - numpy.log10(target.flux))
 
     @property
     def filter_ID(self):
