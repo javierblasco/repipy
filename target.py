@@ -110,17 +110,16 @@ class Target(object):
             iraf.digiphot(_doprint=0)
             iraf.apphot(_doprint=0)
             seeing = self.header.hdr[self.header.seeingk]
-            photfile_name = self.im_name + ".mag.1"
+            photfile_name = self.header.im_name + ".mag.1"
             utilities.if_exists_remove(photfile_name)
             kwargs =  dict(output=photfile_name, coords=coords_file,
                       wcsin='world', fwhm=seeing, gain=self.header.gaink, exposure=self.header.exptimek,
                       airmass=self.header.airmassk, annulus=6*seeing, dannulus=3*seeing,
                       apert=2*seeing, verbose="no", verify="no", interac="no")
-            iraf.phot(self.im_name, **kwargs)
+            iraf.phot(self.header.im_name, **kwargs)
             [counts] = iraf.module.txdump(photfile_name, 'FLUX', 'yes', Stdout=subprocess.PIPE)
             utilities.if_exists_remove(coords_file)
             return float(counts)
-
 
     @utilities.memoize
     def _get_object(self):
@@ -184,10 +183,6 @@ class Target(object):
             return result
 
 
-
-
-
-
     def _name_using_coordinates(self):
         """ Check if any of the standard stars is within the image.
 
@@ -196,7 +191,7 @@ class Target(object):
         """
         type, name = 'Unknown', 'Unknown'
         w = wcs.wcs.WCS(self.header.hdr)
-        ly, lx = fits.getdata(self.im_name).shape
+        ly, lx = fits.getdata(self.header.im_name).shape
         # ra_min, dec_min will be the coordinates of pixel (0,0)
         # ra_max, dec_max the coordinates of the upper right corner of the image.
         # But beware, the orientation could be such that ra_min > ra_max if the image is not oriented North
