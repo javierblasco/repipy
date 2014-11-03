@@ -30,10 +30,9 @@ stds = numpy.genfromtxt(standards_file, delimiter=",", dtype=None, autostrip=Tru
 
 
 class Target(object):
-    def __init__(self, image, hdr, filt):
+    def __init__(self, hdr, filt):
         self.header = hdr
         self.filter = filt
-        self.im_name = image
 
     def __str__(self):
         return re.sub('[-+\s_]', "", self.objname.lower())
