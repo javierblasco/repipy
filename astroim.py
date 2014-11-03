@@ -11,12 +11,10 @@ class Astroim(object):
         self.im_name = image
         self.header = header.Header(self.im_name)
         self.filter = filter.Filter(self.header)
-        self.target = target.Target(self.im_name, self.header, self.filter)
-        #self.zero_point = self._get_zero_point()
+        self.target = target.Target(self.header, self.filter)
+        self.zero_point = self.filter.zero_point(self.target)
 
-    def _get_zero_point(self):  # esto no deberia ir aqui. Victor.
-        exptime = self.header.hdr[self.header.exptimek]
-        return 2.5 * (numpy.log10(self.target.counts / exptime) - numpy.log10(self.target.flux))
+
 
 
 
