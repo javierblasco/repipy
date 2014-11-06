@@ -104,6 +104,7 @@ class Target(object):
         basename = "standards"
         fd, coords_file = tempfile.mkstemp(prefix=basename, suffix=".coords")
         os.write(fd, "{0} {1} \n".format(self.RA, self.DEC))
+        os.close(fd)
 
         if self.objtype == "standard":
             iraf.noao(_doprint=0)
