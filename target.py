@@ -9,7 +9,7 @@ import numpy
 import re
 import astropy.wcs as wcs
 import scipy
-from scipy.interpolate import interp1d
+from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.integrate import simps
 from repipy import __path__ as repipy_path
 import pyraf.iraf as iraf
@@ -164,9 +164,9 @@ class Target(object):
             wavelength = numpy.arange(wav_min, wav_max)
 
             # Now interpolate the magnitude of the star and the transmittance of the filter
-            f = interp1d(wavelength_filter, transmittance_filter, kind='cubic', fill_value=0, bounds_error=False)
-            transmisttance_interpolated = f(wavelength)
-            g = interp1d(wavelength_star, magnitude_star, kind= 'linear', fill_value=0, bounds_error=False)
+            f = InterpolatedUnivariateSpline(wavelength_filter, transmittance_filter, k=3)
+            transmittance_interpolated = f(wavelength)
+            g = InterpolatedUnivariateSpline(wavelength_star, magnitude_star, k=3)
             magnitude_interpolated = g(wavelength)
 
 
@@ -177,7 +177,7 @@ class Target(object):
 
 
             # Finally, we integrate the multiplication of both curves
-            y = transmisttance_interpolated * flux_star
+            y = transmittance_interpolated * flux_star
             x = wavelength
             # Assuming delta_lambda is sufficiently small that there is no large changes in y
             result = sum(y * delta_lambda)
