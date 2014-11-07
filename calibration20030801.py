@@ -184,28 +184,28 @@ print "Calculate zero point from the standards"
 zp = defaultdict(list)
 for ii, im_name in enumerate(list_images["filename"]):
     if list_images["type"][ii] in ['standards']:
-        image = astroim.astroim(im_name)
+        image = astroim.Astroim(im_name)
         zp[image.filter.filter_ID].append(image.zero_point)
-
 
 for kk, vv in zp.iteritems():
     zp[kk] = np.median(vv), np.median( np.abs(np.array(vv)-np.median(vv)))
 
-
-
-
-
-
-
-
-zp, sigma_zp = 37.7, 0.03
+print "zp = ", zp
 
 # Add zero point to the header of all the Halpha images
 for im_name in list_images["filename"]:
-    filter = utils.get_from_header(im_name, filterk)
-    if filter == "H6678":
-        utils.header_update_keyword(im_name, "ZP", zp, "AB magnitude zero point." )
-        utils.header_update_keyword(im_name, "ZP_err", sigma_zp, "Zero point 1-sigma. ")
+    print im_name
+    filter = astroim.Astroim(im_name).filter.filter_ID
+    utils.header_update_keyword(im_name, "ZP", zp[filter][0], "AB magnitude zero point." )
+    utils.header_update_keyword(im_name, "ZP_err", zp[filter][1], "Zero point 1-sigma. ")
+
+
+
+sys.exit()
+
+
+
+
 
 
 print "Combine images of same object and filter"
