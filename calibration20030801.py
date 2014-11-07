@@ -150,8 +150,9 @@ print "zp = ", zp
 for im_name in list_images["filename"]:
     print im_name
     filter = astroim.Astroim(im_name).filter.filter_ID
-    utils.header_update_keyword(im_name, "ZP", zp[filter][0], "AB magnitude zero point." )
-    utils.header_update_keyword(im_name, "ZP_err", zp[filter][1], "Zero point 1-sigma. ")
+    if zp.has_key(filter):
+        utils.header_update_keyword(im_name, "ZP", zp[filter][0], "AB magnitude zero point." )
+        utils.header_update_keyword(im_name, "ZP_err", zp[filter][1], "Zero point 1-sigma. ")
 
 
 
