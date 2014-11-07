@@ -85,50 +85,6 @@ for obj in standards_set:
 ext_coeff, sigma_ext_coeff =  np.mean(coefficient_list), np.std(coefficient_list)
 print "Extinction = ", ext_coeff, "+/-", sigma_ext_coeff
 
-# # From the Halpha images of Kopff 27:
-# airmass_kp27_Halpha = np.array([1.178, 1.735, 2.969])
-# magnitudes_kp27_Halpha = np.array([-10.133, -9.987, -9.696]) -\
-#                                               ext_coeff * airmass_kp27_Halpha
-# # Assuming random errors, the error of the magnitude estimation and the one
-# # from the extinction correction should add quadratically.
-# err_mag_kp27_Halpha = np.array([0.003, 0.003, 0.004])
-# err_extinction_kp27 = np.array([sigma_ext_coeff] * len(magnitudes_kp27_Halpha))*\
-#                   airmass_kp27_Halpha
-# err_kp27_Halpha = np.sqrt(err_mag_kp27_Halpha**2 + err_extinction_kp27**2)
-# #print "Magnitudes of Kopff 27 in Halpha:", magnitudes_kp27_Halpha
-# #print "Error of the magnitudes:", err_kp27_Halpha
-#
-# # Now the fluxes of the standard star Kopff 27:
-# flux_kp27_Halpha = 1.05451e-11
-# m0_kp27_Halpha = - 2.5 * np.log10(flux_kp27_Halpha)
-#
-# # From the Halpha images of bd+28
-# airmass_bd28_Halpha = np.array([1.955,1.039,1.020])
-# magnitudes_bd28_Halpha = np.array([-9.343,-9.547,-9.531]) -\
-#                                               ext_coeff * airmass_bd28_Halpha
-# err_mag_bd28_Halpha = np.array([0.002, 0.003, 0.002])
-# err_extinction_bd28 = np.array([sigma_ext_coeff] * len(magnitudes_bd28_Halpha)) *\
-#                   airmass_bd28_Halpha
-# err_bd28_Halpha = np.sqrt(err_mag_bd28_Halpha**2 + err_extinction_bd28**2)
-# #print "Magnitudes of bd28:", magnitudes_bd28_Halpha
-# #print "Error of the magnitudes:", err_bd28_Halpha
-#
-# # Fluxes
-# flux_bd28_Halpha = 6.30523e-12
-# m0_bd28_Halpha = -2.5 * np.log10(flux_bd28_Halpha)
-#
-# # Concatenate all together
-# obs_magnitudes = np.array(list(magnitudes_kp27_Halpha) + list(magnitudes_bd28_Halpha))
-# err_mag = np.array(list(err_kp27_Halpha) + list(err_bd28_Halpha))
-# std_magnitudes = np.array([m0_kp27_Halpha] * 3 + [m0_bd28_Halpha] * 3)
-# zp, sigma_zp = calculate_zeropoint(obs_magnitudes, std_magnitudes, err_mag)
-# #plt.plot(obs_magnitudes[0:3], std_magnitudes[0:3], 'o' )
-# #plt.plot(obs_magnitudes[3:], std_magnitudes[3:], 'o' )
-# #plt.show()
-# print "Zero point for Halpha:", zp, "+/-", sigma_zp
-# # ###################################################################################################################
-
-
 # Equate PSFs for scientific objects
 SciObj_set = set(x for x,t in zip(list_images["objname"], list_images["type"]) if t in ["cig", "clusters"])
 for obj in SciObj_set:
