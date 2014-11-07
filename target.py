@@ -54,6 +54,15 @@ class Target(object):
     @property
     def DEC(self):
        return float(self._get_RaDec()[1])
+        RaDec = self._get_RaDec()
+        if RaDec:  # Not None
+            return float(self._get_RaDec()[0])
+
+    @property
+    def DEC(self):
+        RaDec = self._get_RaDec()
+        if RaDec:
+            return float(self._get_RaDec()[1])
 
     @property
     def counts(self):
@@ -74,6 +83,9 @@ class Target(object):
         if index:
             ra, dec = stds['ra'][index], stds['dec'][index]
         return ra, dec
+        if self.objtype == 'standard':
+            index =  numpy.where(stds['std_names'] == self.objname)[0]
+            return stds['ra'][index], stds['dec'][index]
 
     @property
     def spectra(self):
