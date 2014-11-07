@@ -10,7 +10,8 @@ class Filter(object):
     @utils.memoize
     def zero_point(self, target):
         """ Return the zero point, given this target """
-        return  2.5 * (numpy.log10(target.counts / self.header.hdr[self.header.exptimek]) - numpy.log10(target.flux))
+        if target.counts and target.flux:
+            return  2.5 * (numpy.log10(target.counts / self.header.hdr[self.header.exptimek]) - numpy.log10(target.flux))
 
     @property
     def filter_ID(self):
