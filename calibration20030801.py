@@ -148,7 +148,6 @@ print "zp = ", zp
 
 # Add zero point to the header of all the Halpha images
 for im_name in list_images["filename"]:
-    print im_name
     filter = astroim.Astroim(im_name).filter.filter_ID
     if zp.has_key(filter):
         utils.header_update_keyword(im_name, "ZP", zp[filter][0], "AB magnitude zero point." )
