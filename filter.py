@@ -54,6 +54,9 @@ class Filter(object):
         # In case the transmissivity is in % instead of normalized to 1
         if trans.max() > 1:
             trans /= 100
+        # In case the wavelength is in nanometers, not Angstroms
+        if wav.max() < 1000:
+            wav *= 10
         return numpy.array([wav, trans]).transpose()
 
     @utils.memoize
