@@ -49,11 +49,11 @@ class Target(object):
 
     @property
     def RA(self):
-        return float(self._get_RaDec()[0])
+       return float(self._get_RaDec()[0])
 
     @property
     def DEC(self):
-        return float(self._get_RaDec()[1])
+       return float(self._get_RaDec()[1])
 
     @property
     def counts(self):
@@ -69,9 +69,11 @@ class Target(object):
 
     @utilities.memoize
     def _get_RaDec(self):
+        ra, dec = None, None
         index =  numpy.where(stds['std_names'] == self.objname)[0]
-        return stds['ra'][index], stds['dec'][index]
-
+        if index:
+            ra, dec = stds['ra'][index], stds['dec'][index]
+        return ra, dec
 
     @property
     def spectra(self):
