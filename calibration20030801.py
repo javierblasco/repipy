@@ -38,10 +38,6 @@ def search_images(dir="."):
     in_pattern = {}
     in_pattern["cig"] = "^(?P<name>cig)(?P<cig_num>\d{4})_(?P<date>\d{8})_" +\
                         "(?P<filt>.*)_(?P<exp_num>\d{3})(?P<rest>.*-c\.fits)$"
-    in_pattern["bias"] = "^(?P<name>bias)_(?P<date>\d{8})_"+\
-                         "(?P<exp_num>\d{3})(?P<rest>\.fits)$"
-    in_pattern["skyflats"] = "^(?P<name>skyflat)_(?P<date>\d{8})_(?P<filt>.*)_" +\
-                         "(?P<exp_num>\d{3})(?P<rest>.*-b\.fits)$"
     in_pattern["standards"] = "^(?P<name>" + standards_campaign +")_(?P<date>\d{8})_" +\
                               "(?P<filt>.*)_(?P<exp_num>\d{3})(?P<rest>.*-c\.fits)$"
     in_pattern["blanks"] = "^(?P<name>blank)_(?P<date>\d{8})_(?P<filt>.*)_" +\
