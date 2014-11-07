@@ -54,9 +54,6 @@ class Target(object):
     @property
     def DEC(self):
        return float(self._get_RaDec()[1])
-        RaDec = self._get_RaDec()
-        if RaDec:  # Not None
-            return float(self._get_RaDec()[0])
 
     @property
     def DEC(self):
