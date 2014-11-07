@@ -245,13 +245,13 @@ for target in SciObj_set:
     if len(objects_list[target]) == 2: # both continuum and Halpha present
         input_db = os.path.join(directory, target+".db")
         airmasses, magnitudes, filters = extract.main(input_db)
-        magnitudes_Halpha = [mm for mm, ff in zip(magnitudes, filters) if 'ha' in str(ff).lower()]
-        magnitudes_rGunn =  [mm for mm, ff in zip(magnitudes, filters) if 'gunn' in str(ff).lower()]
         scale_factor =  10 ** ( (np.array(magnitudes_Halpha) - np.array(magnitudes_rGunn)) / (-2.5))
         scaling_factors = np.append(scaling_factors, scale_factor)
 
 scaling_factor = np.median(scaling_factors)
 print "Scaling factors: ", scaling_factors
+print "Magnitudes Halpha:", magnitudes_Halpha
+print "Magnitudes rGunn:", magnitudes_rGunn
 
 print "Scale continuum images using stars"
 for target in SciObj_set:
