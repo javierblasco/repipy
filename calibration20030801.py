@@ -144,23 +144,12 @@ for ii, im_name in enumerate(list_images["filename"]):
 for kk, vv in zp.iteritems():
     zp[kk] = np.median(vv), np.median( np.abs(np.array(vv)-np.median(vv)))
 
-print "zp = ", zp
-
-# Add zero point to the header of all the Halpha images
+print "Add zero point to headers"
 for im_name in list_images["filename"]:
     filter = astroim.Astroim(im_name).filter.filter_ID
     if zp.has_key(filter):
         utils.header_update_keyword(im_name, "ZP", zp[filter][0], "AB magnitude zero point." )
         utils.header_update_keyword(im_name, "ZP_err", zp[filter][1], "Zero point 1-sigma. ")
-
-
-
-sys.exit()
-
-
-
-
-
 
 print "Combine images of same object and filter"
 iraf.images(_doprint=0)
