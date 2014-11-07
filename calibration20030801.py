@@ -11,8 +11,6 @@ import repipy.utilities as utils
 import repipy.combine as combine_images
 import repipy.astrometry as astrometry
 import repipy.astroim as astroim
-#from repipy.objects import astronomical_object
-
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
