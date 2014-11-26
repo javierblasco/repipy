@@ -59,6 +59,12 @@ class Filter(object):
             wav *= 10
         return numpy.array([wav, trans]).transpose()
 
+    @property
+    def filter_integral(self):
+        """ Integral of the filter curve"""
+
+
+
     @utils.memoize
     def _get_filterwav(self):
         """ Try to find the central wavelength of the filter used for the image.
