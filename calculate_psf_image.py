@@ -32,22 +32,22 @@ def psf(args):
     #print "photometry: \n"
     photfile_name = args.input + ".mag.1"
     utils.if_exists_remove(photfile_name)
-    iraf.module.phot(args.input, output=photfile_name, coords=args.stars, 
+    iraf.phot(args.input, output=photfile_name, coords=args.stars,
                      wcsin=args.coords, fwhm=seeing, 
                      sigma=sigma, datamax=args.maxval, datamin=args.minval,
                      ccdread=args.ron_key, gain=args.gain_key, exposure=args.expt_key,
                      airmass=args.airm_key, annulus=6*seeing, dannulus=3*seeing, 
-                     apert=2*seeing, verbose="no", verify="no", interac="no")
+                     apert=3*seeing, verbose="no", verify="no", interac="no")
 
     # Select stars on the image                 
     #print "pstselect: \n"
     pstfile_name = args.input + ".pst.1"
     utils.if_exists_remove(pstfile_name)
-    iraf.module.pstselect(args.input, photfile=photfile_name, pstfile=pstfile_name,
+    iraf.pstselect(args.input, photfile=photfile_name, pstfile=pstfile_name,
                           maxnpsf=20, fwhm=seeing, sigma=sigma,
                        datamax=args.maxval, ccdread=args.ron_key, gain=args.gain_key,
                        exposure=args.expt_key,  function="auto", nclean=1, 
-                       psfrad=2*seeing, fitrad=seeing, maxnstar=20, verbose="no",
+                       psfrad=6*seeing, fitrad=3*seeing, maxnstar=20, verbose="no",
                        verify="no")
 
     # Build psf of the stars
@@ -56,13 +56,13 @@ def psf(args):
     psgfile_name = args.input + ".psg.1"
     pstfile_name2 = args.input + ".pst.2"   
     utils.if_exists_remove(psffile_table,psgfile_name, pstfile_name2)
-    iraf.module.psf( args.input, photfile=photfile_name, pstfile=pstfile_name,
+    iraf.psf( args.input, photfile=photfile_name, pstfile=pstfile_name,
                      groupfile=psgfile_name, opstfile=pstfile_name2,    
                      psfimage=psffile_table,fwhm=seeing, sigma=sigma, datamax=args.maxval, 
                      datamin=args.minval, ccdread=args.ron_key, gain=args.gain_key, 
                      exposure=args.expt_key, function="moffat25", nclean=1, 
-                     psfrad=12, fitrad=seeing, maxnstar=20, interactive="no",
-                     varorder=-1, verbose="no",verify="no")
+                     psfrad=6*seeing, fitrad=3*seeing, maxnstar=20, interactive="no",
+                     varorder=args.varorder, verbose="no",verify="no")
                      
     # Use seepsf to build the image of the psf
     psffile_name = args.input + ".psf.fits" 
@@ -117,6 +117,16 @@ parser.add_argument("--FWHM_key", metavar='seeing', dest='FWHM_key', action='sto
                     default='3.', help='Keyword/value of the seeing, depending ' +\
                    'on if the provided value is a string or a float. Default '+\
                    'value is four pixels. ' )
+parser.add_argument("--varorder", metavar='varorder', dest='varorder', action='store',
+                    default=-1, help=' From IRAF daopars: "The order of variability ' +
+                    'of the PSF model computed by the DAOPHOT PSF task." ' +\
+                   'Possible values: \n '
+                   '       -1: produce a single analytic model of the PSF constant over image '+\
+                   '        0: produce an analytic model and a lookup table, constant over image '+\
+                   '        1: analytic model and 3 lookup tables, model changes linearly over image '+\
+                   '        2: analycit model and 5 lookups, model changes quadratically over image ' +\
+                   ' Default: -1.')
+
 
 def main(arguments = None):
   # Pass arguments to variable args
@@ -129,3 +139,12 @@ def main(arguments = None):
      
 if __name__ == "__main__":
     main()
+
+
+
+"""
+
+
+
+
+"""

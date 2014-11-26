@@ -74,6 +74,8 @@ for obj in standards_set:
         if len(airmasses[0,columns]) > 0 and len(airmasses[0,columns]) > 2:
             ext_coeff, sigma_ext_coeff = calculate_extinction(airmasses[:, columns], magnitudes[:, columns])
             coefficient_list.append(ext_coeff)
+            plt.plot(airmasses[:, columns], magnitudes[:, columns], 'o')
+            plt.show()
             print "Extinction coefficient for ", obj, " for filter ", filt, ":", ext_coeff, "+/-", sigma_ext_coeff
         else:
             print "Not used ",  obj, " with filter " + filt + ". Too few elements."
@@ -109,7 +111,7 @@ for ii, im_name in enumerate(list_images["filename"]):
         ss = float(utils.get_from_header(im_name, skyk))
         utils.header_update_keyword(newname, skyk, ss/tt)
         ss_std = float(utils.get_from_header(im_name, sky_stdk))
-        utils.header_update_keyword(newname, skyk, ss_std/tt)
+        utils.header_update_keyword(newname, sky_stdk, ss_std/tt)
         list_images["filename"][ii] = newname
 
 
@@ -129,6 +131,12 @@ for ii, im_name in enumerate(list_images["filename"]):
         utils.header_update_keyword(newname, "k_coeff", ext_coeff, comment="Extinction coefficient")
         utils.header_update_keyword(newname, "k_err", sigma_ext_coeff, comment="Extinction coefficient 1-sigma")
         list_images["filename"][ii] = newname
+        sky, sky_std = utils.get_from_header(im_name, "sky", "sky_std")
+        utils.header_update_keyword(newname, "sky", sky * correcting_factor)
+        utils.header_update_keyword(newname, "sky_std", sky_std * correcting_factor)
+
+
+
 
 print "Calculate zero point from the standards"
 zp = defaultdict(list)
@@ -147,29 +155,30 @@ for im_name in list_images["filename"]:
         utils.header_update_keyword(im_name, "ZP", zp[filter][0], "AB magnitude zero point." )
         utils.header_update_keyword(im_name, "ZP_err", zp[filter][1], "Zero point 1-sigma. ")
 
+
 print "Combine images of same object and filter"
 iraf.images(_doprint=0)
 iraf.immatch(_doprint=0)
 
-keywords = dict(filterk=filterk, objectk=objectk, gaink=gaink, datek=datek, exptimek=exptimek,
-                fwhmk="seeing", airmassk=airmassk)
+# Dictionary that contains the images separated by object and filter
 objects_list = defaultdict(list)
-for obj in SciObj_set:
-    obj_images = list(list_images["filename"][np.where(list_images["objname"] == obj)])
+
+for target in set(list_images['objname']):
+    obj_images = list(list_images["filename"][list_images["objname"] == target])
     obj_filters = [utils.get_from_header(im_name, filterk) for im_name in obj_images]
     for filt in set(obj_filters):
         input_images = [im_name for im_name, im_filt in zip(obj_images, obj_filters) if im_filt == filt]
-        output_name = os.path.join(directory, obj + "_combined_" + filt + ".fits")
+        output_name = os.path.join(directory, target + "_combined_" + filt + ".fits")
         input_names = ",".join(input_images)
         utilities.if_exists_remove(output_name)
         iraf.imcombine(input_names, output=output_name, combine="median", offsets="wcs")
-        objects_list[obj].append(output_name)
+        objects_list[target].append(output_name)
 
-print objects_list
 
 print "Do photometry in combined images"
 for target in SciObj_set:
     target_images = objects_list[target]
+    print target_images
     output_db = os.path.join(directory, target+".db")
     utilities.if_exists_remove(output_db)
     photometry.main(arguments=["--maximum", str(max_counts), "--uik", "", "--margin", "20", "--gaink", gaink,
@@ -177,36 +186,39 @@ for target in SciObj_set:
                               "--filterk", filterk, "--datek", datek, "--expk", exptimek, "--fwhmk", seeingk, "--airmk", airmassk,
                                target_images[0]] + target_images + [output_db])
 
+
 print "Calculate scaling factors"
-scaling_factors = list()
+
+scale_factor = {}
+scale_MAD = {}
 for target in SciObj_set:
-    print "Current_object narrow and cont", objects_list[target]
+    scaling_factors = []
     if len(objects_list[target]) == 2: # both continuum and Halpha present
         input_db = os.path.join(directory, target+".db")
         airmasses, magnitudes, filters = extract.main(input_db)
-        scale_factor =  10 ** ( (np.array(magnitudes_Halpha) - np.array(magnitudes_rGunn)) / (-2.5))
-        scaling_factors = np.append(scaling_factors, scale_factor)
+        # Separate Halpha and rGunn magnitudes.
+        Ha_index, rGunn_index = 'H-alpha' in filters[0,1], 'Gunn' in filters[0,1]
+        magnitudes_Halpha, magnitudes_rGunn = magnitudes[:,Ha_index], magnitudes[:,rGunn_index]
+        sf =  10 ** ( (np.array(magnitudes_Halpha) - np.array(magnitudes_rGunn)) / (-2.5))
+        scaling_factors = np.append(scaling_factors, sf)
 
-scaling_factor = np.median(scaling_factors)
-print "Scaling factors: ", scaling_factors
-print "Magnitudes Halpha:", magnitudes_Halpha
-print "Magnitudes rGunn:", magnitudes_rGunn
+        scale_factor[target] = np.median(scaling_factors)
+        scale_MAD[target] = np.median( np.abs( scaling_factors - np.median(scaling_factors)) )
+        print "Scale factor for object", target, scale_factor[target]
 
 print "Scale continuum images using stars"
 for target in SciObj_set:
-    im_cont = [im for im in objects_list[target] if 'rgunn' in im.lower()][0]
-    newname = utils.add_suffix_prefix(im_cont, suffix="-scaled")
-    mssg = 'Scaled to Halpha image'
-    arith_images.main(arguments=["--output", newname, "--message", mssg, "--mask_key", "MASK", im_name, "*", scaling_factor])
-
-    
-
-
-
-
+    if target in scale_factor.keys():
+        im_cont = [im for im in objects_list[target] if 'rgunn' in im.lower()][0]
+        newname = utils.add_suffix_prefix(im_cont, suffix="-scaled")
+        mssg = 'Scaled to Halpha image'
+        arith_images.main(arguments=["--output", newname, "--message", mssg, im_cont, "*", str(scale_factor[target])])
+        sky, std_sky = utils.get_from_header(newname, "sky", "sky_std")
+        utils.header_update_keyword(newname, "sky", float(sky) * scale_factor[target] )
+        utils.header_update_keyword(newname, "sky_std", float(std_sky) * scale_factor[target])
 
 
-sys.exit()
+
 
 
 
