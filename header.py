@@ -34,12 +34,15 @@ class Header(object):
         DATE = ('DATE-OBS',),
         TIME = ('TIME-OBS',),
         GAIN = ('CCDSENS', 'GAIN' ),
+        RON = ('CCDRON'),
         AIRMASS = ('AIRMASS',),
         FILTER_WAVELENGTH = ('INSFLWL',),
         FILTER_WIDTH = ('INSFLDWL',),
         FILTER_ID = ('ALFLTID', 'FAFTLID', 'JAGID', 'INSFLID'),
         TELESCOPE = ('TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID'),
-        SEEING = ('SEEING', 'FWHM', 'LEMON FWHM')
+        SEEING = ('SEEING', 'FWHM', 'LEMON FWHM'),
+        SKY = ("SKY",),
+        SIGMA = ("SKY_STD", "SIGMA")
     )
 
     _TELESCOPES_ALIASES = dict( NOT = ['ALFOSC', 'NOT'],
@@ -153,3 +156,6 @@ _add_property('datek', 'DATE')
 _add_property('timek', 'TIME')
 _add_property('seeingk', 'SEEING')
 _add_property('gaink', 'GAIN')
+_add_property('skyk', 'SKY')
+_add_property('sigmak', 'SIGMA')
+_add_property('ccdronk', 'RON')
