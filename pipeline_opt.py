@@ -32,7 +32,8 @@ import repipy.cross_match as cross_match
 import repipy.estimate_seeing as estimate_seeing
 import astropy.io.fits as fits
 import dateutil.parser
-
+import warnings
+warnings.filterwarnings("ignore")
 
 if len(sys.argv) != 2:
     print sys.exit("Give me a campaign file.... See example in the routine "+\
