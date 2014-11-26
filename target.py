@@ -126,8 +126,8 @@ class Target(object):
             utilities.if_exists_remove(photfile_name)
             kwargs =  dict(output=photfile_name, coords=coords_file,
                       wcsin='world', fwhm=seeing, gain=self.header.gaink, exposure=self.header.exptimek,
-                      airmass=self.header.airmassk, annulus=6*seeing, dannulus=3*seeing,
-                      apert=2*seeing, verbose="no", verify="no", interac="no")
+                      airmass=self.header.airmassk, annulus=9*seeing, dannulus=3*seeing,
+                      apert=5*seeing, verbose="no", verify="no", interac="no")
             iraf.phot(self.header.im_name, **kwargs)
             [counts] = iraf.module.txdump(photfile_name, 'FLUX', 'yes', Stdout=subprocess.PIPE)
             utilities.if_exists_remove(coords_file)
