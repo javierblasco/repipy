@@ -11,11 +11,9 @@ import subprocess
 import pyraf.iraf as iraf
 import scipy.ndimage.filters as filters
 import dateutil.parser
-# Advice from Victor Terron in his "lemon setup.py" about how to run mkiraf 
-# automatically: 
-if os.path.isfile("login.cl") == False:
-    p = subprocess.Popen(['mkiraf'], stdin = subprocess.PIPE, stdout = subprocess.PIPE)
-    out, err = p.communicate(input = 'xgterm')
+from lemon import methods
+with methods.tmp_chdir(os.path.dirname(os.path.abspath(__file__))):
+    import pyraf.iraf as iraf
 import numpy as np
 import datetime
 import repipy.utilities as utilities
