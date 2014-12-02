@@ -20,7 +20,10 @@ import astropy.io.fits as fits
 import os
 import shutil
 import pickle
-import pyraf.iraf as iraf
+import subprocess
+from lemon import methods
+with methods.tmp_chdir(os.path.dirname(os.path.abspath(__file__))):
+    import pyraf.iraf as iraf
 from collections import defaultdict
 import warnings
 warnings.filterwarnings("ignore")
