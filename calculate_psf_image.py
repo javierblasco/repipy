@@ -36,8 +36,9 @@ def psf(args):
                      wcsin=args.coords, fwhm=seeing, 
                      sigma=sigma, datamax=args.maxval, datamin=args.minval,
                      ccdread=args.ron_key, gain=args.gain_key, exposure=args.expt_key,
-                     airmass=args.airm_key, annulus=6*seeing, dannulus=3*seeing, 
-                     apert=3*seeing, verbose="no", verify="no", interac="no")
+                     airmass=args.airm_key, annulus=36, dannulus=18,
+                     apert=18, verbose="no", verify="no", interac="no")
+
 
     # Select stars on the image                 
     #print "pstselect: \n"
@@ -47,7 +48,7 @@ def psf(args):
                           maxnpsf=20, fwhm=seeing, sigma=sigma,
                        datamax=args.maxval, ccdread=args.ron_key, gain=args.gain_key,
                        exposure=args.expt_key,  function="auto", nclean=1, 
-                       psfrad=6*seeing, fitrad=3*seeing, maxnstar=20, verbose="no",
+                       psfrad=36, fitrad=18, maxnstar=20, verbose="no",
                        verify="no")
 
     # Build psf of the stars
@@ -61,9 +62,9 @@ def psf(args):
                      psfimage=psffile_table,fwhm=seeing, sigma=sigma, datamax=args.maxval, 
                      datamin=args.minval, ccdread=args.ron_key, gain=args.gain_key, 
                      exposure=args.expt_key, function="moffat25", nclean=1, 
-                     psfrad=6*seeing, fitrad=3*seeing, maxnstar=20, interactive="no",
+                     psfrad=36, fitrad=18, maxnstar=20, interactive="no",
                      varorder=args.varorder, verbose="no",verify="no")
-                     
+
     # Use seepsf to build the image of the psf
     psffile_name = args.input + ".psf.fits" 
     utils.if_exists_remove(psffile_name)
