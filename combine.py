@@ -87,11 +87,9 @@ def combine(args):
     outdir, outfile = os.path.split(os.path.abspath(args.output))
     if outdir == "":
         outdir = "."
-
     utils.if_dir_not_exists_create(outdir)
 
     # Build a list of the filter of each image
-    #filter_list, images_filters = build_filter_list(args)
     images_filters = utils.collect_from_images(args.input, args.filterk)
 
     # If user wants all images to be combined together, regardless of filter:
@@ -112,7 +110,6 @@ def combine(args):
 
         # Calculate scale of images
         scales = compute_scales(list1, args.scale, args.mask_key)
-
 
         # Get the sizes of the images
         lx, ly = utils.get_from_header(list1[0], "NAXIS2", "NAXIS1")
