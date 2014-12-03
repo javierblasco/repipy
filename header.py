@@ -52,8 +52,14 @@ class Header(object):
 
     def __init__(self, image):
         self.im_name = image
-        self.hdr = fits.getheader(self.im_name)
-
+        # Some fits images will have more than one extension, the header beeing split between the 0 and the others
+        hdulist = fits.open(self.im_name)
+        if len(hdulist) == 1:
+            self.hdr = hdulist[0].header
+            self.ndetectors = 1
+        else:
+            self.hdr = hdulist[0].header + hdulist[1].header
+            self.ndetectors = utils.number_of_chips(hdulist)
 
     @property
     def telescope(self):
