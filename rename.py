@@ -177,9 +177,9 @@ def rename(args):
                   "objname":empty_array,
                   "time":empty_array}
 
-    # If --copy was selected, copy all those files into a directory called backup
+    # If --copy was selected, copy all those files into a directory called original_data
     if args.copy == True:
-        raw_dir = os.path.join(args.in_dir, "backup")
+        raw_dir = os.path.join(args.in_dir, "original_data")
         if os.path.isdir(raw_dir) == False:
             os.makedirs(raw_dir)
         for im in fits_list:
