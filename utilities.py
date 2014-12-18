@@ -1,13 +1,13 @@
  # -*- coding: utf-8 -*-
 """ List of functions to help in general life """
 
-import os, re
+import os
+import re
 import collections
 import datetime
 import pytz
 import sys
 import numpy as np
-from pyraf import iraf
 import datetime
 import astropy.io.fits as fits
 import astropy.units as u
@@ -15,10 +15,14 @@ import astropy.coordinates as coords
 from astropy.time import Time
 import dateutil.parser
 import shutil
-
-
 import functools
+from lemon import methods
 
+import repipy
+# Change to the directory where repipy is installed to load pyraf
+with methods.tmp_chdir(os.path.dirname(repipy.__path__)):
+    from pyraf import iraf
+    from iraf import astutils
 
 def number_of_chips(hdu_list):
     """ From an astropy fits object (i.e. an HDUList), find out how many chips form the image. INT has 4 chips per image,
@@ -198,12 +202,11 @@ def local_to_sidereal_time(date, time, observatory):
     year, month, day = date.split("-")
     hour, minute, second = time.split(":")   
     # iraf's routine asttimes needs the time in hours!      
-    time_hours = float(hour) + float(minute)/60. + float(second)/3600. 
-    iraf.module.load("astutil", doprint=0)
+    time_hours = float(hour) + float(minute)/60. + float(second)/3600.
     screen = sys.stdout
     sys.stdout = open("temporal.txt", "w")
-    iraf.module.asttimes(observatory=observatory, year=year, month=month, day=day, \
-                         time=time_hours)
+    iraf.asttimes(observatory=observatory, year=year, month=month, day=day, \
+                  time=time_hours)
     sys.stdout = screen
     for lines in open("temporal.txt"):
         if len(lines) > 2:
