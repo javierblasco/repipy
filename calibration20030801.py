@@ -22,8 +22,14 @@ import shutil
 import pickle
 import subprocess
 from lemon import methods
-with methods.tmp_chdir(os.path.dirname(os.path.abspath(__file__))):
-    import pyraf.iraf as iraf
+import repipy
+
+# Change to the directory where repipy is installed to load pyraf
+with methods.tmp_chdir(os.path.dirname(repipy.__path__)):
+    from pyraf import iraf
+    from iraf import images
+
+
 from collections import defaultdict
 import warnings
 warnings.filterwarnings("ignore")
@@ -160,8 +166,6 @@ for im_name in list_images["filename"]:
 
 
 print "Combine images of same object and filter"
-iraf.images(_doprint=0)
-iraf.immatch(_doprint=0)
 
 # Dictionary that contains the images separated by object and filter
 objects_list = defaultdict(list)

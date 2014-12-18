@@ -5,19 +5,21 @@ import tempfile
 import argparse
 import sys
 import os
+
+
 import lemon.methods as methods
+# Change to the directory where repipy is installed to load pyraf
 with methods.tmp_chdir(os.path.dirname(os.path.abspath(__file__))):
     import pyraf.iraf as iraf
+    from iraf import digiphot
+    from iraf import daophot
+
+
 import repipy.astroim as astroim
 import repipy.utilities as utils
 import warnings
 warnings.filterwarnings("ignore")
 
-
-
-iraf.noao(_doprint=0)
-iraf.digiphot(_doprint=0)
-iraf.module.daophot(_doprint=0)
 
 
 #fd, coords_file = tempfile.mkstemp(prefix=basename, suffix=".coords")

@@ -12,9 +12,17 @@ import scipy
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.integrate import simps
 from repipy import __path__ as repipy_path
-import pyraf.iraf as iraf
 import subprocess
 import tempfile
+
+from lemon import methods
+import repipy
+# Change to the directory where repipy is installed to load pyraf
+with methods.tmp_chdir(os.path.dirname(repipy.__path__)):
+    from pyraf import iraf
+    from iraf import digiphot
+    from iraf import daophot
+    from iraf import apphot
 
 
 
@@ -118,9 +126,6 @@ class Target(object):
         os.close(fd)
 
         if self.objtype == "standard":
-            iraf.noao(_doprint=0)
-            iraf.digiphot(_doprint=0)
-            iraf.apphot(_doprint=0)
             seeing = self.header.hdr[self.header.seeingk]
             photfile_name = self.header.im_name + ".mag.1"
             utilities.if_exists_remove(photfile_name)
@@ -129,7 +134,7 @@ class Target(object):
                       airmass=self.header.airmassk, annulus=9*seeing, dannulus=3*seeing,
                       apert=5*seeing, verbose="no", verify="no", interac="no")
             iraf.phot(self.header.im_name, **kwargs)
-            [counts] = iraf.module.txdump(photfile_name, 'FLUX', 'yes', Stdout=subprocess.PIPE)
+            [counts] = iraf.txdump(photfile_name, 'FLUX', 'yes', Stdout=subprocess.PIPE)
             utilities.if_exists_remove(coords_file)
             return float(counts)
 

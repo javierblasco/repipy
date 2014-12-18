@@ -22,7 +22,7 @@ import repipy
 # Change to the directory where repipy is installed to load pyraf
 with methods.tmp_chdir(os.path.dirname(repipy.__path__)):
     from pyraf import iraf
-    from iraf import astutils
+    from iraf import astutil
 
 def number_of_chips(hdu_list):
     """ From an astropy fits object (i.e. an HDUList), find out how many chips form the image. INT has 4 chips per image,

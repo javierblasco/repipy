@@ -6,13 +6,21 @@ import os
 import argparse
 import numpy
 from scipy.stats import mode as mode
-from pyraf import iraf
 import sys
 import astropy.io.fits as fits
 import collections
+import repipy
 import repipy.utilities as utils
 import repipy.arith as arith_images
 import repipy.find_keywords as find_keywords
+from lemon import methods
+
+# Change to the directory where repipy is installed to load pyraf
+with methods.tmp_chdir(os.path.dirname(repipy.__path__)):
+    from pyraf import iraf
+    from iraf import digiphot
+    from iraf import daophot
+
 
 
 
@@ -20,11 +28,6 @@ import repipy.find_keywords as find_keywords
 def psf(args):
     """ Calculate the PSF of an image.
     """
-    # Load iraf packages: phot, pstselect, psf will be needed
-    iraf.noao(_doprint=0)
-    iraf.digiphot(_doprint=0)
-    iraf.module.daophot(_doprint=0)
-    
     # Read the seeing and sigma of the sky from the header
     seeing, sigma = utils.get_from_header(args.input, args.FWHM_key, args.sigma)
     
@@ -68,8 +71,7 @@ def psf(args):
     # Use seepsf to build the image of the psf
     psffile_name = args.input + ".psf.fits" 
     utils.if_exists_remove(psffile_name)
-    iraf.module.seepsf(psffile_table, psffile_name)
-
+    iraf.seepsf(psffile_table, psffile_name)
      
     return psffile_name
 

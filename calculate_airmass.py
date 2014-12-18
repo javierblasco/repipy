@@ -4,8 +4,17 @@
 import astropy.io.fits as fits
 import sys
 import repipy.utilities as utils
-from pyraf import iraf
 import argparse
+import repipy
+from lemon import methods
+
+# Change to the directory where repipy is installed to load pyraf
+with methods.tmp_chdir(os.path.dirname(repipy.__path__)):
+    from pyraf import iraf
+    from iraf import astutil
+
+
+
 parser = argparse.ArgumentParser(description='Check header for airmass and '+\
                                 'include it if missing and possible. From the '+\
                                 'local time, sidereal time and universal time '+\
@@ -61,7 +70,6 @@ def estimate_airmass(args):
         im.close()
         
         # Finally, estimate airmass, including it in the header
-        iraf.module.load("astutil", doprint=0)
         iraf.module.setairmass(images=image, observa=args.observatory, ra=args.ra,\
                                 dec=args.dec, st=args.ST, ut=args.UT,\
                                 equinox=args.equinox)        

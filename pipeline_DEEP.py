@@ -11,10 +11,6 @@ They do not have comprehensible names, but are in sequence and contain raw data.
 
 import os, shutil, re, sys, glob
 import subprocess
-
-from lemon import methods
-with methods.tmp_chdir(os.path.dirname(os.path.abspath(__file__))):
-    import pyraf.iraf as iraf
 import numpy as np
 import datetime
 import repipy.utilities as utilities
@@ -31,6 +27,18 @@ import repipy.median_filter as median_filter
 import repipy.cross_match as cross_match
 import astropy.io.fits as fits
 import dateutil.parser
+
+from lemon import methods
+import repipy
+# Change to the directory where repipy is installed to load pyraf
+with methods.tmp_chdir(os.path.dirname(repipy.__path__)):
+    from pyraf import iraf
+    from iraf import digiphot
+    from iraf import daophot
+    from iraf import apphot
+
+
+
 
 if len(sys.argv) != 2:
     print sys.exit("Give me a campaign file....")
@@ -262,9 +270,6 @@ for index, image in enumerate(list_images["filename"]):
             os.remove(outfile)
         # Prepare and run daofind
         hdr = fits.getheader(image)
-        iraf.noao(_doprint=0)     # Load noao
-        iraf.digiphot(_doprint=0) # Load digiphot
-        iraf.apphot(_doprint=0)   # Load apphot        
         iraf.daofind.setParam('image',image)
         FWHM = min(max_FWHM,float(hdr["LEMON FWHM"]))
         iraf.daofind.setParam('fwhmpsf', FWHM)       

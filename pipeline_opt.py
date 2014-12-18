@@ -8,12 +8,9 @@ Created on Thu Oct  3 09:48:35 2013
 
 import os, shutil, re, sys, glob
 import subprocess
-import pyraf.iraf as iraf
 import scipy.ndimage.filters as filters
 import dateutil.parser
 from lemon import methods
-with methods.tmp_chdir(os.path.dirname(os.path.abspath(__file__))):
-    import pyraf.iraf as iraf
 import numpy as np
 import datetime
 import repipy.utilities as utilities
@@ -32,6 +29,17 @@ import astropy.io.fits as fits
 import dateutil.parser
 import warnings
 warnings.filterwarnings("ignore")
+
+from lemon import methods
+
+import repipy
+# Change to the directory where repipy is installed to load pyraf
+with methods.tmp_chdir(os.path.dirname(repipy.__path__)):
+    from pyraf import iraf
+    from iraf import digiphot
+    from iraf import daophot
+
+
 
 if len(sys.argv) != 2:
     print sys.exit("Give me a campaign file.... See example in the routine "+\
@@ -243,10 +251,7 @@ for index, im in enumerate(list_images["filename"]):
 #         coords_type = "world"   #world coordinate system
 #         photom_file = im + ".mag.1"
 #         utilities.if_exists_remove(photom_file)
-#         iraf.noao()
-#         iraf.digiphot()
-#         iraf.apphot()
-#         iraf.module.phot(im, coords=im_cat, fwhmpsf=seeing, sigma=sigma_sky,
+#         iraf.phot(im, coords=im_cat, fwhmpsf=seeing, sigma=sigma_sky,
 #                          datamin=-100, datamax=50000, ccdread=read_noisek,
 #                          gain=gaink, exposure=exptimek, airmass=airmassk,
 #                          filter=filterk, obstime=datek, maxshift=2,

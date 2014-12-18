@@ -15,12 +15,20 @@ Created on Mon Oct 28 23:14:24 2013
 """
 import repipy.utilities as utilities
 import numpy as np
-import pyraf.iraf as iraf
 import astropy.io.fits as fits  
 import argparse
 import sys
 from scipy import spatial 
 import astropy.wcs.wcs as wcs 
+
+from lemon import methods
+import repipy
+# Change to the directory where repipy is installed to load pyraf
+with methods.tmp_chdir(os.path.dirname(repipy.__path__)):
+    from pyraf import iraf
+    from iraf import obsutil
+    from iraf import daophot
+
 
 def calculate_seeing(args):
     """ Program to estimate the seeing from an image and a list of estimates
@@ -35,9 +43,7 @@ def calculate_seeing(args):
         q = open("q.txt", "w")
         q.write("q")
         q.close()
-        iraf.noao()
-        iraf.obsutil()
-        iraf.module.psfmeasure(im, coords = "mark1", size = "MFWHM", 
+        iraf.psfmeasure(im, coords = "mark1", size = "MFWHM",
                                sbuffer = 10, swidth=10,radius=10,
                                satura = 55000, ignore = "yes", 
                                imagecur = im_cat, display = "no", 

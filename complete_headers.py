@@ -3,11 +3,9 @@
 
 import argparse
 import sys
-import pyraf.iraf as iraf
 import astropy.io.fits as fits
 import urllib2
 from astropy import coordinates as coord
-
 
 """ This program includes in an image the missing keywords if the user gives some
 appropriate values, such as the observatory. """
