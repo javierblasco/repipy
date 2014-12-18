@@ -188,7 +188,7 @@ def mask(args):
 
         # Add message to image header
         header.add_history("- Created mask of image, see mask keyword")
-        header.update(args.mask_key, maskname, "Mask of original image")        
+        header[args.mask_key] = (maskname, "Mask of original image")
         im.flush()
         im.close()        
             
@@ -204,7 +204,7 @@ def main(arguments = None):
                str(args.false_val) + " Use --true_val and --false_val \n\n")
   
   # Default for --outside_val is the same as false_val
-  if args.outside_val == numpy.nan:
+  if args.outside_val is numpy.nan:
       args.outside_val = args.false_val
   
   
