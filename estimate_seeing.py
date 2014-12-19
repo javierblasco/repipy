@@ -24,7 +24,7 @@ import astropy.wcs.wcs as wcs
 from lemon import methods
 import repipy
 # Change to the directory where repipy is installed to load pyraf
-with methods.tmp_chdir(os.path.dirname(repipy.__path__)):
+with methods.tmp_chdir(repipy.__path__[0]):
     from pyraf import iraf
     from iraf import obsutil
     from iraf import daophot
