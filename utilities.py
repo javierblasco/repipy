@@ -49,6 +49,20 @@ def collect_from_images(image_list, keyword):
     except KeyError:
         sys.exit("Keyword %s does not exist in image %s" % (keyword, im))
 
+def remove_WCS(header):
+    """ Wipe any sign of a WCS in a header object """
+    hdr = header.copy()  # To avoid modifying the original header 
+    wcs_keywords = ["wcsaxes", "ctype1", "ctype2", "equinox", "lonpole", 
+              "latpole", "crval1", "crval2", "crpix1", "crpix2", 
+              "cunit1", "cunit2", "cd1_1", "cd1_2", "cd2_1", "cd2_2", 
+              "PC001001", "PC001002", "PC002001", "PC002002"]
+    for keyword in wcs_keywords:
+        try:
+            hdr.remove(keyword)
+        except:
+            pass
+    return hdr
+
 def update_WCS(image_without_wcs, image_with_wcs):
     """ Export the WCS information from an image to another one, by updating 
         certain keywords in the header of the target image"""
