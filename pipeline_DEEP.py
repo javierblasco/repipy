@@ -177,8 +177,7 @@ for time, image in master_blanks.items():
     corrected = arith.main(arguments=["--suffix", " -sf", "--message",
                                              "REMOVE SMALL SCALE STRUCTURE",
                                              "--mask_key", "mask"]+
-                                             image + ["/"] + 
-                                             master_skyflats.values()[closest])
+                                             image + ["/", master_skyflats.values()[closest]])
     smoothed = median_filter.main(arguments= corrected + [ "--mask_key", "mask",
         "--radius", "150"])
     master_blanks[time] = smoothed
@@ -194,8 +193,7 @@ for index in range(len(list_images["filename"])):
     closest = np.argmin(abs(time_diff))
     corrected = arith.main(arguments=["--suffix", " -sf", "--message",
                                              "REMOVE SMALL SCALE STRUCTURE",
-                                             image] + ["/"] + 
-                                             master_skyflats.values()[closest])
+                                             image] + ["/", master_skyflats.values()[closest]])
 
     # Now the large scale using the blanks
     time_diff = np.asarray(master_blanks.keys()) - time 
