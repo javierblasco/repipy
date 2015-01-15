@@ -178,8 +178,7 @@ for time, image in master_blanks.items():
                                              "REMOVE SMALL SCALE STRUCTURE",
                                              "--mask_key", "mask"]+
                                              image + ["/", master_skyflats.values()[closest]])
-    smoothed = median_filter.main(arguments= corrected + [ "--mask_key", "mask",
-        "--radius", "150"])
+    smoothed = median_filter.main(arguments= [corrected , "--mask_key", "mask", "--radius", "150"])
     master_blanks[time] = smoothed
 
 # Now we will correct each image with the closest sky flat field (for small
@@ -199,10 +198,14 @@ for index in range(len(list_images["filename"])):
     time_diff = np.asarray(master_blanks.keys()) - time 
     closest = np.argmin(abs(time_diff))
     corrected = arith.main(arguments=["--suffix", " -bf", "--message",
-                                             "REMOVE LARGE SCALE STRUCTURE"] +
-                                             corrected + ["/"] + 
+                                             "REMOVE LARGE SCALE STRUCTURE",
+                                             corrected, "/"] + 
                                              master_blanks.values()[closest])
     list_images["filename"][index] = corrected[0]
+    with open(lista_imagenes.json) as fd:
+        json.dump(list_images, fd, indent=2)
+
+sys.exit()
     
 #print "Removing cosmic rays from images"
 #cosmic_dict = cosmic_removal_param(telescope)  # Read the parameters (gain,readout noise)
@@ -228,8 +231,6 @@ for index, image in enumerate(list_images["filename"]):
                          str(DEC), "--radius", str(FoV), "--depth", "100,250", 
                          "--solved", "solved.txt", np.str(image)]) 
 
-
-sys.exit()
 
 print "Estimate seeing from images"
 for index, image in enumerate(list_images["filename"]):
