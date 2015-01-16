@@ -202,8 +202,6 @@ for index in range(len(list_images["filename"])):
                                              corrected, "/"] + 
                                              master_blanks.values()[closest])
     list_images["filename"][index] = corrected[0]
-    with open(lista_imagenes.json) as fd:
-        json.dump(list_images, fd, indent=2)
 
 sys.exit()
     
