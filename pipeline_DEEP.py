@@ -106,7 +106,7 @@ print "Combining bias images"
 whr = np.where(list_images["type"] == "bias")
 bias_images = list(list_images["filename"][whr])
 superbias = combine_images.main(arguments=["--average", "median", 
-                                           "--all_together", "--output", "superbias.fits",
+                                           "--all_together", "--output", os.path.join(directory, "superbias.fits"),
                                            "--mask_key", "mask", "--filterk", filterk] + bias_images[:])    
 
 # Subtract bias from all images.  
@@ -129,7 +129,7 @@ for ii in range(len(block_limits)-1):
                                     [block_limits[ii]:block_limits[ii+1]] )
     skyflat = combine_images.main(arguments=["--average", "median", "--norm",
                                            "--scale", "median",
-                                           "--output", "masterskyflat{0}".format(ii) + ".fits", 
+                                           "--output", os.path.join(directory, "masterskyflat{0}".format(ii) + ".fits"), 
                                            "--mask_key", "mask", "--filterk", filterk] + list(block)[:])    
     master_skyflats[time_block] = skyflat.values()
 
@@ -162,7 +162,7 @@ for ii in range(len(block_limits)-1):
                                     [block_limits[ii]:block_limits[ii+1]] )
     blank = combine_images.main(arguments=["--average", "median", "--norm",
                                            "--scale", "median", "--mask_key",
-                                           "mask", "--output", "masterblank{0}".format(ii) + ".fits", 
+                                           "mask", "--output", os.path.join(directory, "masterblank{0}".format(ii) + ".fits"), 
                                            "--nmin", "2", "--filterk", filterk] + list(block)[:])    
     master_blanks[time_block] = blank.values()
 
