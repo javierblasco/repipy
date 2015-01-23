@@ -27,7 +27,7 @@ import repipy
 with methods.tmp_chdir(repipy.__path__[0]):
     from pyraf import iraf
     from iraf import obsutil
-    from iraf import daophot
+    from iraf import digiphot, apphot, daophot
 
 
 def calculate_seeing(args):
@@ -96,7 +96,7 @@ def calculate_seeing(args):
         if xout.size > 1:
             tree_out = spatial.KDTree(zip(xout, yout))
         elif xout.size == 1:
-            tree_out = spatial.KDTree([(float(xout), float(yout))]) 
+            tree_out = spatial.KDTree([(float(xout), float(yout))])
         # If WCS use 0.001 degree (~3.6 arcsec) as limit. If not, assume 
         # pixels and say 4 pixels
         if args.wcs == "world":
