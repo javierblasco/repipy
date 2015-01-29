@@ -34,8 +34,9 @@ def sex2deg(RA, DEC):
         dd, mm, ss = DEC.split(":")
         DEC = (dd + mm / 60. + ss / 3600.)
     except ValueError, AttributeError:
+        pass
     return RA, DEC
-pass
+
 
 def number_of_chips(hdu_list):
     """ From an astropy fits object (i.e. an HDUList), find out how many chips form the image. INT has 4 chips per image,
