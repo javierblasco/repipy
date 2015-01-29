@@ -24,6 +24,19 @@ with methods.tmp_chdir(repipy.__path__[0]):
     from pyraf import iraf
     from iraf import astutil
 
+def sex2deg(RA, DEC):
+    try:
+        hh, mm, ss = RA.split(":")
+        RA = (hh + mm / 60. + ss / 3600.) * 15
+    except ValueError, AttributeError:
+        pass
+    try:
+        dd, mm, ss = DEC.split(":")
+        DEC = (dd + mm / 60. + ss / 3600.)
+    except ValueError, AttributeError:
+    return RA, DEC
+pass
+
 def number_of_chips(hdu_list):
     """ From an astropy fits object (i.e. an HDUList), find out how many chips form the image. INT has 4 chips per image,
         VST 32."""
