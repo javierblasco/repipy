@@ -27,12 +27,12 @@ with methods.tmp_chdir(repipy.__path__[0]):
 def sex2deg(RA, DEC):
     try:
         hh, mm, ss = RA.split(":")
-        RA = (hh + mm / 60. + ss / 3600.) * 15
+        RA = (float(hh) + float(mm) / 60. + float(ss) / 3600.) * 15
     except ValueError, AttributeError:
         pass
     try:
         dd, mm, ss = DEC.split(":")
-        DEC = (dd + mm / 60. + ss / 3600.)
+        DEC = (float(dd) + float(mm) / 60. + float(ss) / 3600.)
     except ValueError, AttributeError:
         pass
     return RA, DEC
