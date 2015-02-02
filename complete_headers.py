@@ -12,7 +12,7 @@ appropriate values, such as the observatory. """
 
 parser = argparse.ArgumentParser(description='Check header and include missing' +\
                                  'keywords if possible.')
-parser.add_argument("input", metavar='input', action='store', nargs=1,  \
+parser.add_argument("input", metavar='input', action='store', nargs="+",  \
                     help='Image for which certain parameters will be checked.')                             
 parser.add_argument("--object", metavar="object", action="store", dest='object', \
                     default='', help='Name of the object. This will be used to'+\
@@ -60,14 +60,14 @@ def add_obs_position(hdr,args):
     if args.timezone != "":
         timezone = args.timezone
     # Add to header:
-    hdr.update("longit", longitude, "Longitude of observatory (degree)")
-    hdr.update("latit", latitude, "Latitude of observatory (degree)")
-    hdr.update("altit", altitude, "Altitude of observatory (meters)")
-    hdr.update("timezone", timezone, "Time zone of observatory (>0 if West)")        
+    hdr["longit"] = (longitude, "Longitude of observatory (degree)")
+    hdr["latit"]  = (latitude, "Latitude of observatory (degree)")
+    hdr["altit"]  = (altitude, "Altitude of observatory (meters)")
+    hdr["timezone"] = (timezone, "Time zone of observatory (>0 if West)")        
     return hdr
 
 def add_obj_coordinates(hdr, object_name, args):
-    RA_hours = DEC = redshift = equinox = ""
+    RA = RA_hours = DEC = redshift = equinox = ""
 
     # Standard star he 3 is not found in NED
     if object_name[:] == "he3":
@@ -81,8 +81,8 @@ def add_obj_coordinates(hdr, object_name, args):
         result = query.readlines()
         last_line = result[-1].split()
         RA = last_line[3]
-        RA_hours = RA * 24/360.         
-        DEC = last_line[4]
+        RA_hours = float(RA) * 24/360.         
+        DEC = float(last_line[4])
         equinox = "2000"
         redshift = last_line[7]             
     except:
@@ -122,15 +122,17 @@ def add_obj_coordinates(hdr, object_name, args):
                 DEC = float(DEC[0]) + float(DEC[1])/60. + float(DEC[2])/3600.
             RA_hours = str(RA_hours)
             DEC = str(DEC)
-            print "Not found in NED or Sesame:", object_name, RA_hours, DEC
+            print "\n Not found in NED or Sesame: ", object_name, RA_hours, DEC
                     
     # Write results, whatever you have found.     
-    hdr.update("object", object_name, "Name of the object")
-    hdr.update("RA_hours", RA_hours, "RA of the object (hours)")
-    hdr.update("DEC_deg", DEC, "DEC of the object (degrees)")
-    hdr.update("equinox", equinox, "equinox of coordinates")
+    hdr["object"] = (object_name, "Name of the object")
+    hdr["RA"] = (RA, "Right Ascension")
+    hdr["DEC"] = (DEC, "Declination ")
+    hdr["RA_hours"] = (RA_hours, "RA of the object (hours)")
+    hdr["DEC_deg"] = (DEC, "DEC of the object (degrees)")
+    hdr["equinox"] = (equinox, "equinox of coordinates")
     if redshift != "":
-        hdr.update("redshift", redshift, "Redshift of the object")  
+        hdr["redshift"] = (redshift, "Redshift of the object")  
     return hdr        
     
     
@@ -138,48 +140,54 @@ def add_obj_coordinates(hdr, object_name, args):
 def complete_headers(args):
     """ For each image check for all the necessary keywords, when possible
     add those not present """
-    # Open image and read header in update mode so that we can include keywords. 
-    im = fits.open(args.input[0], mode="update")
-    hdr = im[0].header
-    manipulated_keywords = ""    
-    
-    # Add the name of the image for future reference
-    hdr.update("org_name", args.input[0], "Name of original image")
 
-    # Add observatory keyword
-    if args.observatory != "":
-        hdr.update("observat", args.observatory, "Name of the observatory")
-        manipulated_keywords += "Observatory name"        
-    
-    # Add position (long, lat, alt, timezone) of the observatory     
-    if args.observatory != "" or args.longitude != "" or args.latitude != "" or \
-       args.altitude != "" or args.timezone != "":
-           hdr = add_obs_position(hdr, args)
-           manipulated_keywords += ", observatory information" 
+
+    for im_name in args.input:
+        # Open image and read header in update mode so that we can include keywords. 
+        im = fits.open(im_name, mode="update")
+        hdr = im[0].header
+        manipulated_keywords = ""    
+            
+        # Add the name of the image for future reference
+        hdr["org_name"] = (im_name, "Name of original image")
+        
+        # Add observatory keyword
+        if args.observatory:
+            hdr["observat"] = (args.observatory, "Name of the observatory")
+            manipulated_keywords += "Observatory name"        
+            
+        # Add position (long, lat, alt, timezone) of the observatory     
+        if args.observatory or (args.longitude and args.latitude and args.altitude\
+                      and args.timezone != ""):
+               hdr = add_obs_position(hdr, args)
+               manipulated_keywords += ", observatory information" 
            
-    # Now, if args.name exist or it is in the header, use it to calculate
-    # the coordinates. 
-    if args.object != "":
-        hdr = add_obj_coordinates(hdr,args.object, args)
-        manipulated_keywords += ", object coordinates"
-    elif hdr.has_key("object") and hdr["object"].replace(" ","") != "": 
-        hdr = add_obj_coordinates(hdr, hdr["object"], args)       
-        manipulated_keywords += ", object coordinates"     
-    if hdr.has_key("RA_hours") == False:  # Coordinates not added, not found?
-        print "Problem: coordinates for file " + args.input[0] + " not found!"
+        # Now, if args.name exist or it is in the header, use it to calculate
+        # the coordinates. 
+        if args.object:
+            hdr = add_obj_coordinates(hdr,args.object, args)
+            manipulated_keywords += ", object coordinates"
+        elif hdr.get("object") and hdr["object"].replace(" ",""): 
+            hdr = add_obj_coordinates(hdr, hdr["object"], args)       
+            manipulated_keywords += ", object coordinates"     
+        if not hdr.get("RA_hours"):  # Coordinates not added, not found?
+            print "Coordinates for file " + im_name + " not found!"
     
-    # Add history comments to record changes
-    history = str(hdr.get_history())
-    if history.count(manipulated_keywords) != 0 :
-        hdr.add_history("HEADER UPDATED:")
-        hdr.add_history(" -Updated: " + manipulated_keywords)
-    im.flush()
-    im.close()
+        # Add history comments to record changes
+        if manipulated_keywords:
+            hdr.add_history("HEADER UPDATED:")
+            hdr.add_history(" -Updated: " + manipulated_keywords)
+        im.flush()
+        im.close()
 
 def main(arguments=None):
     if arguments == None:
         arguments = sys.argv[1:]
-    args = parser.parse_args(arguments)   
+    args = parser.parse_args(arguments)
+
+    import pickle 
+    with open("args.pickle", 'w') as fd:
+        pickle.dump(args, fd)  
     complete_headers(args)
 
 if __name__ == "__main__":
