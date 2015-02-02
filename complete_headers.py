@@ -8,7 +8,7 @@ import urllib2
 from astropy import coordinates as coord
 
 """ This program includes in an image the missing keywords if the user gives some
-appropriate values, such as the observatory. """
+appropriate values, such as the observatory, the filter or the object name. """
 
 parser = argparse.ArgumentParser(description='Check header and include missing' +\
                                  'keywords if possible.')
@@ -20,6 +20,9 @@ parser.add_argument("--object", metavar="object", action="store", dest='object',
 parser.add_argument("--observatory", metavar='observatory', action='store', \
                     dest='observatory', default='', help=" Observatory from "+\
                     "which the data come. E.g. 'OSN', 'ORM', ...")
+parser.add_argument("--filter", metavar='filter', action='store', \
+                    dest='filter', default='', help=" Filter of the images "+\
+                    "E.g. 'Halpha', 'rGunn', ...")
 parser.add_argument("--longitude", metavar="longitude", action='store', default='', \
                     dest="longitude", help=" Longitude of the observatory (in "+\
                     " degrees). ")                    
@@ -38,6 +41,8 @@ parser.add_argument("--RA_keyword", metavar='RA_keyword', action='store', \
 parser.add_argument("--DEC_keyword", metavar='DEC_keyword', action='store', \
                     dest='DEC_keyword', default='', help=" Keyword to access DEC "+\
                     "in the header if present.")
+
+
 
 def observatory_position(observatory):
     longitude = latitude = altitude = timezone = ''
@@ -156,6 +161,10 @@ def complete_headers(args):
             hdr["observat"] = (args.observatory, "Name of the observatory")
             manipulated_keywords += "Observatory name"        
             
+        # Add filter
+        if args.filter:
+            hdr["filter"] = args.filter
+
         # Add position (long, lat, alt, timezone) of the observatory     
         if args.observatory or (args.longitude and args.latitude and args.altitude\
                       and args.timezone != ""):
