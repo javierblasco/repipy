@@ -41,6 +41,9 @@ parser.add_argument("--RA_keyword", metavar='RA_keyword', action='store', \
 parser.add_argument("--DEC_keyword", metavar='DEC_keyword', action='store', \
                     dest='DEC_keyword', default='', help=" Keyword to access DEC "+\
                     "in the header if present.")
+parser.add_argument("--collapse", action='store_true', \
+                    dest='collapse', default=False, help=" Some images from OSN "+\
+                    "have 3 axes, (lx, ly, 1). Collapse into a 2D image.")
 
 
 
@@ -96,11 +99,11 @@ def add_obj_coordinates(hdr, object_name, args):
     # If still no RA_obj is found, try finding them on Sesame
     if RA_hours == "":
         try:
-            c = coord.ICRSCoordinates.from_name(object_name)
-            RA_hours = c.ra.hours
-            DEC = c.dec.degrees
-            equinox = c.equinox.jyear_str[1:]
-        except:
+            c = coord.get_icrs_coordinates(object_name)
+            RA_hours = c.fk5.ra.hourangle
+            DEC = c.fk5.dec.degree
+            equinox = c.fk5.equinox.jyear_str[1:]
+        except coord.name_resolve.NameResolveError:
             pass
 
     # Maybe there is a RA, DEC in the header?
@@ -181,7 +184,16 @@ def complete_headers(args):
             manipulated_keywords += ", object coordinates"     
         if not hdr.get("RA_hours"):  # Coordinates not added, not found?
             print "Coordinates for file " + im_name + " not found!"
-    
+        
+        # If coollapse is set, collapse a cube (with one of the dimensions equal to 1)
+        # into a 2D image
+        if args.collapse:
+            im_shape = im[0].data.shape
+            if len(im_shape) == 3:
+                im[0].data = im[0].data.reshape([elem for elem in im_shape if elem != 1])
+
+
+
         # Add history comments to record changes
         if manipulated_keywords:
             hdr.add_history("HEADER UPDATED:")
