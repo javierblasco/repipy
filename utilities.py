@@ -317,7 +317,7 @@ def locate_images(directory, pattern):
     for dd, ss, ff in os.walk(directory):
         for filename in ff:
             for key in pattern.keys():
-                if re.search(pattern[key], filename) != None:
+                if re.search(pattern[key], filename, re.I) != None:
                     list_files[key].append(os.path.join(dd, filename))
     return list_files
         
