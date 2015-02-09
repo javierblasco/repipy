@@ -317,7 +317,7 @@ def locate_images(directory, pattern):
     for dd, ss, ff in os.walk(directory):
         for filename in ff:
             for key in pattern.keys():
-                if re.search(pattern[key], filename, re.I) != None:
+                if re.search(pattern[key], filename, re.I):
                     list_files[key].append(os.path.join(dd, filename))
     return list_files
         
@@ -338,8 +338,9 @@ def locate_images2(directory, pattern):
                    }
     for dd, ss, ff in os.walk(directory):
         for filename in ff:
+            print "Checking if image {0} follows a pattern".format(filename)
             for key in pattern.keys():
-                if re.match(pattern[key], filename) != None:
+                if re.match(pattern[key], filename):
                     match = re.search(pattern[key], filename)
                     match = match.groupdict()
                     # Find the name of the object 
