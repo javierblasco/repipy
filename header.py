@@ -45,9 +45,10 @@ class Header(object):
         SIGMA = ("SKY_STD", "SIGMA")
     )
 
-    _TELESCOPES_ALIASES = dict( NOT = ['ALFOSC', 'NOT'],
-                               CAHA = ['DSAZ', 'CAFOS', 'CA-2.2', 'CAHA']
-    )
+    _TELESCOPES_ALIASES =  { 'NOT' : ['ALFOSC', 'NOT'],
+                             'CAHA' : ['DSAZ', 'CAFOS', 'CA-2.2', 'CAHA'],
+                             'OSN' : ['OSN', 'OSN 1.5m']
+    }
 
 
     def __init__(self, image):
