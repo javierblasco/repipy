@@ -76,3 +76,10 @@ class Filter(object):
         wavelength = self.header._get_value(self.header._KEYWORDS_ALIASES['FILTER_WAVELENGTH'])
         width = self.header._get_value(self.header._KEYWORDS_ALIASES['FILTER_WIDTH'])
         return wavelength, width
+
+    @utils.memoize
+    def _get_filterID(self):
+        """ Try to find the ID of the filter used in the image.
+
+        """
+        return self.header._get_value(self.header._KEYWORDS_ALIASES['FILTER_ID'])
