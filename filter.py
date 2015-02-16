@@ -23,7 +23,8 @@ class Filter(object):
         if self.header.telescope.lower() == "caha":
             return self.header.telescope.lower() + "_" + str(self.filter_wavelength) + "." + str(self.filter_width)
         else:
-            return self.header.telescope.lower() + "_" + str(self._get_filterID())
+            if self.header.telescope and self._get_filterID():
+                return self.header.telescope.lower() + "_" + str(self._get_filterID())
 
     @property
     def filter_wavelength(self):
