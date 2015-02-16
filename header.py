@@ -77,7 +77,9 @@ class Header(object):
 
          Since every observatory, telescope and/or instrument has different keywords, we need to go into some effort
          to do this search. The information of the telescope could be hidden in any/all/none of the keywords under the
-         INSTRUMENT_TELESCOPE key of the dictionary _KEYWORDS_ALIASES above.
+         TELESCOPE key of the dictionary _KEYWORDS_ALIASES above. And the value could be any of a long list of aliases
+         such as putting the instrument instead of the telescope in the keyword 'TELESCOP' (sigh). Thus the selection 
+         of aliases used. 
 
         """
 
