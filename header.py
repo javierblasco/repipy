@@ -114,20 +114,13 @@ class Header(object):
     def find_in_header(self, list_keywords, dict_patterns):
         """ Find the keyword in which elements from both lists coincide.
 
-        list_keywords is a list of keywords you might expect in normal headers, list(['keyword1', 'keyword2']).
-        dict_patterns is something of the sort dict( name_a = [a1, a2, a3], name_b = [b1, b2]).
-        What we want is to search for all the aliases of all the items of the dictionary within the elements in the
-        header under the keywords of list_targets. In our example, we want to check  a1, a2, a3, b1, b2 agains the list
-        formed by header[keyword1], header[keyword2]. If a match is found, say, between the alias b2 and the content of
-        keyword keyword1, we want to return both keyword1 and the key name_b
-
         """
 
         k, p = None, None
         dict_targets = {key: self.hdr.get(key) for key in list_keywords}
         for pattern_key, pattern_value in dict_patterns.iteritems():
             for target_key, target_value in dict_targets.iteritems():
-                if any( ii in target_value for ii in pattern_value ):
+                if target_value in pattern_value:
                     k, p =  target_key, pattern_key
         return k, p
 
