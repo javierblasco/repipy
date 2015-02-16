@@ -1,0 +1,16 @@
+import urllib2
+
+for ii in range(1, 303):  # range of filters in NOT webpage
+    filename = str(ii) + ".txt"
+    file_out = "not_" + str(ii)
+    try:
+        response = urllib2.urlopen('http://www.not.iac.es/instruments/filters/curves-ascii/' + filename)
+        html = response.read()
+        with open(file_out, 'w') as current_file:
+            if html:
+                for line in html.splitlines() :
+                    current_file.write( line + "\n" )
+    except:
+        pass
+
+
