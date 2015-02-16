@@ -340,8 +340,8 @@ def locate_images2(directory, pattern):
         for filename in ff:
             print "Checking if image {0} follows a pattern".format(filename)
             for key in pattern.keys():
-                if re.match(pattern[key], filename):
-                    match = re.search(pattern[key], filename)
+                if re.match(pattern[key], filename, re.I):
+                    match = re.search(pattern[key], filename, re.I)
                     match = match.groupdict()
                     # Find the name of the object 
                     if key == "cig": 
