@@ -46,11 +46,12 @@ if len(sys.argv) != 2:
                    "packages")
 execfile(sys.argv[1])
 
-print "Rename files"
-list_images = rename.main(arguments=["--copy", "--objectk", objectk,\
-                                     "--filterk", filterk, "--datek", datek,\
-                                     "--overwrite", "--exptime", exptimek,\
-                                     directory])
+if not os.path.exists( os.path.join(directory, 'cig') ):
+    print "Rename files"
+    list_images = rename.main(arguments=["--copy", "--objectk", objectk,\
+                                         "--filterk", filterk, "--datek", datek,\
+                                         "--overwrite", "--exptime", exptimek,\
+                                         directory])
 
 print "List of files after rename in list_files.txt"
 # Strip the path from the filenames and calculate the longest of them
