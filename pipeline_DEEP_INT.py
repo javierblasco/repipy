@@ -81,11 +81,20 @@ def cosmic_removal_param(telescope = ''):
 ################################################################################
 
 ## Change names of the files to a more comprehensive structure of names. 
+<<<<<<< HEAD
 print "> Changing names of fits files"
 list_images = rename.main(arguments=["--copy", "--objectk", objectk,\
                                      "--filterk", filterk, "--datek", datek,\
                                      "--overwrite", "--exptime", exptimek,\
                                      directory])    
+=======
+if not os.path.exists( os.path.join(directory, "cig"):
+    print "> Changing names of fits files" 
+    list_images = rename.main(arguments=["--copy", "--objectk", objectk,\
+                                         "--filterk", filterk, "--datek", datek,\
+                                         "--overwrite", "--exptime", exptimek,\
+                                         directory])    
+>>>>>>> javi/master
 #
 #
 ### Remove images in list remove_images.
@@ -292,4 +301,8 @@ for index, im in enumerate(list_images["filename"]):
             list_images["filename"][index] = newname
 
 
+<<<<<<< HEAD
 sys.exit("* * * * * * Reduction finished * * * * * *")
+=======
+sys.exit("* * * * * * Reduction finished * * * * * *")
+>>>>>>> javi/master

@@ -78,12 +78,14 @@ def cosmic_removal_param(telescope = ''):
 ################################################################################
 ################################################################################
 
+
 # Change names of the files to a more comprehensive structure of names. 
-print "Changing names of fits files"
-list_images = rename.main(arguments=["--copy", "--objectk", objectk,\
-                                     "--filterk", filterk, "--datek", datek,\
-                                     "--overwrite", "--exptime", exptimek,\
-                                     directory])    
+if not os.path.exists( os.path.join(directory, "cig"):
+    print "Changing names of fits files"
+    list_images = rename.main(arguments=["--copy", "--objectk", objectk,\
+                                         "--filterk", filterk, "--datek", datek,\
+                                         "--overwrite", "--exptime", exptimek,\
+                                         directory])    
 
 # Remove images in list remove_images.
 print "Removing images as selected by user, if any."

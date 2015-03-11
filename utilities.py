@@ -338,15 +338,28 @@ def locate_images2(directory, pattern):
                    }
     for dd, ss, ff in os.walk(directory):
         for filename in ff:
-            print "Checking if image {0} follows a pattern".format(filename)
+            #print "Checking if image {0} follows a pattern".format(filename)
             for key in pattern.keys():
                 if re.match(pattern[key], filename, re.I):
+                    #print "It does!"
                     match = re.search(pattern[key], filename, re.I)
                     match = match.groupdict()
                     # Find the name of the object 
                     if key == "cig": 
                         name = "cig" + str(format(int(match["cig_num"]), "04d"))
+                    elif key == "bias":
+                        name = "bias"
                     elif key == "standards":
+                        name = match["name"]
+                    elif key == "skyflats":
+                        name = "skyflat"
+                    elif key == "domeflats":
+                        name = "domeflat"
+                    elif key == "blanks":
+                        name = "blank"
+                    elif key == "flats":
+                        name = "flat"
+                    elif key == "clusters":
                         name = match["name"]
                     else:
                         name = key
