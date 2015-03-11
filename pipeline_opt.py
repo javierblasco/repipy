@@ -82,17 +82,6 @@ else:
                                          "--overwrite", "--exptime", exptimek,\
                                          directory])
 
-print "List of files after rename in list_files.txt"
-# Strip the path from the filenames and calculate the longest of them
-file_list = [os.path.split(name)[1] for name in list_images["filename"]]
-longest_name = max([len(name) for name in file_list])
-output_log = os.path.join(directory, "list_files.txt")
-f = open(output_log, "w")
-for nn, tt in zip(file_list, list_images["time"]):
-    nn = nn + " " * (longest_name - len(nn))  # use spaces for padding
-    f.write("{}     {}\n".format(nn, tt.isoformat()))
-f.close()    
-
 print "Include homogeneous filter names into the filter keyword"
 for im in list_images["filename"]:
     imfilt = utilities.get_from_header(im, filterk)
