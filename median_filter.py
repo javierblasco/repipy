@@ -11,7 +11,7 @@ import sys
 import argparse
 import repipy.utilities as utils
 import astropy.io.fits as fits
-import skimage.filter
+import skimage.filters
           
 def filter_image(args):
     """ Routine that uses a median filter on a list of masked images. """
@@ -23,7 +23,7 @@ def filter_image(args):
         
         # skimage uses masks where 1 means valid and 0 invalid
         mask = (im.mask + 1) % 2
-        filt_im = skimage.filter.median_filter(im.data, mask=mask, radius=args.radius)
+        filt_im = skimages.filter.median_filter(im.data, mask=mask, radius=args.radius)
         
         # Make name of file if not given
         if args.output == "":
