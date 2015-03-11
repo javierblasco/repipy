@@ -46,7 +46,36 @@ if len(sys.argv) != 2:
                    "packages")
 execfile(sys.argv[1])
 
-if not os.path.exists( os.path.join(directory, 'cig') ):
+
+def search_images(dir="."):
+    """ Given the patterns for the CIGs, cluster and standard images that we
+    need, read them and sort them into a dictionary"""
+    in_pattern = {}
+    in_pattern["bias"] = "^bias_(?P<date>\d{8})_(?P<exp_num>\d{3}).fits$"
+    in_pattern["skyflats"] = "^skyflat_(?P<date>\d{8})_" +\
+                        "(?P<filt>.*)_(?P<exp_num>\d{3}).fits$"
+    in_pattern["flats"] = "^flat_(?P<date>\d{8})_" +\
+                        "(?P<filt>.*)_(?P<exp_num>\d{3}).fits$"
+    in_pattern["domeflats"] = "^domeflat_(?P<date>\d{8})_" +\
+                        "(?P<filt>.*)_(?P<exp_num>\d{3}).fits$"
+
+    in_pattern["blanks"] = "^blank_(?P<date>\d{8})_" +\
+                        "(?P<filt>.*)_(?P<exp_num>\d{3}).fits$"
+    in_pattern["cig"] = "^(?P<name>cig)(?P<cig_num>\d{4})_(?P<date>\d{8})_" +\
+                        "(?P<filt>.*)_(?P<exp_num>\d{3}).fits$"
+    in_pattern["standards"] = "^(?P<name>" + standards_campaign +")_(?P<date>\d{8})_" +\
+                              "(?P<filt>.*)_(?P<exp_num>\d{3}).fits$"
+    in_pattern["blanks"] = "^(?P<name>blank)_(?P<date>\d{8})_(?P<filt>.*)_" +\
+                         "(?P<exp_num>\d{3}).fits$"
+    in_pattern["clusters"] = "^(?P<name>" + clusters_campaign +")_(?P<date>\d{8})_" +\
+                             "(?P<filt>.*)_(?P<exp_num>\d{3}).fits$"
+    list_images = utilities.locate_images2(dir, in_pattern)
+    return list_images
+
+
+if os.path.exists( os.path.join(directory, 'cig') ):
+    list_images = search_images(directory)
+else:
     print "Rename files"
     list_images = rename.main(arguments=["--copy", "--objectk", objectk,\
                                          "--filterk", filterk, "--datek", datek,\
