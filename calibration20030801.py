@@ -81,16 +81,16 @@ for obj in standards_set:
         columns = [ii for ii in range(len(filters[0, :])) if filters[0,ii] == filt]
         # if there are more than two images
         if len(airmasses[0,columns]) > 0 and len(airmasses[0,columns]) > 2:
-            ext_coeff, sigma_ext_coeff = calculate_extinction(airmasses[:, columns], magnitudes[:, columns])
+            ext_coeff, serror_ext_coeff = calculate_extinction(airmasses[:, columns], magnitudes[:, columns])
             coefficient_list.append(ext_coeff)
-            plt.plot(airmasses[:, columns], magnitudes[:, columns], 'o')
-            plt.show()
-            print "Extinction coefficient for ", obj, " for filter ", filt, ":", ext_coeff, "+/-", sigma_ext_coeff
+            #plt.plot(airmasses[:, columns], magnitudes[:, columns], 'o')
+            #plt.show()
+            print "Extinction coefficient for ", obj, " for filter ", filt, ":", ext_coeff, "+/-", serror_ext_coeff
         else:
             print "Not used ",  obj, " with filter " + filt + ". Too few elements."
 
-ext_coeff, sigma_ext_coeff =  np.mean(coefficient_list), np.std(coefficient_list)
-print "Extinction = ", ext_coeff, "+/-", sigma_ext_coeff
+ext_coeff, serror_ext_coeff =  np.mean(coefficient_list), np.std(coefficient_list) / np.sqrt(len(coefficient_list) - 1)
+print "Mean extinction = ", ext_coeff, "+/-", serror_ext_coeff
 
 # Equate PSFs for scientific objects
 SciObj_set = set(x for x,t in zip(list_images["objname"], list_images["type"]) if t in ["cig", "clusters"])
@@ -137,8 +137,8 @@ for ii, im_name in enumerate(list_images["filename"]):
                                      im_name, "*", str(correcting_factor)])
         mssg = "Before correcting for atmosphere: " + str(airmass)
         utils.header_update_keyword(newname, airmassk, 0, comment=mssg)
-        utils.header_update_keyword(newname, "k_coeff", ext_coeff, comment="Extinction coefficient")
-        utils.header_update_keyword(newname, "k_err", sigma_ext_coeff, comment="Extinction coefficient 1-sigma")
+        utils.header_update_keyword(newname, "k_coeff", ext_coeff, comment="Atmospheric extinction coefficient")
+        utils.header_update_keyword(newname, "k_err", serror_ext_coeff, comment="Standard error extinction coefficient")
         list_images["filename"][ii] = newname
         sky, sky_std = utils.get_from_header(im_name, "sky", "sky_std")
         utils.header_update_keyword(newname, "sky", sky * correcting_factor)
