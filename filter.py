@@ -2,6 +2,8 @@ import utilities as utils
 import os
 import numpy
 import repipy.target as target
+from repipy import __path__ as repipy_path
+repipy_path = repipy_path[0]
 
 class Filter(object):
     def __init__(self, header):
@@ -49,7 +51,7 @@ class Filter(object):
     @property
     def filter_curve(self):
         """ Read the filter curve from the collection in the repipy/filters folder"""
-        dir = '/home/blasco/Desktop/librerias_python/repipy/filters/'
+        dir = os.path.join(repipy_path, 'filters')
         file = os.path.join(dir, self.filter_ID)
         wav, trans = numpy.genfromtxt(file).transpose()
         # In case the transmissivity is in % instead of normalized to 1
