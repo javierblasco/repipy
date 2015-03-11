@@ -27,8 +27,11 @@ import repipy.median_filter as median_filter
 import repipy.cross_match as cross_match
 import astropy.io.fits as fits
 import dateutil.parser
+import lemon.seeing as seeing
 
 from lemon import methods
+from lemon import __path__ as lemon_dir
+lemon_dir = lemon_dir[0]
 import repipy
 # Change to the directory where repipy is installed to load pyraf
 with methods.tmp_chdir(repipy.__path__[0]):
@@ -238,7 +241,6 @@ for index, image in enumerate(list_images["filename"]):
         # Victor Terron has promissed changing dirs will soon be unnecessary 
         curdir = os.path.abspath(os.curdir)
         os.chdir(lemon_dir)
-        import lemon.seeing as seeing
         seeing.main(arguments=["--margin", "0", "--filename", '', "--suffix",
                                "-s", image, os.path.split(image)[0] ])
         newname = utilities.add_suffix_prefix(image, suffix = "-s")
