@@ -5,15 +5,15 @@ Created on Tue Aug 27 13:25:30 2013
 @author: blasco
 """
 
+from lemon import __path__ as lemon_path
+lemon_path = lemon_path[0]
+
 ################################################################################
 #                   Campaign dependent                                         # 
 ################################################################################
 
 # Work directory
 directory = "/mnt/data/DEEP_OBS/20130606/"
-
-# Directory where the lemon pipeline (https://github.com/vterron/lemon) is
-lemon_dir = "/home/blasco/Desktop/librerias_python/lemon"
         
 # Images not to be used. Early bias images show too high counts statistics. 
 # And the focus image and the skyflat 1 are of different size to all the others. 
