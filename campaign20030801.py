@@ -10,7 +10,7 @@ Created on Tue Aug 27 13:25:30 2013
 ################################################################################
 
 # Work directory
-directory = "/mnt/data/OPTICAL_DATA/OPTICO/CAHA2.2/2003/AUG_03/Noche1/"
+directory = "/home/data/OPTICAL_DATA/OPTICO/CAHA2.2/2003/AUG_03/Noche1/"
 
 
 # standards_campaign contains the names of the standards used for this campaign.
