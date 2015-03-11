@@ -17,6 +17,7 @@ directory = "/mnt/data/OPTICAL_DATA/OPTICO/CAHA2.2/2003/AUG_03/Noche1/"
 # They are in python Re format, and will be used during the calibration to 
 # find the files that have been reduced.
 standards_campaign = "bd\+28|bd\+25|kop27"
+clusters_campaign = " "
 
 
 # Keywords in the header of images
