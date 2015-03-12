@@ -162,8 +162,6 @@ if circular_FoV:
                          (list_images["type"] == "domeflats")   )[0]
     # Find a suitable mask, which contains number 2
     for index in flat_indices:
-        print index
-        print list_images["filename"][index]
         mask_name = fits.getval(list_images["filename"][index], "mask")
         mask = fits.getdata(mask_name)
         if np.any(mask == 2):
@@ -256,8 +254,6 @@ for index, im in enumerate(list_images["filename"]):
 print "Estimate seeing for each image"
 for index, im in enumerate(list_images["filename"]):
     if list_images["type"][index] in ["cig", "standards", "clusters"]:
-        print "\n \n"
-        print im
         im_cat = utilities.replace_extension(im, "radec")
         estimate_seeing.main(arguments=["--cat", im_cat, "--wcs", "world", im])
 
