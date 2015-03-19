@@ -239,43 +239,10 @@ for index, im in enumerate(list_images["filename"]):
         for line in table.data:
             f.write(str(line[2]) + " " + str(line[3]) + "\n")            
         f.close()
-        
-#        # Move all filtered images related to im to their own directory
-#        directory, filename = os.path.split(im) 
-#        wcs_dir = os.path.join(directory, "wcs_images")
-#        utilities.if_dir_not_exists_create(wcs_dir)
-#        
-#        filename = utilities.replace_extension(filename, "*")
-#        filt_files = glob.glob( os.path.join(directory, filename))
-#        utilities.move_list(filt_files, wcs_dir)        
-
-
-                                                          
+                                                                
 print "Estimate seeing for each image"
 for index, im in enumerate(list_images["filename"]):
     if list_images["type"][index] in ["cig", "standards", "clusters"]:
         im_cat = utilities.replace_extension(im, "radec")
         estimate_seeing.main(arguments=["--cat", im_cat, "--wcs", "world", im])
 
-# print "Do photometry for each image"
-# for index, im in enumerate(list_images["filename"]):
-#     if list_images["type"][index] in ["standards", "cig", "clusters"]:
-#         im_cat = utilities.replace_extension(im, "radec")
-#         seeing = fits.getval(im, "seeing")
-#         sigma_sky = fits.getval(im, "sky_std")
-#         coords_type = "world"   #world coordinate system
-#         photom_file = im + ".mag.1"
-#         utilities.if_exists_remove(photom_file)
-#         iraf.phot(im, coords=im_cat, fwhmpsf=seeing, sigma=sigma_sky,
-#                          datamin=-100, datamax=50000, ccdread=read_noisek,
-#                          gain=gaink, exposure=exptimek, airmass=airmassk,
-#                          filter=filterk, obstime=datek, maxshift=2,
-#                          annulus=str(8*seeing), dannulus=str(2*seeing),
-#                          apertures=str(4*seeing), zmag=0, radplot="no",
-#                          wcsin=coords_type, verify="no", display="no",
-#                          interactive="no", icommands="", output=photom_file)
-
-        
-print "For each object and filter, do photometry on all images"
-# List of objects
-object_list = set(x for x in list_images["objname"])
