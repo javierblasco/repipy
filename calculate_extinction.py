@@ -45,8 +45,9 @@ def calculate_extinction(airmasses, magnitudes, err_magnitudes=None):
      atmospheric extinction. """
      
      # In the unlikely case you send magnitudes without errors (do your 
-     # homework, dude!) zero error will be assigned to all values. 
-     if err_magnitudes == None:
+     # homework, dude!) same error will be assigned to all values, so weights are
+     # not used.
+     if err_magnitudes is None:
          err_magnitudes = np.ones_like(magnitudes)
      
      # Initial guess for extinction coefficient is the first value. 
