@@ -48,8 +48,8 @@ def calculate_extinction(airmasses, magnitudes, err_magnitudes=None):
      # homework, dude!) same error will be assigned to all values, so weights are
      # not used.
      if err_magnitudes is None:
-         err_magnitudes = np.ones_like(magnitudes)
-     
+         err_magnitudes = np.ones_like(magnitudes) * 0.1
+
      # Initial guess for extinction coefficient is the first value. 
      # The initial guess of the intercept for each star is the mean of the 
      # star's magnitude

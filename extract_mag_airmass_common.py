@@ -45,11 +45,12 @@ def main(db_name):
     # Create numpy arrays to store airmasses and magnitudes
     airmasses = np.zeros([num_stars, num_airmasses], dtype=np.float64)
     magnitudes = np.zeros([num_stars, num_airmasses], dtype=np.float64)
+    SNR = np.zeros([num_stars, num_airmasses], dtype=np.float64)
     filters = np.array([""] * num_stars * num_airmasses, dtype="S15").reshape(num_stars, num_airmasses)
 
     for ii, id_ in enumerate(star_ids):
         query = """
-                SELECT p.star_id, f.name, p.magnitude, i.airmass
+                SELECT p.star_id, f.name, p.magnitude, i.airmass, p.SNR
                 FROM photometry AS p
                 INNER JOIN images AS i
                 ON p.image_id = i.id
@@ -61,8 +62,9 @@ def main(db_name):
         db._execute(query, t)
 
         for jj, row in enumerate(db._rows):
-            star_id, filter_name, magnitude, airmass = row
+            star_id, filter_name, magnitude, airmass, snr = row
             airmasses[ii,jj] = airmass
             magnitudes[ii,jj] = magnitude
             filters[ii, jj] = filter_name
-    return airmasses, magnitudes, filters
+            SNR[ii,jj] = snr
+    return airmasses, magnitudes, filters, SNR

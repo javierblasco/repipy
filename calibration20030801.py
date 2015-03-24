@@ -23,6 +23,7 @@ import pickle
 import subprocess
 from lemon import methods
 import repipy
+import lemon.snr as snr
 
 # Change to the directory where repipy is installed to load pyraf
 with methods.tmp_chdir(repipy.__path__[0]):
@@ -40,6 +41,7 @@ if len(sys.argv) != 2:
     print sys.exit("Give me a campaign file.... See example in the routine "+\
                    "packages")
 execfile(sys.argv[1])
+
 
 def search_images(dir="."):
     """ Given the patterns for the CIGs, cluster and standard images that we
@@ -75,13 +77,17 @@ standards_set = set(x for x,t in zip(list_images["objname"], list_images["type"]
 coefficient_list = []
 for obj in standards_set:
     input_db = os.path.join(directory, obj+".db")
-    airmasses, magnitudes, filters = extract.main(input_db)
+    airmasses, magnitudes, filters, SNR = extract.main(input_db)
+    magnitude_errors_minus, magnitude_errors_plus = snr.snr_to_error(SNR)
+    mag_errors = (-magnitude_errors_minus + magnitude_errors_plus) / 2.
     for filt in set(filters.flatten()):
         # find columns with the current filter
         columns = [ii for ii in range(len(filters[0, :])) if filters[0,ii] == filt]
         # if there are more than two images
         if len(airmasses[0,columns]) > 0 and len(airmasses[0,columns]) > 2:
-            ext_coeff, serror_ext_coeff = calculate_extinction(airmasses[:, columns], magnitudes[:, columns])
+            ext_coeff, serror_ext_coeff = calculate_extinction(airmasses[:, columns],
+                                                               magnitudes[:, columns],
+                                                               err_magnitudes=mag_errors[:,columns])
             coefficient_list.append(ext_coeff)
             #plt.plot(airmasses[:, columns], magnitudes[:, columns], 'o')
             #plt.show()
@@ -91,6 +97,7 @@ for obj in standards_set:
 
 ext_coeff, serror_ext_coeff =  np.mean(coefficient_list), np.std(coefficient_list) / np.sqrt(len(coefficient_list) - 1)
 print "Mean extinction = ", ext_coeff, "+/-", serror_ext_coeff
+
 
 # Equate PSFs for scientific objects
 SciObj_set = set(x for x,t in zip(list_images["objname"], list_images["type"]) if t in ["cig", "clusters"])
@@ -202,7 +209,7 @@ for target in SciObj_set:
     scaling_factors = []
     if len(objects_list[target]) == 2: # both continuum and Halpha present
         input_db = os.path.join(directory, target+".db")
-        airmasses, magnitudes, filters = extract.main(input_db)
+        airmasses, magnitudes, filters, SNR = extract.main(input_db)
         # Separate Halpha and rGunn magnitudes.
         Ha_index, rGunn_index = 'H-alpha' in filters[0,1], 'Gunn' in filters[0,1]
         magnitudes_Halpha, magnitudes_rGunn = magnitudes[:,Ha_index], magnitudes[:,rGunn_index]
