@@ -52,7 +52,17 @@ def is_a_standar(object_name):
                             otherwise.
     """
     # Common names of the standard fields 
-    standards_list = {"bd+25":"bd+25", 
+    standards_list = {"bd+25":"bd+25",
+                      "feige110":"feige110",
+                      "feige110gunnr":"feige110",
+                      "feige110ha":"feige110",
+                      "f110":"feige110",
+                      "grw+73+8031":"grw73",
+                      "grw+73+8031gunnr":"grw73",
+                      "grw+73+8031ha":"grw73",
+                      "pg1708+602":"pg1708",
+                      "pg1708+602gunnr":"pg1708",
+                      "pg1708+602ha":"pg1708",
                       "bd+28":"bd+28", 
                       "bd+35":"bd+35", 
                       "kop27":"kop27", 
