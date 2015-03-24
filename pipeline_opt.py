@@ -122,11 +122,12 @@ superbias = combine_images.main(arguments=["--average", "median",
                                           
 print "Subtract bias"
 for ii, im in enumerate(list_images["filename"]):
-    args = ["--suffix", " -b", "--message", "BIAS SUBTRACTED", "--mask_key", "mask", im, "-", superbias["AllFilters"]]
-    if type_of_bias_subtraction:
-        args = [type_of_bias_subtraction] + args
-    newname = arith.main(arguments=args)
-    list_images["filename"][ii] = newname 
+    if list_images["type"][ii] not in ["bias", "unknown"]:
+        args = ["--suffix", " -b", "--message", "BIAS SUBTRACTED", "--mask_key", "mask", im, "-", superbias["AllFilters"]]
+        if type_of_bias_subtraction:
+            args = [type_of_bias_subtraction] + args
+        newname = arith.main(arguments=args)
+        list_images["filename"][ii] = newname
 
 print "Combine flats"
 output_flats = os.path.join(directory, "masterskyflat.fits")
@@ -139,7 +140,7 @@ flats = combine_images.main(arguments=["--average", "median", "--norm",
 
 print "Correct flat-field"
 for ii,im in enumerate(list_images["filename"]):
-    if list_images["type"][ii] != "bias":
+    if list_images["type"][ii] not in ["bias", "unknown"]:
         # Guess the filter of the image from the name, find correct flat
         current_flat = [flats[kk] for kk in flats.keys() if im.count(kk) != 0]
         if len(current_flat) == 0:
