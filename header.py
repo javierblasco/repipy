@@ -38,7 +38,7 @@ class Header(object):
         AIRMASS = ('AIRMASS',),
         FILTER_WAVELENGTH = ('INSFLWL',),
         FILTER_WIDTH = ('INSFLDWL',),
-        FILTER_ID = ('ALFLTID', 'FAFTLID', 'JAGID', 'INSFLID'),
+        FILTER_ID = ('ALFLTID', 'FAFTLID', 'JAGFID', 'INSFLID'),
         TELESCOPE = ('TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID'),
         SEEING = ('SEEING', 'FWHM', 'LEMON FWHM'),
         SKY = ("SKY",),
@@ -72,6 +72,13 @@ class Header(object):
         """ Determine the keyword that keeps the name of the filter in the header."""
         return self._get_filterk()
 
+    @property
+    def filter_ID(self):
+        """ Find the unique ID (if present) of the filter
+        :return:
+        """
+        return self._get_filterID()
+
     @utils.memoize
     def _get_telescope(self):
         """ Try to find the telescope name from which the image comes.
@@ -94,7 +101,6 @@ class Header(object):
 
         I know, right? Crazy to uniquely identify a filter in the header of the image...
         """
-
         value = self._get_value(self._KEYWORDS_ALIASES['FILTER_ID'])
         return value
 
@@ -116,7 +122,6 @@ class Header(object):
         """ Find the keyword in which elements from both lists coincide.
 
         """
-
         k, p = None, None
         dict_targets = {key: self.hdr.get(key) for key in list_keywords}
         for pattern_key, pattern_value in dict_patterns.iteritems():
