@@ -69,7 +69,8 @@ def remove_WCS(header):
     wcs_keywords = ["wcsaxes", "ctype1", "ctype2", "equinox", "lonpole", 
               "latpole", "crval1", "crval2", "crpix1", "crpix2", 
               "cunit1", "cunit2", "cd1_1", "cd1_2", "cd2_1", "cd2_2", 
-              "PC001001", "PC001002", "PC002001", "PC002002"]
+              "PC001001", "PC001002", "PC002001", "PC002002",
+              "PROJP1", "PROJP3", ·"PV1_1", "PV1_2", "PV2_1", "PV2_2"]
     for keyword in wcs_keywords:
         try:
             hdr.remove(keyword)
