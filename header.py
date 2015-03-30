@@ -34,7 +34,7 @@ class Header(object):
         DATE = ('DATE-OBS',),
         TIME = ('TIME-OBS',),
         GAIN = ('CCDSENS', 'GAIN' ),
-        RON = ('CCDRON', 'READNOISE'),
+        RON = ('CCDRON', 'READNOIS', 'READNOISE'),
         AIRMASS = ('AIRMASS',),
         FILTER_WAVELENGTH = ('INSFLWL',),
         FILTER_WIDTH = ('INSFLDWL',),
