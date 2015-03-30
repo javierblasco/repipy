@@ -9,7 +9,6 @@ class Filter(object):
     def __init__(self, header):
         self.header = header
 
-    @utils.memoize
     def zero_point(self, target):
         """ Return the zero point, given this target """
         if target.objtype == 'standard':
