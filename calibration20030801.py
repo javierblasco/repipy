@@ -159,7 +159,7 @@ zp = defaultdict(list)
 for ii, im_name in enumerate(list_images["filename"]):
     if list_images["type"][ii] in ['standards']:
         image = astroim.Astroim(im_name)
-        zp[image.filter.filter_ID].append(image.zero_point)
+        zp[image.filter.filter_ID].append(image.zero_point())
 
 for kk, vv in zp.iteritems():
     zp[kk] = np.median(vv), np.median( np.abs(np.array(vv)-np.median(vv)))
