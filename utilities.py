@@ -42,7 +42,7 @@ def number_of_chips(hdu_list):
     """ From an astropy fits object (i.e. an HDUList), find out how many chips form the image. INT has 4 chips per image,
         VST 32."""
     HDU_components = fits.HDUList(hdu_list)
-    return sum([isinstance(hdu, (fits.ImageHDU, fits.compressed.CompImageHDU)) for hdu in HDU_components])
+    return sum([isinstance(hdu, (fits.ImageHDU, fits.hdu.compressed.CompImageHDU)) for hdu in HDU_components])
 
 def memoize(f):
     """ Minimalistic memoization decorator.
