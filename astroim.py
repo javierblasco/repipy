@@ -12,7 +12,10 @@ class Astroim(object):
         self.header = header.Header(self.im_name)
         self.filter = filter.Filter(self.header)
         self.target = target.Target(self.header, self.filter)
-        self.zero_point = self.filter.zero_point(self.target)
+
+    @property
+    def zero_point():
+        return self.filter.zero_point(self.target)
 
 
 
