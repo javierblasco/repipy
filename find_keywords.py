@@ -51,10 +51,10 @@ def get_keywords(hdr, needed, args):
     # Check if file exists. It does not exist?
     if args.config == "":
         # Check if, by any chance, ALL the needed keywords are called exactly 
-         # the same in the header.
+        # the same in the header.
         ans = True
         for key in needed:
-            ans = ans*hdr.has_key(key.upper())  
+            ans = ans * hdr.has_key(key.upper())
 
         # If it found all of them, you are in luck, even with no config file 
         # the program can build the dict. 
