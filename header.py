@@ -34,7 +34,7 @@ class Header(object):
         DATE = ('DATE-OBS',),
         TIME = ('TIME-OBS',),
         GAIN = ('CCDSENS', 'GAIN' ),
-        RON = ('CCDRON',),
+        RON = ('CCDRON', 'READNOISE'),
         AIRMASS = ('AIRMASS',),
         FILTER_WAVELENGTH = ('INSFLWL',),
         FILTER_WIDTH = ('INSFLDWL',),
@@ -47,7 +47,8 @@ class Header(object):
 
     _TELESCOPES_ALIASES =  { 'NOT' : ['ALFOSC', 'NOT'],
                              'CAHA' : ['DSAZ', 'CAFOS', 'CA-2.2', 'CAHA'],
-                             'OSN' : ['OSN', 'OSN 1.5m']
+                             'OSN' : ['OSN', 'OSN 1.5m'],
+                             'JKT' : ['JKT']
     }
 
 
