@@ -164,6 +164,9 @@ for ii, im_name in enumerate(list_images["filename"]):
 for kk, vv in zp.iteritems():
     zp[kk] = np.median(vv), np.median( np.abs(np.array(vv)-np.median(vv)))
 
+print "Zero points:", zp
+
+
 print "Add zero point to headers"
 for im_name in list_images["filename"]:
     filter = astroim.Astroim(im_name).filter.filter_ID
