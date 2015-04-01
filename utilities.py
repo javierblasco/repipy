@@ -4,6 +4,7 @@
 import os
 import re
 import collections
+import contextlib
 import datetime
 import pytz
 import sys
@@ -18,11 +19,29 @@ import shutil
 import functools
 from lemon import methods
 import repipy
+import tempfile
 
 # Change to the directory where repipy is installed to load pyraf
 with methods.tmp_chdir(repipy.__path__[0]):
     from pyraf import iraf
     from iraf import astutil
+
+@contextlib.contextmanager
+def tmp_mute():
+    """ A context manager to temporarily change the std output. This can be used to mute the output of certain
+    extremely verbose programs I know ;).
+
+    """
+
+    std_output = sys.stdout
+    try:
+        with open(os.devnull, 'w') as fd:
+            sys.stdout = fd
+            yield
+    finally:
+        sys.stdout = std_output
+
+
 
 def sex2deg(RA, DEC):
     try:
