@@ -17,8 +17,8 @@ import dateutil.parser
 import shutil
 import functools
 from lemon import methods
-
 import repipy
+
 # Change to the directory where repipy is installed to load pyraf
 with methods.tmp_chdir(repipy.__path__[0]):
     from pyraf import iraf
