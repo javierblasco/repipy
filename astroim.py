@@ -13,7 +13,7 @@ class Astroim(object):
         self.filter = filter.Filter(self.header)
         self.target = target.Target(self.header, self.filter)
 
-    def zero_point():
+    def zero_point(self):
         return self.filter.zero_point(self.target)
 
 
