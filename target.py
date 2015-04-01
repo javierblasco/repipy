@@ -27,9 +27,9 @@ with methods.tmp_chdir(repipy.__path__[0]):
 
 
 regexp_dict = {'.*BIAS.*'             : 'bias',
-               '(?=.*SKY)(?=.*FLAT)'  : 'skyflat',
+               '(?=.*SKY)(?=.*FLAT)?'  : 'skyflat',
                '(?=.*DOME)(?=.*FLAT)' : 'domeflat',
-               '(.*FLAT)'           :  'flat',
+               '(.*FLAT.*)'           :  'flat',
                '(.* BLANK)'         : 'blank',
                '(?P<name>C(?:IG)?)(?P<number>\d{1,4})'    : 'cig'
                }
