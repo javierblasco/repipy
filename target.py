@@ -14,6 +14,8 @@ from scipy.integrate import simps
 from repipy import __path__ as repipy_path
 import subprocess
 import tempfile
+from astropy.coordinates import SkyCoord
+import astropy.units as u
 
 from lemon import methods
 import repipy
@@ -83,14 +85,34 @@ class Target(object):
 
     @utilities.memoize
     def _get_RaDec(self):
+        """ Get the RA and DEC from the header of an image.
+
+        If the object is in the catalogue of standars, forget about anything else, just use the coordinates of the
+        standard. If the object is not a standard, try to get it from the keywords of the header.
+        :return:
+        """
         ra, dec = None, None
-        index =  numpy.where(stds['std_names'] == self.objname)[0]
-        if index:
-            ra, dec = stds['ra'][index], stds['dec'][index]
-        return ra, dec
         if self.objtype == 'standard':
             index =  numpy.where(stds['std_names'] == self.objname)[0]
-            return stds['ra'][index], stds['dec'][index]
+            ra, dec =  stds['ra'][index], stds['dec'][index]
+        else:  # object not a standard
+            try: # try reading it from the header.
+                ra = self.header.hdr[self.header.RAk]
+                dec = self.header.hdr[self.header.DECk]
+                # If ra is in hours, it could be "16:34:23.345" or "16h34m23.345s" or even "16 34 23.345"... Difficult!
+                regexp_hours = "\d{1,2}[:,h,\s+]\d{1,2}[:,m,\s+]\d{1,2}\.?\d?"
+                regexp_degree = "\d{1,3}\.?\d"
+                if re.search(regexp_hours, ra):
+                    ra_units = u.hourangle
+                elif re.search(regexp_degree):
+                    ra_units = u.deg
+                else:
+                    sys.exit("Units of RA in the header not understood! Read _get_RaDec method in target.py. ")
+                c = SkyCoord(ra, dec, unit=(ra_units, u.deg))
+                ra, dec = c.ra.deg, c.dec.deg
+            except:  # not able to read RA, DEC from the header
+                raise
+        return ra, dec
 
     @property
     def spectra(self):
