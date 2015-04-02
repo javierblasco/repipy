@@ -1,5 +1,6 @@
 import utilities as utils
 import os
+import re
 import numpy
 import repipy.target as target
 from repipy import __path__ as repipy_path
@@ -26,6 +27,20 @@ class Filter(object):
         else:
             if self.header.telescope and self._get_filterID():
                 return self.header.telescope.lower() + "_" + str(self._get_filterID())
+
+    @property
+    def filter_sys(self):
+        """ Return the filter system of the filter: Gunn, SDSS, Johnson, Harris, ...
+        :return:
+        """
+        return self._get_filterSYS()
+
+    @property
+    def filter_name(self):
+        """ Give the name of the filter in the header.
+        :return:
+        """
+        return self.header.hdr[self.header.filterk]
 
     @property
     def filter_wavelength(self):
@@ -84,3 +99,28 @@ class Filter(object):
 
         """
         return self.header._get_value(self.header._KEYWORDS_ALIASES['FILTER_ID'])
+
+    @utils.memoize
+    def _get_filterSYS(self):
+        """ Find the filter system: SDSS, Gunn, Johnson, Harris
+        :return:
+        """
+        filter_sys = self.header._get_value(self.header._KEYWORDS_ALIASES['FILTER_SYS'])
+        filter_name = self.filter_name
+
+        system_dict = {'Har': '.*har(ris)?.*',
+                       '': '.*(H(a(lpha)?)?|H(a)?)\d{4}.*',
+                       'Joh': '.*j(oh(nson)?)?.*',
+                       'Gunn': '.*gun(n)?.*',
+                       'sdss': '.*(sdss|sloan).*'
+                       }
+        # The order of the filter checking is important, if 'Har' is present, the filter is Harris, not Halpha
+        # and if sloan is pressent, the filter is SDSS, no matter if the header says "sloan Gunn r" for historical
+        # reasons. Therefore, we sort the search to beat those problems.
+        order = ['Har', '', 'sdss', 'Gunn', 'John']
+        for system in order:
+            regexp = system_dict[system]
+            string = filter_sys + filter_name
+            if re.match(regexp, string, re.I):
+                return system
+        return ''
