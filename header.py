@@ -32,7 +32,7 @@ class Header(object):
         EXPTIME = ('EXPTIME',),
         OBJECT = ('OBJECT',),
         DATE = ('DATE-OBS',),
-        TIME = ('TIME-OBS',),
+        TIME = ('TIME-OBS',"UTSTART"),
         GAIN = ('CCDSENS', 'GAIN' ),
         RON = ('CCDRON', 'READNOIS', 'READNOISE'),
         AIRMASS = ('AIRMASS',),
@@ -42,7 +42,9 @@ class Header(object):
         TELESCOPE = ('TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID'),
         SEEING = ('SEEING', 'FWHM', 'LEMON FWHM'),
         SKY = ("SKY",),
-        SIGMA = ("SKY_STD", "SIGMA")
+        SIGMA = ("SKY_STD", "SIGMA"),
+        RA = ("RA",),
+        DEC = ("DEC",)
     )
 
     _TELESCOPES_ALIASES =  { 'NOT' : ['ALFOSC', 'NOT'],
@@ -160,3 +162,6 @@ _add_property('gaink', 'GAIN')
 _add_property('skyk', 'SKY')
 _add_property('sigmak', 'SIGMA')
 _add_property('ccdronk', 'RON')
+_add_property('RAk', 'RA')
+_add_property('DECk', 'DEC')
+_add_property('timek', 'TIME')
