@@ -51,7 +51,7 @@ def psf(args):
                           maxnpsf=20, fwhm=seeing, sigma=sigma,
                        datamax=args.maxval, ccdread=args.ron_key, gain=args.gain_key,
                        exposure=args.expt_key,  function="auto", nclean=1, 
-                       psfrad=36, fitrad=18, maxnstar=20, verbose="no",
+                       psfrad=36, fitrad=18, maxnstar=20, verbose="no", interac="no",
                        verify="no")
 
     # Build psf of the stars
