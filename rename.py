@@ -36,8 +36,9 @@ import datetime
 import StringIO
 import re
 import repipy.find_keywords as find_keywords
-import numpy as np
+import numpy
 import repipy.utilities as utils
+import repipy.astroim as astroim
 
 #############################################################################
 def is_a_standar(object_name):
@@ -159,136 +160,113 @@ def distinguish_type(object_name):
     return object_name, object_type
     
 
+def backup(args, fits_list):
+    """ Save a list of files into a
+
+    :param args:
+    :return:
+    """
+    backup_dir = os.path.join(args.in_dir, "original_data")
+    utils.if_dir_not_exists_create(backup_dir)
+    for im in fits_list:
+        shutil.copy(im, backup_dir)
+
+
+def sort_by_date(fits_list):
+    # Sort all images chronologically
+    im_datetimes = []
+    for im_name in fits_list:
+        im = astroim.Astroim(im_name)
+        im_date = im.header.get(im.header.datek)
+        im_time = im.header.get(im.header.timek)
+        if im_time:  # if not None
+            im_date = "{0}T{1}".format(im_date, im_time)
+        im_datetimes.append(dateutil.parser.parse(im_date))
+    indices = numpy.argsort(im_datetimes)
+    sorted_list = [fits_list[ii] for ii in indices]
+    return sorted_list
+
+
+
+
 ###########################################################################
 def rename(args):
     # List of fit and fits images in the directory
-    fits_list1 = glob.glob(os.path.join(args.in_dir, args.in_pattern + "*.fits"))
+    fits_list1 = glob.glob(os.path.join(args.in_dir, args.in_pattern + "*.fit?(s)"))
     fits_list2 = glob.glob(os.path.join(args.in_dir, args.in_pattern + "*.fit"))
     fits_list = fits_list1+fits_list2
 
-    # If the needed keywords were passed by the user, build a dictionary with 
-    # them, otherwise, read from config file (if present) the names of the 
-    # different keywords. 
-    needed = ["object", "filter", "date", "time", "exptime"]
-    if args.objectk != "" and args.filterk != "" and args.datek != "" and\
-       args.exptimek != "":
-           keywords = {"object":args.objectk, "filter":args.filterk,\
-                       "date":args.datek, "exptime":args.exptimek,\
-                       "time":args.timek}
-    else:
-        hdr = fits.getheader(fits_list[0])
-        keywords = find_keywords.get_keywords(hdr, needed, args) 
-
-    # The output of the whole code will be this dictionary, in which the images 
-    # are sorted in groups (bias, skyflats, domeflats, cigXXXX, ...)
-    empty_array = np.asarray([], dtype=object)
-    final_dict = {"filename":np.asarray([], dtype="S150"), # defaults S70 too small 
-                  "type":empty_array, 
-                  "objname":empty_array,
-                  "time":empty_array}
+    # Sort all images chronologically
+    fits_list = sort_by_date(fits_list)
 
     # If --copy was selected, copy all those files into a directory called original_data
     if args.copy == True:
-        raw_dir = os.path.join(args.in_dir, "original_data")
-        if os.path.isdir(raw_dir) == False:
-            os.makedirs(raw_dir)
-        for im in fits_list:
-            shutil.copy(im, raw_dir)
+        backup(args, fits_list)
 
-    # Create log file
-    print "\n \n "
-    print "###########################################################\n"
-    print "RELEVANT INFO IS BEING WRITTEN IN: \n \n" +\
-                   os.path.join(os.path.abspath(args.out_dir),"renamed.log\n")
-    print "###########################################################\n "
-    ff = open(os.path.join(args.out_dir, "renamed.log"), 'w')
-    ff.write("CHECK WITH OBSERVING LOG: \n \n")
-    ff.write("ORIG_NAME, NEW_NAME   , OBJECT   , FILTER  , DATE  , EXPTIME \n ")    
-
-    # Look for the date and time of all images
-    list_datetimes =[]
-    for names in fits_list:
-        im = fits.open(names) 
-        hdr = im[0].header  
-        date_current = dateutil.parser.parse(hdr[keywords["date"]]).date()
-        time_current = dateutil.parser.parse(hdr[keywords["time"]]).time()
-        datetime_current = datetime.datetime.combine(date_current, time_current) 
-        # If user didn't provide any time keyword but date_current does not 
-        # actually contain the time this time_current will be 00:00:00. Problem?
-        list_datetimes.append(datetime_current)
-               
-    # Looking for the smaller of dates (i.e. before 00:00 if present)
-    sort_indices = np.argsort(list_datetimes)
-    min_date = list_datetimes[sort_indices[0]].date()
-    date = str(min_date).replace("-","")
-
-    # And now sort files in fits_list using the date and time
-    fits_list_sorted = [fits_list[ii] for ii in sort_indices]
-    fits_list = fits_list_sorted
-    list_datetimes_sorted = [list_datetimes[ii] for ii in sort_indices]
-    final_dict["time"] = np.asarray(list_datetimes_sorted)
+    # The output of the whole code will be this dictionary, in which the images
+    # are sorted in groups (bias, skyflats, domeflats, cigXXXX, ...)
+    empty_array = numpy.asarray([], dtype=object)
+    final_dict = {"filename":numpy.asarray([], dtype="S150"),
+                  "type":empty_array,
+                  "objname":empty_array,
+                  "time":empty_array}
     
     # Run through all images
-    for image in fits_list:
+    for im_name in fits_list:
         # Read image and header, extract name of object and filter.
-        im = fits.open(image, mode='update')
-        hdr = im[0].header
-        object_name = (hdr[keywords["object"]].lower())
-        remove_characters = [" ", "/", "[", "]", "_"]
-        for character in remove_characters:
-            object_name = object_name.replace(character,"")  
+        im = astroim.Astroim(im_name)
+        object_name = re.sub('[\s\-_\(\)]', "", im.target.objname.lower())
+        object_type = im.target.objtype
+        object_filter = im.filter.__str__()
+        object_date = dateutil.parser.parse(im.header.get(im.header.datek)).date()
+        object_date = re.sub('[\s\-\_\:]', "", object_date.__str__())
 
-
-        # Homogeneous names for filters!
-        object_filter = hdr[keywords["filter"]]
-        object_filter = utils.homogeneous_filter_name(object_filter)
-
-            
-        # find type of objects: bias, skyflat, domeflat, blank...
-        object_name, object_type = distinguish_type(object_name)
-
-        # If the subfolder out_dir/object_type does not exist, create it, 
-        # because we will create/move the new file there. 
+        # If the subfolder out_dir/object_type does not exist, create it,
+        # because we will create/move the new file there.
         newdir = os.path.join(args.out_dir, object_type)
-        if os.path.isdir(newdir) == False:
-            os.makedirs(os.path.join(args.out_dir, object_type))
-            
-        # New name for the file will be determined by the object type (for the 
+        utils.if_dir_not_exists_create(newdir)
+
+        # Create the new name of the file
+        new_name = os.path.join(newdir, "{0}_{1}".format(object_name, object_date))
+
+        # New name for the file will be determined by the object type (for the
         # subfolder), object, date and filter. For bias frames, the filter would 
         # have no meaning, so we don't put it.
-        new_name = os.path.join(newdir, object_name+"_"+date+"_")
-        if object_name != "bias":
-            new_name = new_name + object_filter +"_" 
+        if object_type != "bias":
+            new_name = "{0}_{1}_".format(new_name, object_filter)
 
-        # Now we need to find out which sequential number the image should have    
+
+        # Now we need to find out which sequential number the image should have
         ans = True
         jj=1
         while ans == True:         #  until file does not exist
-            newfile = os.path.join(new_name+str(jj).zfill(3)+'.fits')
+            newfile = os.path.join(new_name + str(jj).zfill(3)+'.fits')
             ans = os.path.isfile(newfile)
             jj += 1
-        oldname_nodir = (os.path.split(image))[1]
-        newname_nodir = (os.path.split(newfile))[1]
+        oldname_base = os.path.basename(im_name)
+        newname_base = os.path.basename(newfile)
 
-        # Add history comment into the header. If image is to be overwritten, 
+
+        # Add history comment into the header. If image is to be overwritten,
         # just update the image with the changes in the header and move it to 
-        # its new name. Otherwise, save it to the new file immediately. 
-        hdr.add_history("- Image "+oldname_nodir+" renamed "+newname_nodir)
+        # its new name. Otherwise, save it to the new file immediately.
+
+
+        im = fits.open(im_name, 'update')
+        hdr = im[0].header
+        hdr.add_history("- Image "+oldname_base+" renamed "+newname_base)
         if args.overwrite == True:
             im.flush()
-            os.rename(image, newfile)
+            im.close()
+            os.rename(im_name, newfile)
         else:
             im.writeto(newfile)
 
         # Add image to the dictionary for the output.       
-        final_dict["filename"] = np.append(final_dict["filename"], newfile)
-        final_dict["objname"] = np.append(final_dict["objname"], object_name)
-        final_dict["type"] = np.append(final_dict["type"], object_type)
-            
-        # And write the log    
-        ff.write(oldname_nodir+"  "+ newname_nodir + " " + object_name +"  "+\
-                 object_filter + "  " + str(hdr[keywords["date"]]) + "  " +\
-                 str(hdr[keywords["exptime"]]) + "\n")
+        final_dict["filename"] = numpy.append(final_dict["filename"], newfile)
+        final_dict["objname"] = numpy.append(final_dict["objname"], object_name)
+        final_dict["type"] = numpy.append(final_dict["type"], object_type)
+
                 
     # Return the dictionary with the images sorted in groups.
     return final_dict

@@ -11,6 +11,7 @@ import astropy.io.fits as fits
 import collections
 import repipy.utilities as utils
 import repipy.arith as arith_images
+import repipy.astroim as astroim
 import repipy.find_keywords as find_keywords
 
 def home_made_median(map_cube, cube):
@@ -90,7 +91,14 @@ def combine(args):
     utils.if_dir_not_exists_create(outdir)
 
     # Build a list of the filter of each image
-    images_filters = utils.collect_from_images(args.input, args.filterk)
+    if args.filterk != "":
+        images_filters = utils.collect_from_images(args.input, args.filterk)
+    else:
+        images_filters = []
+        for im_name in args.input:
+            im = astroim.Astroim(im_name)
+            im_filt = im.filter.__str__
+            images_filters.append(im_filt)
 
     # If user wants all images to be combined together, regardless of filter:
     if args.all_together:
@@ -118,7 +126,7 @@ def combine(args):
         # of all the images at a time
         n_slices = 32          # divide the slow axis in this many pieces
 
-        # Define the whole image and set all elements of mask to False
+        # Define the whole output image and set all elements of mask to False
         whole_image = numpy.ma.zeros([lx,ly])
         whole_image.mask = numpy.zeros_like(whole_image.data)
 
@@ -222,10 +230,10 @@ parser.add_argument("--nmin", metavar="nmin", type=int, dest="nmin", action='sto
                     "(i.e. non masked, non rejected) pixels. If the valid pixels "+\
                     "are less than nmin, the fill_val value is used as result, "+\
                     "and the pixel is masked. Default: 1.")
-parser.add_argument("--filterk", action="store", dest="filterk", default='filter', \
+parser.add_argument("--filterk", action="store", dest="filterk", default='', \
                     help="Keyword in the header that contains the name of "+\
-                    "the filter. Alternatively you can provide the filter "+\
-                    "name itself with the argument '--filter'")
+                    "the filter. If none is providedr, the program will attempt to  "+\
+                    "automatically find it using the module repipy.astroim. ")
 parser.add_argument("--mask_key", metavar="mask_key", dest='mask_key', \
                     action='store', default="MASK", help=' Keyword in the header ' +\
                     'of the image that contains the name of the mask. The mask '+\
@@ -246,11 +254,6 @@ def main(arguments = None):
       arguments = sys.argv[1:]
   args = parser.parse_args(arguments)
 
-  # Check that either the filterk or a config file is present:
-  if args.filterk == "" and args.config == "":
-      sys.exit("ERROR! Either --filterk or a --config_file are "+\
-               "necessary to determine the filter of the images. Type python "+\
-               "combine.py -h for help.")
 	
   # Call combine, keep name of the file created
   newfile = combine(args)
