@@ -90,14 +90,18 @@ class Filter(object):
         """ Read the filter curve from the collection in the repipy/filters folder"""
         dir = os.path.join(repipy_path, 'filters')
         file = os.path.join(dir, self.filter_ID)
-        wav, trans = numpy.genfromtxt(file).transpose()
-        # In case the transmissivity is in % instead of normalized to 1
-        if trans.max() > 1:
-            trans /= 100
-        # In case the wavelength is in nanometers, not Angstroms
-        if wav.max() < 1000:
-            wav *= 10
-        return numpy.array([wav, trans]).transpose()
+        if os.path.exists(file):
+            wav, trans = numpy.genfromtxt(file).transpose()
+            # In case the transmissivity is in % instead of normalized to 1
+            if trans.max() > 1:
+                trans /= 100
+            # In case the wavelength is in nanometers, not Angstroms
+            if wav.max() < 1000:
+                wav *= 10
+            return numpy.array([wav, trans]).transpose()
+        else:
+            sys.exit("File {0} does not exist. Find the filter curve and include it".format(file) +\
+                     "in the folder with the exact same name")
 
     @property
     def filter_integral(self):
@@ -123,27 +127,24 @@ class Filter(object):
         """
         return self.header._get_value(self.header._KEYWORDS_ALIASES['FILTER_ID'])
 
-    @utils.memoize
-    def _get_filterSYS(self):
-        """ Find the filter system: SDSS, Gunn, Johnson, Harris
-        :return:
-        """
-        filter_sys = self.header._get_value(self.header._KEYWORDS_ALIASES['FILTER_SYS'])
-        filter_name = self.filter_name
+    #@utils.memoize
+    #def _get_filterSYS(self):
+    #    """ Find the filter system: SDSS, Gunn, Johnson, Harris
+    #    :return:
+    #    """
+    #    filter_sys = self.header._get_value(self.header._KEYWORDS_ALIASES['FILTER_SYS'])
+    #    filter_name = self.filter_name
+    #
+    #
+    #    # The order of the filter checking is important, if 'Har' is present, the filter is Harris, not Halpha
+    #    # and if sloan is pressent, the filter is SDSS, no matter if the header says "sloan Gunn r" for historical
+    #    # reasons. Therefore, we sort the search to beat those problems.
+    #    order = ['Har', '', 'sdss', 'Gunn', 'John']
+    #    for system in order:
+    #        regexp = self._system_dict[system]
+    #        string = filter_sys + filter_name
+    #        if re.match(regexp, string, re.I):
+    #            return system
+    #    return ''
 
-        system_dict = {'Har': '.*har(ris)?.*',
-                       '': '.*(H(a(lpha)?)?|H(a)?)\d{4}.*',
-                       'Joh': '.*j(oh(nson)?)?.*',
-                       'Gunn': '.*gun(n)?.*',
-                       'sdss': '.*(sdss|sloan).*'
-                       }
-        # The order of the filter checking is important, if 'Har' is present, the filter is Harris, not Halpha
-        # and if sloan is pressent, the filter is SDSS, no matter if the header says "sloan Gunn r" for historical
-        # reasons. Therefore, we sort the search to beat those problems.
-        order = ['Har', '', 'sdss', 'Gunn', 'John']
-        for system in order:
-            regexp = system_dict[system]
-            string = filter_sys + filter_name
-            if re.match(regexp, string, re.I):
-                return system
-        return ''
+
