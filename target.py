@@ -78,9 +78,8 @@ class Target(object):
     @property
     def counts(self):
         """ Do photometry in the object to get the counts/sec of the source. """
-        return self._get_photometry()
+        return self._get_photometry(10)
 
-    @property
     def flux(self):
         """ If you have both a spectra for the object and the filter curve, calculate the flux under the filter"""
         if self.spectra is not None and self.filter.filter_curve is not None:
@@ -138,9 +137,7 @@ class Target(object):
 
             return numpy.genfromtxt(file, skip_header=nn)
 
-
-    @utilities.memoize
-    def _get_photometry(self):
+    def _get_photometry(self, default_radius=None):
         """ Get the photometry for the target.
 
         If the target is a standard star, aperture photometry will be performed. For the moment nothing is done with
@@ -151,8 +148,17 @@ class Target(object):
         os.write(fd, "{0} {1} \n".format(self.RA, self.DEC))
         os.close(fd)
 
-        if self.objtype == "standard":
-            seeing = self.header.hdr[self.header.seeingk]
+        if self.objtype == "standards":
+            try:
+                seeing = self.header.hdr[self.header.seeingk]
+            except ValueError:  # keyword was not correctly guessed
+                seeing = None
+
+            if not seeing and not default_radius:
+                sys.exit("Seeing not found and default_radius not present. Exiting!")
+            elif not seeing:
+                seeing = default_radius
+
             photfile_name = self.header.im_name + ".mag.1"
             utilities.if_exists_remove(photfile_name)
             kwargs =  dict(output=photfile_name, coords=coords_file,
