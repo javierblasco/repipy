@@ -36,13 +36,16 @@ def find_sky(args):
         mask = numpy.ma.make_mask_none(data.shape)
 
     # Make a copy of the array, but only with the unmasked pixels
-    data2 = data.copy
-    data2 = numpy.ma.array(data, mask=mask)
+    whr2 = numpy.where( (mask == 0) & (numpy.isfinite(data)))
+    data2 = data[whr2]
+    median = numpy.median(data2)
+    MAD = numpy.median( numpy.abs( data2 - median))
 
-    # Do an histogram and calculate the centre of the bins
-    #n, bins = numpy.histogram(data2,bins=20000, range=(10,5500))
-    n, bins = numpy.histogram(data2, bins=range(1,55000))
-    
+
+    # Do a histogram, bins separated by 1.5
+    minx, maxx = median-7*MAD, median+7*MAD
+    nbins = (maxx - minx) / 1.5
+    n, bins = numpy.histogram(data2, bins=nbins, range=[minx, maxx])
     bincenters = 0.5 * (bins[1:]+bins[:-1])
 
     # Find max position and value 
@@ -71,6 +74,7 @@ def find_sky(args):
     hdr.update("sky", str(coeff[1]), "Sky value")
     hdr.update("sky_std", str(coeff[2]), "Standard deviation of sky")    
     im.flush()
+    im.close()
             
     return coeff
 
