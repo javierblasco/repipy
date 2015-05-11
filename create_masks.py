@@ -207,7 +207,6 @@ def main(arguments = None):
   if args.outside_val is numpy.nan:
       args.outside_val = args.false_val
   
-  
   # Call combine, keep name of the file created
   masknames = mask(args)
   return masknames   
