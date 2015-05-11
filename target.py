@@ -199,7 +199,9 @@ class Target(object):
                     pass
                 break
         else:  # If none of the above was found, try to match the coordinates of the image with the list of standards
-            type, name = self._name_using_coordinates()
+            result = self._name_using_coordinates()
+            if result:  # if not None
+                type, name = result
         return type, name
 
     @utilities.memoize
@@ -247,7 +249,6 @@ class Target(object):
         Create a wcs object from the header and search for each of the stars within the image. If any is present,
         return the type 'standards' and the name of the standard star in the field of view.
         """
-        type, name = 'Unknown', 'Unknown'
         w = wcs.wcs.WCS(self.header.hdr)
         ly, lx = fits.getdata(self.header.im_name).shape
         # ra_min, dec_min will be the coordinates of pixel (0,0)
@@ -255,12 +256,19 @@ class Target(object):
         # But beware, the orientation could be such that ra_min > ra_max if the image is not oriented North
         ra_min, dec_min = w.all_pix2world(numpy.array(zip([0],[0])), 1)[0]
         ra_max, dec_max = w.all_pix2world(numpy.array(zip([lx], [ly])), 1)[0]
-        for ii, star in enumerate(stds['std_names']):
-            ra, dec = stds['ra'][ii], stds['dec'][ii]
-            if min(ra_min, ra_max) < ra < max(ra_min, ra_max) and min(dec_min, dec_max) < dec < max(dec_min, dec_max):
-                    type, name = 'standard', star
-                    break
-        return type, name
+        ra_min, ra_max = numpy.sort([ra_min, ra_max])
+        dec_min, dec_max = numpy.sort([dec_min, dec_max])
+
+        # Victor: astropy is the most stubborn thing on earth, it will find a solution even where there is none to be
+        # found. If that happens, ra_min = 0, dec_min = 0, ra_max = lx and ra_min = ly
+        if ra_min == 0 and dec_min == 0 and ra_max == lx and dec_max == ly:
+            return None
+        else:
+            for ii, star in enumerate(stds['std_names']):
+                ra, dec = stds['ra'][ii], stds['dec'][ii]
+                if (ra_min < ra < ra_max) and (dec_min < dec < dec_max):
+                    type, name = 'standards', star
+                    return type, name
 
 
 
