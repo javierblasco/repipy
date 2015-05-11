@@ -3,6 +3,7 @@ import lemon.passband as passband
 import repipy.extract_mag_airmass_common as extract
 import repipy.utilities as utilities
 import os
+import sys
 import astropy.io.fits as fits
 import repipy.header as header
 import numpy
@@ -14,9 +15,9 @@ from scipy.integrate import simps
 from repipy import __path__ as repipy_path
 import subprocess
 import tempfile
+from collections import OrderedDict
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-
 from lemon import methods
 import repipy
 # Change to the directory where repipy is installed to load pyraf
@@ -27,14 +28,17 @@ with methods.tmp_chdir(repipy.__path__[0]):
     from iraf import apphot
 
 
+regexp_dict = OrderedDict()
+items = (('.*BIAS.*', 'bias'),
+         ('(?=.*SKY)(?=.*FLAT)?', 'skyflat'),
+         ('(?=.*DOME)(?=.*FLAT)', 'domeflat'),
+         ('(.*FLAT.*)', 'flat'),
+         ('(.* BLANK)', 'blank'),
+         ('(?P<name>C(?:IG)?)(?P<number>\d{1,4})', 'cig')
+         )
+for key, val in items:
+    regexp_dict[key] = val
 
-regexp_dict = {'.*BIAS.*'             : 'bias',
-               '(?=.*SKY)(?=.*FLAT)?'  : 'skyflat',
-               '(?=.*DOME)(?=.*FLAT)' : 'domeflat',
-               '(.*FLAT.*)'           :  'flat',
-               '(.* BLANK)'         : 'blank',
-               '(?P<name>C(?:IG)?)(?P<number>\d{1,4})'    : 'cig'
-               }
 standards_file = os.path.join(repipy_path[0], "standards.csv")
 stds = numpy.genfromtxt(standards_file, delimiter=",", dtype=None, autostrip=True, names=['std_names', 'ra', 'dec'])
 
