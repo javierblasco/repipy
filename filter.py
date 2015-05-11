@@ -51,16 +51,16 @@ class Filter(object):
             if self.header.telescope and self._get_filterID():
                 return self.header.telescope.lower() + "_" + str(self._get_filterID())
 
-    @property
-    def filter_sys(self):
-        """ Return the filter system of the filter: Gunn, SDSS, Johnson, Harris, ...
-        :return:
-        """
-        return self._get_filterSYS()
+    #@property
+    #def filter_sys(self):
+    #    """ Return the filter system of the filter: Gunn, SDSS, Johnson, Harris, ...
+    #    :return:
+    #    """
+    #    return self._get_filterSYS()
 
     @property
     def filter_name(self):
-        """ Give the name of the filter in the header.
+        """ Give the name of the filter as it appears in the header.
         :return:
         """
         return self.header.hdr[self.header.filterk]
