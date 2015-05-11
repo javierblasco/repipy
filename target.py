@@ -95,7 +95,7 @@ class Target(object):
         :return:
         """
         ra, dec = None, None
-        if self.objtype == 'standard':
+        if self.objtype == 'standards':
             index =  numpy.where(stds['std_names'] == self.objname)[0]
             ra, dec =  stds['ra'][index], stds['dec'][index]
         else:  # object not a standard
@@ -120,7 +120,7 @@ class Target(object):
     @property
     def spectra(self):
         """ Read in the spectra  of the standards from repipy/standard_spectra/"""
-        if self.objtype == 'standard':
+        if self.objtype == 'standards':
             dir = os.path.join(repipy_path[0], "standard_spectra")
             file = os.path.join(dir, self.__str__())
 
