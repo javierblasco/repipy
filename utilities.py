@@ -202,9 +202,9 @@ def read_image_with_mask(image, mask_keyword=None, limits = 0, header=None):
     # Open both image and mask (if present)
     with fits.open(image, memtype=True) as im:
         data = im[0].data[min_x:max_x, min_y:max_y]
-        if mask_keyword:
+        try:
             mask = fits.open(header[mask_keyword], memtype=True)[0].data[min_x:max_x, min_y:max_y]
-        else:
+        except KeyError:
             mask = np.zeros_like(data)
     return np.ma.array(data, mask=mask, dtype=np.float64)
 
