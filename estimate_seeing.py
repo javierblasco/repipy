@@ -46,7 +46,7 @@ def calculate_seeing(args):
         iraf.psfmeasure(im, coords = "mark1", size = "MFWHM",
                                sbuffer = 10, swidth=10,radius=10,
                                satura = 55000, ignore = "yes", 
-                               imagecur = im_cat, display = "no", 
+                               imagecur = im_cat, display = "no",
                                graphcur = "q.txt", Stdout=ignore, 
                                wcs = args.wcs, logfile=output)
         
