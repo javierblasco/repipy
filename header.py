@@ -115,7 +115,21 @@ class Header(object):
         return self._key_and_value(keywords)[1]
 
 
-
+    def get(self, *keywords):
+        """ Return the value of a keyword in the header.
+        :param keywords: keywords whose value we want to return
+        :return: value of the keyword given by user
+        """
+        try:
+            result = []
+            for ii in keywords:
+                result.append(self.hdr[ii])
+            if len(result) == 1:
+                return result[0]
+            else:
+                return result
+        except:
+            return None
 
 
     def find_in_header(self, list_keywords, dict_patterns):
