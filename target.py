@@ -174,13 +174,22 @@ class Target(object):
     def _get_object(self):
         """ From the header read the object name, and try to find the type of object and name using regular expressions.
         Failing that, try to find in the image one of the list of standard stars: 'standards.csv' """
-        name_in_header = self.header.hdr[self.header.objectk]
+
+        # Default type is Unknown, default name, whatever comes in the header
+        type, name = "Unknown", "Unknown"
+
+        try:
+            name = self.header.hdr[self.header.objectk]
+            if name.replace(" ","") == "":   # no name in the OBJECT field
+                name = "Unknown"
+        except TypeError: # no keyword OBJECT of any sort in header
+            pass
 
         # Search for the patterns above in the "object field" of the header. If the name corresponds to a bias, for
         # example, both the type and the name will be 'bias'. If it is a CIG galaxy, the type will be 'cig', but the
         # name is 'cig' followed by the number of the cig
         for key, value in regexp_dict.iteritems():
-            match = re.match(key, name_in_header.replace(" ",""), re.I)
+            match = re.match(key, name.replace(" ",""), re.I)
             if match:
                 type = value
                 name = value
