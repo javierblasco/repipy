@@ -39,6 +39,7 @@ class Header(object):
         FILTER_WAVELENGTH = ('INSFLWL',),
         FILTER_WIDTH = ('INSFLDWL',),
         FILTER_ID = ('ALFLTID', 'FAFTLID', 'JAGFID', 'INSFLID'),
+        FILTER_SYS = ('JAGFSYS',),
         TELESCOPE = ('TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID'),
         SEEING = ('SEEING', 'FWHM', 'LEMON FWHM'),
         SKY = ("SKY",),
@@ -152,6 +153,7 @@ def _add_property(name, keyword):
     setattr(Header, name, property(getter))
 
 _add_property('filterk', 'FILTER')
+_add_property('filtersysk', 'FILTER_SYS')
 _add_property('airmassk', 'AIRMASS')
 _add_property('exptimek', 'EXPTIME')
 _add_property('objectk', 'OBJECT')
