@@ -1,19 +1,42 @@
 import utilities as utils
 import os
+import sys
 import re
 import numpy
 import repipy.target as target
 from repipy import __path__ as repipy_path
+from lemon import passband
 repipy_path = repipy_path[0]
 
 class Filter(object):
+
+    _system_dict = {'Har': '.*har(ris)?.*',
+               '': '.*(H(a(lpha)?)?|H(a)?)\d{4}.*',
+               'Joh': '.*j(oh(nson)?)?.*',
+               'Gunn': '.*gun(n)?.*',
+               'sdss': '.*(sdss|sloan).*'
+               }
+
+
+
     def __init__(self, header):
         self.header = header
 
+    def __str__(self):
+        """  Short representation of the filter, as filter system + filter, inspired in vterron's passband
+
+        :return:
+        """
+        filtersys = self.header.hdr[ self.header.filtersysk ]
+        filtername = self.filter_name
+        filter_alias =  passband.Passband( filtersys + filtername).__str__()
+        return re.sub('[\s\']', "", filter_alias)
+
+
     def zero_point(self, target):
         """ Return the zero point, given this target """
-        if target.objtype == 'standard':
-            return  2.5 * (numpy.log10(target.counts / self.header.hdr[self.header.exptimek]) - numpy.log10(target.flux))
+        if target.objtype == 'standards':
+            return  2.5 * (numpy.log10(target.counts / self.header.hdr[self.header.exptimek]) - numpy.log10(target.flux()))
 
     @property
     def filter_ID(self):
