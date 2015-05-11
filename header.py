@@ -75,6 +75,10 @@ class Header(object):
         """ Determine the keyword that keeps the name of the filter in the header."""
         return self._get_filterk()
 
+    @property
+    def airmass(self):
+        return self.hdr[self.airmassk]
+
     @utils.memoize
     def _get_telescope(self):
         """ Try to find the telescope name from which the image comes.
