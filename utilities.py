@@ -41,6 +41,19 @@ def tmp_mute():
     finally:
         sys.stdout = std_output
 
+@contextlib.contextmanager
+def tmp_chdir(path):
+    """ A context manager to temporarily change the directory. This has been shamelessly stolen from vterron's LEMON
+
+    """
+
+    cwd = os.getcwd()
+    try:
+        os.chdir(path)
+        yield
+    finally:
+        os.chdir(cwd)
+
 
 
 def sex2deg(RA, DEC):
