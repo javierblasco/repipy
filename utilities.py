@@ -460,7 +460,7 @@ def header_update_keyword(image, keyword, value, comment=""):
     """ Update a header keyword, or create it if not present """
     im = fits.open(image, mode="update")
     hdr = im[0].header
-    hdr.update(keyword, value, comment)
+    hdr[keyword] = (value , comment)
     im.flush()
     im.close()
 
