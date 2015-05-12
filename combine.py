@@ -97,7 +97,7 @@ def combine(args):
         images_filters = []
         for im_name in args.input:
             im = astroim.Astroim(im_name)
-            im_filt = im.filter.__str__
+            im_filt = im.filter.__str__()
             images_filters.append(im_filt)
 
     # If user wants all images to be combined together, regardless of filter:
