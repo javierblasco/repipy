@@ -7,6 +7,7 @@ import os
 import repipy.utilities as utils
 import cosmics_04.cosmics as cosmics
 import astropy.io.fits as fits
+import repipy.astroim as astroim
 """ This routine uses cosmic.py (Malte Tewes, 2010), the python version of LACOS 
     (Van Dokkum, PASP 2001) to remove cosmic rays from an astronomical image. 
      It requires for the cosmic.py module to be in the path, obviously. Some of 
@@ -15,41 +16,46 @@ import astropy.io.fits as fits
 
 
 def remove_cosmics(args):
-    if args.output != '':
-        newfile = args.output
-    else:
-        newfile = utils.add_suffix_prefix(args.input[0], prefix = args.prefix, \
-                                        suffix = args.suffix )
-    
-    # Read the FITS :
-    array, header = cosmics.fromfits(args.input[0])
-    # Build the object :
-    c = cosmics.cosmicsimage(array, gain = float(args.gain), sigfrac = 0.3, \
-                             readnoise = float(args.readnoise), objlim = 5.0, \
-                             sigclip = float(args.sigclip))
-    # Run the full artillery :
-    c.run(maxiter = int(args.maxiter))
-    
-    # Write the cleaned image into a new FITS file, conserving the header:
-    cosmics.tofits(newfile, c.cleanarray, header)
-    
-    # If you want the mask, here it is :
-    if args.mask == True:
-        mask = utils.add_suffix_prefix(newfile, prefix="cosmic_mask")    
-        cosmics.tofits(mask, c.mask, header)
-                          
-    # And write info to the header:
-    im = fits.open(newfile, mode='update')
-    hdr = im[0].header
-    hdr.add_history("COSMIC RAYS REMOVED:")
-    oldname = os.path.split(args.input[0])[1]
-    newname = os.path.split(newfile)[1]
-    hdr.add_history(oldname + " --> " + newname)
-    hdr.add_history("Parameters used by cosmics.py. Gain=" + args.gain + \
-                    ", sigfrac=0.3, objlim=5.0, sigclip=" + args.sigclip + \
-                    ", readnoise=" + args.readnoise)   
-    im.flush()
-    im.close()                
+
+    for im_name in args.input:
+        if args.output != '':
+            newfile = args.output
+        else:
+            newfile = utils.add_suffix_prefix(im_name, prefix = args.prefix, \
+                                            suffix = args.suffix )
+
+        # Read the FITS :
+        array, header = cosmics.fromfits(im_name)
+        # Build the object :
+        im = astroim.Astroim(im_name)
+        gain = im.header.get(im.header.gaink)
+        readnoise = im.header.get(im.header.ccdronk)
+        c = cosmics.cosmicsimage(array, gain = float(gain), sigfrac = 0.3, \
+                                 readnoise = float(readnoise), objlim = 5.0, \
+                                 sigclip = float(args.sigclip))
+        # Run the full artillery :
+        c.run(maxiter = int(args.maxiter))
+
+        # Write the cleaned image into a new FITS file, conserving the header:
+        cosmics.tofits(newfile, c.cleanarray, header)
+
+        # If you want the mask, here it is :
+        if args.mask == True:
+            mask = utils.add_suffix_prefix(newfile, prefix="cosmic_mask")
+            cosmics.tofits(mask, c.mask, header)
+
+        # And write info to the header:
+        im = fits.open(newfile, mode='update')
+        hdr = im[0].header
+        hdr.add_history("COSMIC RAYS REMOVED:")
+        oldname = os.path.split(im_name)[1]
+        newname = os.path.split(newfile)[1]
+        hdr.add_history(oldname + " --> " + newname)
+        hdr.add_history("Parameters used by cosmics.py. Gain=" + str(gain) + \
+                        ", sigfrac=0.3, objlim=5.0, sigclip=" + args.sigclip + \
+                        ", readnoise=" + str(readnoise))
+        im.flush()
+        im.close()
     return newfile
     
     
@@ -57,8 +63,8 @@ def remove_cosmics(args):
 
 # Create parser
 parser = argparse.ArgumentParser(description='Remove cosmic rays in images')
-parser.add_argument("input",metavar='input', action='store', nargs=1,  \
-                    help='Image to be corrected for cosmic ray hits.')
+parser.add_argument("input",metavar='input', action='store', nargs="+",  \
+                    type=str, help='Images to be corrected for cosmic ray hits.')
 parser.add_argument("--output", metavar='output', action='store', dest='output', \
                     default='', help='Name of output file.')                    
 parser.add_argument("--prefix", metavar="prefix", dest='prefix', action='store', \
