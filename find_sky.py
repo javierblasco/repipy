@@ -20,61 +20,63 @@ def gauss(x, *p):
     return cont + A*numpy.exp(-(x-mu)**2/(2.*sigma**2))    
 
 def find_sky(args):
-    # Separate path and file
-    imdir, imname = os.path.split(args.input[0])
 
-    # Read images
-    im = fits.open(args.input[0], mode='update')
-    hdr = im[0].header
-    data = fits.getdata(args.input[0]).astype(numpy.float64)
-    
-    # If mask exist read it, otherwise build it with all values unmasked
-    try:
-        maskname = os.path.join(imdir, hdr[args.mask_key])
-        mask = fits.getdata(maskname)
-    except KeyError:
-        mask = numpy.ma.make_mask_none(data.shape)
+    for im_name in args.input:
+        # Separate path and file
+        imdir, imname = os.path.split(im_name)
 
-    # Make a copy of the array, but only with the unmasked pixels
-    whr2 = numpy.where( (mask == 0) & (numpy.isfinite(data)))
-    data2 = data[whr2]
-    median = numpy.median(data2)
-    MAD = numpy.median( numpy.abs( data2 - median))
+        # Read images
+        im = fits.open(im_name, mode='update')
+        hdr = im[0].header
+        data = fits.getdata(im_name).astype(numpy.float64)
+
+        # If mask exist read it, otherwise build it with all values unmasked
+        try:
+            maskname = os.path.join(imdir, hdr[args.mask_key])
+            mask = fits.getdata(maskname)
+        except KeyError:
+            mask = numpy.ma.make_mask_none(data.shape)
+
+        # Make a copy of the array, but only with the unmasked pixels
+        whr2 = numpy.where( (mask == 0) & (numpy.isfinite(data)))
+        data2 = data[whr2]
+        median = numpy.median(data2)
+        MAD = numpy.median( numpy.abs( data2 - median))
 
 
-    # Do a histogram, bins separated by 1.5
-    minx, maxx = median-7*MAD, median+7*MAD
-    nbins = (maxx - minx) / 1.5
-    n, bins = numpy.histogram(data2, bins=nbins, range=[minx, maxx])
-    bincenters = 0.5 * (bins[1:]+bins[:-1])
+        # Do a histogram, bins separated by 1.5
+        minx, maxx = median-7*MAD, median+7*MAD
+        nbins = (maxx - minx) / 1.5
+        n, bins = numpy.histogram(data2, bins=nbins, range=[minx, maxx])
+        bincenters = 0.5 * (bins[1:]+bins[:-1])
 
-    # Find max position and value 
-    maxpos = n.argmax()
-    maxvalue = bincenters[maxpos]
+        # Find max position and value
+        maxpos = n.argmax()
+        maxvalue = bincenters[maxpos]
 
-    # First guess for a fit
-    p0 = [n[maxpos],maxvalue,5,numpy.mean(n)]
-    coeff, varmatrix = curve_fit(gauss, bincenters,n,p0=p0)
+        # First guess for a fit
+        p0 = [n[maxpos],maxvalue,5,numpy.mean(n)]
+        coeff, varmatrix = curve_fit(gauss, bincenters,n,p0=p0)
 
-    # Plot the histogram
-    pyplot.plot(bincenters, n, 'o')
-    
-    # Fit the histogram to calculate centre and standard deviation
-    hist_fit = gauss(bincenters, *coeff)
-    
-    # Plot the resulting fit
-    if args.plot == True:
-        pyplot.plot(bincenters,hist_fit)
-        pyplot.draw()
-        pyplot.show()
+        # Plot the histogram
+        pyplot.plot(bincenters, n, 'o')
 
-    # Including (or updating) sky values in the header of the image
-    hdr.add_history("- Added sky value and std dev estimated from histogram of" +\
-                    " image. See sky and sky_std keywords.")
-    hdr.update("sky", str(coeff[1]), "Sky value")
-    hdr.update("sky_std", str(coeff[2]), "Standard deviation of sky")    
-    im.flush()
-    im.close()
+        # Fit the histogram to calculate centre and standard deviation
+        hist_fit = gauss(bincenters, *coeff)
+
+        # Plot the resulting fit
+        if args.plot == True:
+            pyplot.plot(bincenters,hist_fit)
+            pyplot.draw()
+            pyplot.show()
+
+        # Including (or updating) sky values in the header of the image
+        hdr.add_history("- Added sky value and std dev estimated from histogram of" +\
+                        " image. See sky and sky_std keywords.")
+        hdr["sky"] = (str(coeff[1]), "Sky value")
+        hdr["sky_std"] = (str(coeff[2]), "Standard deviation of sky")
+        im.flush()
+        im.close()
             
     return coeff
 
@@ -90,7 +92,7 @@ def main(arguments=None):
 parser = argparse.ArgumentParser(description='Find sky for a selection of images.')
 
 # Add necessary arguments to parser
-parser.add_argument("input", metavar='input', action='store', nargs=1, \
+parser.add_argument("input", metavar='input', action='store', nargs="+", type=str, \
                    help='list of input images for which to estimate sky.')
 parser.add_argument("--plot", dest='plot', action='store_true', default=False, \
                     help='Plot histogram of image to find sky.')
