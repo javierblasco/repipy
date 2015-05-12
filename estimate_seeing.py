@@ -20,6 +20,7 @@ import argparse
 import sys
 from scipy import spatial 
 import astropy.wcs.wcs as wcs 
+import os
 
 from lemon import methods
 import repipy
@@ -143,8 +144,10 @@ parser.add_argument("input", metavar='input', action='store', help='list of ' +\
                     'input images for which to estimate the FWHM.',
                     nargs="+", type=str)
 parser.add_argument("--cat", metavar='cat', action='store', dest="cat",
-                    help='list of ' +\
-                    'catalogs of the position of stars for the input images.', \
+                    help='list of catalogues of the position of stars for the input images. ' +\
+                        'You can decide to give 1 catalogue per image, 1 catalogue for all the images '+\
+                        '(assming all images are of the same object) or None if catalogues exist for all the ' +\
+                        'images and are named exactly like the image but with .radec extension.',
                     nargs=1, type=str)
 parser.add_argument("--wcs", metavar="wcs_in", action="store", dest="wcs", 
                     default="logical",
@@ -160,10 +163,20 @@ def main(arguments = None):
       arguments = sys.argv[1:]
 
   args = parser.parse_args(arguments)
-  
-  if len(args.input) != len(args.cat):
-    sys.exit("\n\n number of star catalogues and input images do not coincide \n ")      
-      
+
+  # Option 1: the user did not provide any catalogues, because they are named like the images, but with '.radec' extension
+  # Option 2: the user provided a single catalogue, because all the images contain the same object
+  # Option 3: the user provided an invalid number of catalogues for the number of images.
+  if args.cat is None:
+      args.cat = [utilities.replace_extension(im_name, ".radec") for im_name in args.input]
+      if not all([os.path.exists(cat_name) for cat_name in args.cat]):
+          sys.exit("Catalogues not found! Check the --cat option in the description: type estimate_seeing.py -h")
+  elif len(args.cat) == 1:
+      args.cat *= len(args.input)
+  elif len(args.input) != len(args.cat):
+      sys.exit("\n\n number of star catalogues and input images do not coincide \n ")
+
+
   calculate_seeing(args)  
   return None    
      
