@@ -12,7 +12,6 @@ import collections
 import repipy
 import repipy.utilities as utils
 import repipy.arith as arith_images
-import repipy.find_keywords as find_keywords
 from lemon import methods
 
 # Change to the directory where repipy is installed to load pyraf
