@@ -5,14 +5,13 @@
 import os
 import argparse
 import numpy
-from scipy.stats import mode as mode
 import sys
 import astropy.io.fits as fits
 import collections
 import repipy.utilities as utils
 import repipy.arith as arith_images
 import repipy.astroim as astroim
-import repipy.find_keywords as find_keywords
+
 
 def home_made_median(map_cube, cube):
     """ map_cube indicates the number of elements of cube that are not 

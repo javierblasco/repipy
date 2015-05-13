@@ -35,7 +35,6 @@ import dateutil.parser
 import datetime
 import StringIO
 import re
-import repipy.find_keywords as find_keywords
 import numpy
 import repipy.utilities as utils
 import repipy.astroim as astroim
