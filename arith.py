@@ -15,13 +15,17 @@ import operator
     
 def arith(args):
     output_list = []        
-    for image in args.input1:        
+    for operand1, operand2 in zip(args.input1, args.input2):
         # Read inputs as masked arrays or numbers (input2 might be a scalar)  
-        im1 = utils.read_image_with_mask(image, args.mask_key)        
+        im1 = utils.read_image_with_mask(operand1, args.mask_key)
         try: # if second operand is a number we still need it in a masked array
-            im2 = numpy.ma.array([float(args.input2[0])],mask=[0])
+            value2 = numpy.ma.array([float(operand2)],mask=[0])
         except (ValueError,TypeError):
-            im2 = utils.read_image_with_mask(args.input2[0], args.mask_key)        
+            value2 = utils.read_image_with_mask(operand2, args.mask_key)
+
+        # If --keyword was passed, read from the header of the image the value and use it, instead of the full image
+        if args.keyword:
+            value2 = numpy.ma.array( fits.getval(operand2, args.keyword) )
 
         # Do the actual operation. Result is a masked array which masks 
         # any pixel if it is masked either in im1 or in im2.
@@ -33,20 +37,22 @@ def arith(args):
 
         # Case of mean or median for Input2 
         if args.median == True:
-            operand2 = numpy.ma.median(im2)
+            value2 = numpy.ma.median(value2)
         elif args.mean == True:
-            operand2 = numpy.ma.mean(im2)
-        else:
-            operand2 = im2.data
+            value2 = numpy.ma.mean(value2)
 
         oper = operations[args.operation[0]]
         result = numpy.zeros_like(im1)
-        result.data[:] = oper(im1.data, operand2)  # Actual operation of images                
-        result.mask[:] = im1.mask | im2.mask       # If any is masked, result is       
+
+        print im1.data
+        print value2.data
+
+        result.data[:] = oper(im1.data, value2.data)  # Actual operation of images
+        result.mask[:] = im1.mask | value2.mask       # If any is masked, result is masked as well
 
 
         # If args.fill_val is present, use it
-        if args.fill_val != '':
+        if args.fill_val:
             result.data[:] = result.filled(float(args.fill_val))
                     
         # If output exists use it, otherwise use the input. Prefix/suffix might
@@ -54,7 +60,7 @@ def arith(args):
         if args.output != '': 
             outpt = os.path.abspath(args.output)
         else:
-            outpt = os.path.abspath(image)
+            outpt = os.path.abspath(operand1)
             
         # Separate (path, file) and (file root, extensions). Then build new name. 
         outdir, outfile = os.path.split(outpt)   
@@ -68,24 +74,21 @@ def arith(args):
         else:
             mask_name = outpt + ".msk"
 
-        # Prepare a header starting from input1 header 
-        hdr_im = fits.getheader(image)
-        name2 = os.path.split(args.input2[0])[1]
+        # Prepare a header starting from input1 header
+        hdr_im = fits.getheader(operand1)
+        name2 = os.path.split(operand2)[1]
         if args.median:  # if single number because median used
-            name2 = "median(" + name2 + ") (" + str(im2) + ")"
+            name2 = "median(" + name2 + ") (" + str(value2) + ")"
         elif args.mean:  # if single number because mean used
-            name2 = "mean(" + name2 + ") (" + str(im2) + ")"
+            name2 = "mean(" + name2 + ") (" + str(value) + ")"
             
         # Write a HISTORY element to the header    
-        #hdr_im.add_history(" - Operation performed: " + image + " " + 
+        #hdr_im.add_history(" - Operation performed: " + image1 + " " +
         #                   args.operation[0] + " " + name2)
         try:
             hdr_mask = fits.PrimaryHDU(result.mask.astype(int)).header
         except:
-            print type(im1), type(result), type(im2)
-            print im1
-            print result
-            print im2
+            pass
            
         hdr_mask.add_history("- Mask corresponding to image: " + outpt)
         
@@ -111,7 +114,7 @@ parser.add_argument("input1", metavar='input1', action='store', help='list of ' 
                     nargs="+", type=str)
 parser.add_argument("operation", metavar='operation', action='store', type=str, 
 		   help='type of operation (+,-,*,/) to be done', nargs=1)
-parser.add_argument("input2",metavar='input2', action='store', nargs=1,  \
+parser.add_argument("input2",metavar='input2', action='store', nargs="+", type=str, \
                     help='image (or value) with which to perform the operation')
 parser.add_argument("--output", metavar='output', dest='output', action='store', \
                    default='', help='output image in which to save the result.' +\
@@ -153,6 +156,14 @@ parser.add_argument("--mean", action="store_true", dest="mean", default=False, \
 parser.add_argument("--median", action="store_true", dest="median", default=False, \
                     help='Input2 is not used as an image, but the median is '+\
                     'calculated and used instead.')
+parser.add_argument("--keyword", action="store", dest="keyword", default='', \
+                    help=' If operand2 is a fits image and this argument is passed with the name of a keyword, '+\
+                         'do the operation using the value in the header for the given keyword, instead of operating '+\
+                         'using  the images. For example, if you pass "arith.py --keyword exptime im1.fits / im1.fits '+\
+                         'you are telling arith.py to divide the image im1.fits by the value of the keyword exptime '+\
+                         'in its header (thus normalizing to 1sec exposure time).')
+
+
 	
 
 def main(arguments = None):
@@ -161,6 +172,24 @@ def main(arguments = None):
       arguments = sys.argv[1:]
   
   args = parser.parse_args(arguments)
+
+  all_together = args.input1 + args.operation + args.input2
+  valid_ops = ["+", "-", "*", "/"]
+  for ii, elem in enumerate(all_together):
+      if elem in valid_ops:
+          op_index = ii
+  args.input1 = all_together[:op_index]
+  args.operation = all_together[op_index]
+  args.input2 = all_together[op_index+1:]
+
+  # input2 can be a single value/image or as many as input1
+  if len(args.input1) == len(args.input2):
+      pass
+  elif len(args.input2) == 1:
+      args.input2 *= len(args.input1)
+  else:
+      sys.exit("ERROR! Input2 must be either 1 element or as many as input1")
+
 
   # In order to allow "  -c" to be able to use the hyphen as suffix.
   if args.suffix != "":
