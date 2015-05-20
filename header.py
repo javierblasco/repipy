@@ -28,7 +28,7 @@ class Header(object):
         and the keywords for the most important parameters: airmass, object, exposure time, ...
     """
     _KEYWORDS_ALIASES = dict(
-        FILTER = ('INSFLNAM', 'FILTER', 'JAGFBAND', 'ALFLTNM'),
+        FILTER = ('INSFLNAM', 'FILTER', 'JAGFBAND', 'ALFLTNM', 'WFFBAND'),
         EXPTIME = ('EXPTIME',),
         OBJECT = ('OBJECT',),
         DATE = ('DATE-OBS',),
@@ -38,8 +38,8 @@ class Header(object):
         AIRMASS = ('AIRMASS',),
         FILTER_WAVELENGTH = ('INSFLWL',),
         FILTER_WIDTH = ('INSFLDWL',),
-        FILTER_ID = ('ALFLTID', 'FAFTLID', 'JAGFID', 'INSFLID'),
-        FILTER_SYS = ('JAGFSYS',),
+        FILTER_ID = ('ALFLTID', 'FAFTLID', 'JAGFID', 'INSFLID', 'WFFID'),
+        FILTER_SYS = ('JAGFSYS', 'WFFPSYS'),
         TELESCOPE = ('TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID'),
         SEEING = ('SEEING', 'FWHM', 'LEMON FWHM'),
         SKY = ("SKY",),
@@ -51,7 +51,8 @@ class Header(object):
     _TELESCOPES_ALIASES =  { 'NOT' : ['ALFOSC', 'NOT'],
                              'CAHA' : ['DSAZ', 'CAFOS', 'CA-2.2', 'CAHA'],
                              'OSN' : ['OSN', 'OSN 1.5m'],
-                             'JKT' : ['JKT']
+                             'JKT' : ['JKT'],
+                             'INT' : ['INT']
     }
 
 
