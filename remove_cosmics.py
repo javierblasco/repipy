@@ -28,6 +28,11 @@ def remove_cosmics(args):
         array, header = cosmics.fromfits(im_name)
         # Build the object :
         im = astroim.Astroim(im_name)
+
+        # If object is a flat, bias or flat, do not remove_cosmics
+        if im.target.objtype in ["bias", "domeflat", "skyflat"]:
+            continue
+
         gain = im.header.get(im.header.gaink)
         readnoise = im.header.get(im.header.ccdronk)
         c = cosmics.cosmicsimage(array, gain = float(gain), sigfrac = 0.3, \
