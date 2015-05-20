@@ -46,7 +46,7 @@ def include_WCS(args):
 
 
         # Prepare the arguments of solve-field
-        arguments = ["solve-field", "--no-plots", "--no-fits2fits", "--use-sextractor",
+        arguments0 = ["solve-field", "--no-plots", "--no-fits2fits", "--use-sextractor",
                      "--overwrite", "--new-fits", resultfile, "--wcs", wcsfile, "--index-xyls", xylsfile,
                      "--rdls", rdlsfile, "--axy", axyfile, "--solved", solutionfile, "--match", matchfile,
                      "--cpulimit", "120", "--cpulimit", "120", "--corr", corrfile, im_name]
@@ -57,29 +57,29 @@ def include_WCS(args):
                 ra, dec = im.header.get( im.header.RAk, im.header.DECk)
                 ra, dec = utilities.sex2deg(ra, dec)
                 radius = 1
-                arguments = arguments + ["--ra", str(ra), "--dec", str(dec), "--radius", str(args.radius)]
+                arguments = arguments0 + ["--ra", str(ra), "--dec", str(dec), "--radius", str(args.radius)]
             except:
-                pass
+                arguments = arguments0
 
         # Run astrometry, in case of not solving it on the first attempt, try fitting freely (no RA, DEC used)
         subprocess.call(arguments)
         if not os.path.exists(solutionfile):
-            subprocess.call(arguments[:-6])
+            subprocess.call(arguments0)
 
         # Only if we have a solution, move resulting files around
         if os.path.exists(solutionfile):
             # Move important files around
             shutil.move(resultfile, new_file)
-            with fits.open(rdlsfile) as table:
+            with fits.open(corrfile) as table:
                 cat_radec = utilities.replace_extension(im_name, "radec")
                 with open(cat_radec, "w") as f:
-                    for line in table[1].data:
-                        f.write(str(line[0]) + " " + str(line[1]) + "\n")
+                    for ra, dec in zip(table[1].data["field_ra"], table[1].data["field_dec"]):
+                        f.write(str(ra) + " " + str(dec) + "\n")
             output_names[ii] = new_file
 
-        # If --remove_original is True
-        if args.remove_orig:
-            os.unlink(im_name)
+            # If --remove_original is True
+            if args.remove_orig:
+                os.unlink(im_name)
 
     return output_names
 
