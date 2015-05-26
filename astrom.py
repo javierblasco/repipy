@@ -56,7 +56,6 @@ def include_WCS(args):
             try:
                 ra, dec = im.header.get( im.header.RAk, im.header.DECk)
                 ra, dec = utilities.sex2deg(ra, dec)
-                radius = 1
                 arguments = arguments0 + ["--ra", str(ra), "--dec", str(dec), "--radius", str(args.radius)]
             except:
                 arguments = arguments0
@@ -107,7 +106,7 @@ parser.add_argument("--remove_original",  dest='remove_orig', action="store_true
                           ' --overwrite is used.')
 parser.add_argument("--overwrite", dest='overwrite', action="store_true",
                      help='Overwrite the original images. This keyword will override both --remove_original and --suffix')
-parser.add_argument("--radius", dest='radius', action="store", type=float,
+parser.add_argument("--radius", dest='radius', action="store", type=float, default="1",
                      help='Search radius. If the RA and DEC are found in the header, astrometry will look for '+\
                      'solutions within this radius of those coordinates. Default=1.0')
 
