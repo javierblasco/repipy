@@ -44,9 +44,6 @@ def arith(args):
         oper = operations[args.operation[0]]
         result = numpy.zeros_like(im1)
 
-        print im1.data
-        print value2.data
-
         result.data[:] = oper(im1.data, value2.data)  # Actual operation of images
         result.mask[:] = im1.mask | value2.mask       # If any is masked, result is masked as well
 
