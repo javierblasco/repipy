@@ -30,7 +30,7 @@ def remove_cosmics(args):
         im = astroim.Astroim(im_name)
 
         # If object is a flat, bias or flat, do not remove_cosmics
-        if im.target.objtype in ["bias", "domeflat", "skyflat"]:
+        if im.target.objtype in ["bias", "domeflat", "skyflat", "flat"]:
             continue
 
         gain = im.header.get(im.header.gaink)
