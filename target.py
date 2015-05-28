@@ -249,7 +249,11 @@ class Target(object):
         Create a wcs object from the header and search for each of the stars within the image. If any is present,
         return the type 'standards' and the name of the standard star in the field of view.
         """
-        w = wcs.wcs.WCS(self.header.hdr)
+        try:
+            w = wcs.wcs.WCS(self.header.hdr)
+        except ValueError:   # problems, for example, with the SIP polynomials
+            return None
+
         ly, lx = fits.getdata(self.header.im_name).shape
         # ra_min, dec_min will be the coordinates of pixel (0,0)
         # ra_max, dec_max the coordinates of the upper right corner of the image.
