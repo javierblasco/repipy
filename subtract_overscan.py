@@ -9,6 +9,17 @@ import repipy.utilities as utilities
 from scipy.ndimage.filters import median_filter
 
 
+def fit_pol(y, deg=3):
+    """ Fit a polynomial to a vector. Return the model values
+    :param y:
+    :return:
+    """
+    x = numpy.arange(len(y))
+    coeff = numpy.polyfit(x, y, deg)
+    fit = numpy.poly1d(coeff)
+    return fit(x)
+
+
 def subtract(args):
     for im_name in args.input1:
         if args.overwrite:
@@ -21,20 +32,22 @@ def subtract(args):
         data = im[0].data
         hdr = im[0].header
 
-        # Subtract the overscan region
+        # Extract the overscan region
         x0, x1, y0, y1 = args.region
         overscan = data.copy()[x0:x1, y0:y1]
 
-        # Box car convolution to smooth the overscan region
-        overscan_filtered = median_filter(overscan, 5)
 
         # Average over the short axis
         if overscan.shape[0] < overscan.shape[1]:
-            average = numpy.median(overscan_filtered, axis=0)
-            data[:, y0:y1] -= average
+            average = numpy.median(overscan, axis=0)
+            # Fit a polynomial and return the fitted values
+            fitted_overscan = fit_pol(average, 3)
+            data[:, y0:y1] -= fitted_overscan
         else:
-            average = numpy.median(overscan_filtered, axis=1)
-            data[x0:x1, :] = (data[x0:x1, :].T - average).T
+            average = numpy.median(overscan, axis=1)
+            # Fit a polynomial and return the fitted values
+            fitted_overscan = fit_pol(average, 3)
+            data[x0:x1, :] = (data[x0:x1, :].T - fitted_overscan).T
 
 
         # Write to the output file
