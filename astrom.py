@@ -36,7 +36,7 @@ def perform_cosmic_removal(im_name, output=None):
     if output is None:
         output = im_name
 
-    arguments = [im_name, "--output", output, "--maxiter", "1"]
+    arguments = [im_name, "--output", output, "--maxiter", "3"]
 
     im = astroim.Astroim(im_name)
 
@@ -84,13 +84,12 @@ def include_WCS(args):
 
         # To avoid having too much residual crap in the folder, the output of astrometry will go to tmp (--dir /tmp).
         arguments0 = ["solve-field", "--no-plots", "--no-fits2fits", "--use-sextractor", "--dir", "/tmp",
-                      "--overwrite", "--new-fits", output_wcs, "--cpulimit", "120", "--cpulimit", "120",
-                      "--tweak-order", "2", "--corr", corrfile, input_image]
+                      "--overwrite", "--new-fits", output_wcs, "--tweak-order", "2", "--corr", corrfile, input_image]
 
         try:  # Try to add the RA, DEC, Radius options to constrain the search
             ra, dec = im.header.get(im.header.RAk, im.header.DECk)
             ra, dec = utilities.sex2deg(ra, dec)
-            arguments = arguments0 + ["--ra", str(ra), "--dec", str(dec), "--radius", str(args.radius)]
+            arguments = arguments0 + ["--ra", str(ra), "--dec", str(dec), "--radius", str(args.radius), "--cpulimit", "20"]
         except:
             arguments = arguments0
 
