@@ -91,9 +91,7 @@ def arith(args):
         # Update the keyword if asked by user
         if args.update and args.keyword:
             old_keyword = hdr_im[args.keyword]
-            hdr_im[args.keyword] = (oper(old_keyword, old_keyword), "Before: {0}".format(old_keyword) )
-
-
+            hdr_im[args.keyword] = (oper(old_keyword, value2.data), "Before: {0}".format(old_keyword) )
 
         # Now save the resulting image and mask
         if os.path.isfile(outpt):
