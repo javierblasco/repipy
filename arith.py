@@ -78,7 +78,7 @@ def arith(args):
             name2 = "median(" + name2 + ") (" + str(value2) + ")"
         elif args.mean:  # if single number because mean used
             name2 = "mean(" + name2 + ") (" + str(value) + ")"
-            
+
         # Write a HISTORY element to the header    
         #hdr_im.add_history(" - Operation performed: " + image1 + " " +
         #                   args.operation[0] + " " + name2)
@@ -86,9 +86,15 @@ def arith(args):
             hdr_mask = fits.PrimaryHDU(result.mask.astype(int)).header
         except:
             pass
-           
         hdr_mask.add_history("- Mask corresponding to image: " + outpt)
-        
+
+        # Update the keyword if asked by user
+        if args.update and args.keyword:
+            old_keyword = hdr_im[args.keyword]
+            hdr_im[args.keyword] = (oper(old_keyword, old_keyword), "Before: {0}".format(old_keyword) )
+
+
+
         # Now save the resulting image and mask
         if os.path.isfile(outpt):
             os.remove(outpt)
@@ -159,6 +165,12 @@ parser.add_argument("--keyword", action="store", dest="keyword", default='', \
                          'using  the images. For example, if you pass "arith.py --keyword exptime im1.fits / im1.fits '+\
                          'you are telling arith.py to divide the image im1.fits by the value of the keyword exptime '+\
                          'in its header (thus normalizing to 1sec exposure time).')
+parser.add_argument("--update_keyword", action="store_true", dest="update", default=False, \
+                    help='Update, in the first image, the header keyword passed using --keyword. This is useful, '+\
+                         'for example, when you do arith.py --keyword EXPTIME im1 / im1 to normalize the image '+\
+                         'dividing by the exptime. In this case, you want to update the keyword in the header of the '+\
+                         'image. It has no effect if the --keyword was not passed. ')
+
 
 
 	
