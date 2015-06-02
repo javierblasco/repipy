@@ -16,7 +16,6 @@ import shutil
 import tempfile
 import argparse
 import astropy.io.fits as fits
-import astropy.wcs as wcs
 
 
 def get_basename(im_name):
@@ -40,7 +39,7 @@ def perform_cosmic_removal(im_name, output=None):
 
     im = astroim.Astroim(im_name)
 
-    needed_keys = [("--gain",im.header.gaink), ("--readnoise",im.header.ccdronk)]
+    needed_keys = [("--gain", im.header.gaink), ("--readnoise", im.header.ccdronk)]
     for arg, kk in needed_keys:
         if kk is None:
             continue
@@ -51,7 +50,7 @@ def perform_cosmic_removal(im_name, output=None):
     return new_name
 
 
-def include_WCS(args):
+def include_wcs(args):
     # Copy input names into output names
     output_names = args.input[:]
     for ii, im_name in enumerate(args.input):
@@ -136,10 +135,10 @@ parser = argparse.ArgumentParser(description=""" Find the WCS for a set of image
 
 
 # Add necessary arguments to parser
-parser.add_argument("input", metavar='input', action='store', help='list of ' + \
-                                                                   'images from which to compute the WCS.', nargs="+",
+parser.add_argument("input", metavar='input', action='store', help='list of '
+                    'images from which to compute the WCS.', nargs="+",
                     type=str)
-parser.add_argument("--suffix", metavar="suffix", dest='suffix', action='store', \
+parser.add_argument("--suffix", metavar="suffix", dest='suffix', action='store',
                     default='', type=str, help='suffix to be added at the end ' + \
                                                'of the image input list to generate the outputs. There ' + \
                                                'is a peculiarity with argparse: if you pass, e.g., "-c" to ' + \
