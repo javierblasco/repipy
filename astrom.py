@@ -71,11 +71,9 @@ def include_wcs(args):
         _, input_image = tempfile.mkstemp(prefix=basename, suffix=".fits")
         shutil.copy2(im_name, input_image)
 
-
         # Remove cosmics
         if args.cosmics:
             perform_cosmic_removal(input_image)
-
 
         # The output of the WCS process of astrometry.net will go to a .new file, the coordinates to a .coor
         _, output_wcs = tempfile.mkstemp(prefix=basename, suffix=".new")
@@ -83,12 +81,14 @@ def include_wcs(args):
 
         # To avoid having too much residual crap in the folder, the output of astrometry will go to tmp (--dir /tmp).
         arguments0 = ["solve-field", "--no-plots", "--no-fits2fits", "--use-sextractor", "--dir", "/tmp",
-                      "--overwrite", "--new-fits", output_wcs, "--tweak-order", "2", "--corr", corrfile, input_image]
+                      "--overwrite", "--new-fits", output_wcs, "--corr", corrfile, input_image]
+        arguments0 += args.extras
 
         try:  # Try to add the RA, DEC, Radius options to constrain the search
             ra, dec = im.header.get(im.header.RAk, im.header.DECk)
             ra, dec = utilities.sex2deg(ra, dec)
-            arguments = arguments0 + ["--ra", str(ra), "--dec", str(dec), "--radius", str(args.radius), "--cpulimit", "20"]
+            arguments = arguments0 + ["--ra", str(ra), "--dec", str(dec), "--radius", str(args.radius),
+                                      "--cpulimit", "20"]
         except:
             arguments = arguments0
 
@@ -161,6 +161,10 @@ parser.add_argument("--overwrite", dest='overwrite', action="store_true",
 parser.add_argument("--radius", dest='radius', action="store", type=float, default="1",
                     help='Search radius. If the RA and DEC are found in the header, astrometry will look for ' + \
                          'solutions within this radius of those coordinates. Default=1.0')
+parser.add_argument('-o', action = 'append', dest = 'extras',
+                  default = [], help = "additional options to pass to Astrometry.net's "
+                  "solve-field. For example: -o ' --downsample 2' -o ' --tweak-order 2'. "
+                  "This option may be used multiple times.")
 
 
 def main(arguments=None):
@@ -183,7 +187,10 @@ def main(arguments=None):
     # If a suffix was passed, check that you remove any blank spaces
     args.suffix = args.suffix.strip()
 
-    output_list = include_WCS(args)
+    # If -o is used, make sure you split the command
+    args.extras = sum( [ii.strip().split() for ii in args.extras] ,[])
+
+    output_list = include_wcs(args)
     return output_list
 
 
