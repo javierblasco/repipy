@@ -1,0 +1,8 @@
+PARAMETERS_NAME   ./default.param
+FILTER_NAME       ./default.conv
+STARNNW_NAME      ./default.nnw
+DETECT_MINAREA         5
+THRESH_TYPE         RELATIVE
+DETECT_THRESH        3
+ANALYSIS_THRESH     3.0
+CATALOG_TYPE        FITS_1.0
