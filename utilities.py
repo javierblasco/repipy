@@ -60,12 +60,12 @@ def sex2deg(RA, DEC):
     try:
         hh, mm, ss = RA.split(":")
         RA = (float(hh) + float(mm) / 60. + float(ss) / 3600.) * 15
-    except ValueError, AttributeError:
+    except (ValueError, AttributeError):
         pass
     try:
         dd, mm, ss = DEC.split(":")
         DEC = (float(dd) + float(mm) / 60. + float(ss) / 3600.)
-    except ValueError, AttributeError:
+    except (ValueError, AttributeError):
         pass
     return RA, DEC
 
