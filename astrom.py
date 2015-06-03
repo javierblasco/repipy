@@ -35,7 +35,7 @@ def perform_cosmic_removal(im_name, output=None):
     if output is None:
         output = im_name
 
-    arguments = [im_name, "--output", output, "--maxiter", "3"]
+    arguments = [im_name, "--output", output, "--maxiter", "2"]
 
     im = astroim.Astroim(im_name)
 
