@@ -52,6 +52,21 @@ def perform_cosmic_removal(im_name, output=None):
     return new_name
 
 
+def build_default_sex():
+    """ Build a default.sex file in the path of repipy
+    :return:
+    """
+    with open(os.path.join(repipy_path, "default.sex"), 'w') as fd:
+        fd.write("PARAMETERS_NAME   {0}  \n".format(os.path.join(repipy_path, "default.param")))
+        fd.write("FILTER_NAME       {0}  \n".format(os.path.join(repipy_path, "default.conv")))
+        fd.write("STARNNW_NAME      {0}  \n".format(os.path.join(repipy_path, "default.nnw")))
+        fd.write("DETECT_MINAREA         5  \nTHRESH_TYPE         RELATIVE \n"
+                 "DETECT_THRESH        3  \nANALYSIS_THRESH     3.0  \nCATALOG_TYPE        FITS_1.0")
+    return None
+
+
+
+
 def include_wcs(args):
     # Copy input names into output names
     output_names = args.input[:]
@@ -80,6 +95,9 @@ def include_wcs(args):
         # The output of the WCS process of astrometry.net will go to a .new file, the coordinates to a .coor
         _, output_wcs = tempfile.mkstemp(prefix=basename, suffix=".new")
         _, corrfile = tempfile.mkstemp(prefix=basename, suffix=".cor")
+
+
+        build_default_sex()
 
         # To avoid having too much residual crap in the folder, the output of astrometry will go to tmp (--dir /tmp).
         arguments0 = ["solve-field", "--no-plots", "--no-fits2fits", "--use-sextractor", "--dir", "/tmp",
