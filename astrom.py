@@ -16,6 +16,8 @@ import shutil
 import tempfile
 import argparse
 import astropy.io.fits as fits
+from repipy import __path__ as repipy_path
+repipy_path = repipy_path[0]
 
 
 def get_basename(im_name):
@@ -81,6 +83,8 @@ def include_wcs(args):
 
         # To avoid having too much residual crap in the folder, the output of astrometry will go to tmp (--dir /tmp).
         arguments0 = ["solve-field", "--no-plots", "--no-fits2fits", "--use-sextractor", "--dir", "/tmp",
+                      "--x-column", "X_IMAGE", "--y-column", "Y_IMAGE", "--sort-column", "MAG_AUTO",
+                      "--sort-ascending", "--sextractor-config", os.path.join(repipy_path, "sex_default.sex"),
                       "--overwrite", "--new-fits", output_wcs, "--corr", corrfile, input_image]
         arguments0 += args.extras
 
