@@ -28,20 +28,20 @@ class Header(object):
         and the keywords for the most important parameters: airmass, object, exposure time, ...
     """
     _KEYWORDS_ALIASES = dict(
-        FILTER = ('INSFLNAM', 'FILTER', 'JAGFBAND', 'ALFLTNM', 'WFFBAND'),
+        FILTER = ('INSFLNAM', 'FILTER', 'JAGFBAND', 'ALFLTNM', 'WFFBAND', 'ESO INS FILT1 NAME'),
         EXPTIME = ('EXPTIME',),
         OBJECT = ('OBJECT',),
         DATE = ('DATE-OBS',),
         TIME = ('TIME-OBS',"UTSTART"),
-        GAIN = ('CCDSENS', 'GAIN' ),
-        RON = ('CCDRON', 'READNOIS', 'READNOISE'),
-        AIRMASS = ('AIRMASS',),
+        GAIN = ('CCDSENS', 'GAIN','ESO DET OUT1 GAIN'),
+        RON = ('CCDRON', 'READNOIS', 'READNOISE', 'ESO DET OUT1 RON'),
+        AIRMASS = ('AIRMASS','ESO TEL AIRM END'),
         FILTER_WAVELENGTH = ('INSFLWL',),
         FILTER_WIDTH = ('INSFLDWL',),
-        FILTER_ID = ('ALFLTID', 'FAFTLID', 'JAGFID', 'INSFLID', 'WFFID'),
+        FILTER_ID = ('ALFLTID', 'FAFTLID', 'JAGFID', 'INSFLID', 'WFFID', 'ESO INS FILT1 ID'),
         FILTER_SYS = ('JAGFSYS', 'WFFPSYS'),
         TELESCOPE = ('TELESCOP', 'INSTRUME', 'ORIGIN', 'INSTRID'),
-        SEEING = ('SEEING', 'FWHM', 'LEMON FWHM'),
+        SEEING = ('SEEING', 'FWHM', 'LEMON FWHM','ESO TEL AMBI FWHM END'),
         SKY = ("SKY",),
         SIGMA = ("SKY_STD", "SIGMA"),
         RA = ("RA",),
@@ -52,7 +52,8 @@ class Header(object):
                              'CAHA' : ['DSAZ', 'CAFOS', 'CA-2.2', 'CAHA'],
                              'OSN' : ['OSN', 'OSN 1.5m'],
                              'JKT' : ['JKT'],
-                             'INT' : ['INT']
+                             'INT' : ['INT'],
+                             'VST' : ['ESO-VST ', 'ESO-VST']
     }
 
 
