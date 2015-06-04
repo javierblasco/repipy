@@ -27,7 +27,10 @@ class Filter(object):
 
         :return:
         """
-        filtersys = self.header.hdr[ self.header.filtersysk ]
+        try:
+            filtersys = self.header.hdr[ self.header.filtersysk ]
+        except ValueError:
+            filtersys = ""
         filtername = self.filter_name
         filter_alias =  passband.Passband( filtersys + filtername).__str__()
         return re.sub('[\s\']', "", filter_alias)
