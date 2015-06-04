@@ -189,7 +189,7 @@ class Target(object):
         # example, both the type and the name will be 'bias'. If it is a CIG galaxy, the type will be 'cig', but the
         # name is 'cig' followed by the number of the cig
         for key, value in regexp_dict.iteritems():
-            match = re.match(key, name.replace(" ",""), re.I)
+            match = re.match(key, re.sub("[_:\s\t\|\\\\]","", name2), re.I)
             if match:
                 type = value
                 name = value
