@@ -71,10 +71,11 @@ def subtract(args):
 parser = argparse.ArgumentParser(description="""Subtract an average of the overscan region from the whole image.
                                                  This routine will load the image, read the region that you have
                                                  given through the parameter --region x0 x1 y0 y1 , average the short
-                                                 axis and subtract from the image. For example, a region of
-                                                 --region 0 1000 980 1000 will subtract a region of shape 1000x20, so
-                                                 it will use a median ion the short axis, and subtract the resulting
-                                                 line of 1000 pixels from the image.
+                                                 axis and subtract a fit to the long one from the image.
+                                                 For example, a region of --region 0 1000 980 1000 will subtract a
+                                                 region of shape 1000x20, so it will use a median on the short axis,
+                                                 perform a 3rd degree polynomial fit to the long one and subtract the
+                                                 resulting fit from the region (0:1000, :) of the image.
 
                                              """)
 
@@ -86,7 +87,7 @@ mandatory = parser.add_argument_group('Mandatory argument')
 mandatory.add_argument("--region",metavar=('x0', 'x1', 'y0', 'y1'), action='store', nargs=4, type=int,
                        required=True, dest="region", \
                     help='Region of the image where the overscan is situated. Please, note this will '+\
-                         'be used by numpywhere the axis are read inverted with respect to DS9, for example. '+\
+                         'be used by numpy, where the axis are read inverted with respect to DS9, for example. '+\
                           'Thus, if you want pixels [100:2000, 1980:2000] for the (horizontal,vertical) axes, '+\
                          'as seen in DS9 you will need to swap it, giving  [1980:2000, 100:2000] instead' )
 parser.add_argument("--overwrite", action="store_true", dest="overwrite", \
