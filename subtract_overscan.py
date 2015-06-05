@@ -39,12 +39,12 @@ def subtract(args):
 
         # Average over the short axis
         if overscan.shape[0] < overscan.shape[1]:
-            average = numpy.median(overscan, axis=0)
+            average = numpy.nanmedian(overscan, axis=0)
             # Fit a polynomial and return the fitted values
             fitted_overscan = fit_pol(average, 3)
             data[:, y0:y1] -= fitted_overscan
         else:
-            average = numpy.median(overscan, axis=1)
+            average = numpy.nanmedian(overscan, axis=1)
             # Fit a polynomial and return the fitted values
             fitted_overscan = fit_pol(average, 3)
             data[x0:x1, :] = (data[x0:x1, :].T - fitted_overscan).T
