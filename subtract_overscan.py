@@ -32,8 +32,8 @@ def subtract(args):
         data = im[0].data
         hdr = im[0].header
 
-        # Extract the overscan region
-        x0, x1, y0, y1 = args.region
+        # Extract the overscan region. Notice that what we call x,y are the second and first axes
+        y0, y1, x0, x1 = args.region
         overscan = data.copy()[x0:x1, y0:y1]
 
 
@@ -75,7 +75,7 @@ parser = argparse.ArgumentParser(description="""Subtract an average of the overs
                                                  For example, a region of --region 0 1000 980 1000 will subtract a
                                                  region of shape 1000x20, so it will use a median on the short axis,
                                                  perform a 3rd degree polynomial fit to the long one and subtract the
-                                                 resulting fit from the region (0:1000, :) of the image.
+                                                 resulting fit from the corresponding region of the image.
 
                                              """)
 
@@ -86,10 +86,11 @@ parser.add_argument("input1", metavar='input1', action='store', help='list of ' 
 mandatory = parser.add_argument_group('Mandatory argument')
 mandatory.add_argument("--region",metavar=('x0', 'x1', 'y0', 'y1'), action='store', nargs=4, type=int,
                        required=True, dest="region", \
-                    help='Region of the image where the overscan is situated. Please, note this will '+\
-                         'be used by numpy, where the axis are read inverted with respect to DS9, for example. '+\
-                          'Thus, if you want pixels [100:2000, 1980:2000] for the (horizontal,vertical) axes, '+\
-                         'as seen in DS9 you will need to swap it, giving  [1980:2000, 100:2000] instead' )
+                    help='Region of the image where the overscan is situated. x0,x1 is the range in the horizontal '
+                          'axis as shown by ds9, while y0, y1 mean the same in the vertical axis.'
+                          'Please, note that what ds9 shows as X (i.e. the horizontal axis) is the first index in '
+                          'a numpy array. Usually x0,x1 correspond to Naxis1 and y0,y1 to Naxis2 in the header of fits '
+                          'images. ')
 parser.add_argument("--overwrite", action="store_true", dest="overwrite", \
                     default=False, help="Allows you to overwrite the original image.")
 parser.add_argument("--suffix", metavar="suffix", dest='suffix', action='store',\
