@@ -9,7 +9,7 @@ import repipy.utilities as utilities
 from scipy.ndimage.filters import median_filter
 
 
-def fit_pol(y, deg=3):
+def fit_pol(y, deg):
     """ Fit a polynomial to a vector. Return the model values
     :param y:
     :return:
@@ -41,12 +41,12 @@ def subtract(args):
         if overscan.shape[0] < overscan.shape[1]:
             average = numpy.nanmedian(overscan, axis=0)
             # Fit a polynomial and return the fitted values
-            fitted_overscan = fit_pol(average, 3)
+            fitted_overscan = fit_pol(average, args.deg)
             data[:, y0:y1] -= fitted_overscan
         else:
             average = numpy.nanmedian(overscan, axis=1)
             # Fit a polynomial and return the fitted values
-            fitted_overscan = fit_pol(average, 3)
+            fitted_overscan = fit_pol(average, args.deg)
             data[x0:x1, :] = (data[x0:x1, :].T - fitted_overscan).T
 
 
@@ -102,6 +102,9 @@ parser.add_argument("--suffix", metavar="suffix", dest='suffix', action='store',
                     'does not raise an error, but just stops execution, which is '+\
                     'quite annoying. One way around it is " -c" (notice the '+\
                     'space, since within the string is stripped.')
+parser.add_argument("--deg", metavar="deg", dest='deg', action='store',\
+                    default=0, type=int, help='Degree of the polynomial to fit the '+\
+                    'overscan region. Default:0. ')
 
 
 def main(arguments = None):
