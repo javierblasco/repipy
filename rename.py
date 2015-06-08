@@ -230,9 +230,11 @@ def rename(args):
 
         # New name for the file will be determined by the object type (for the
         # subfolder), object, date and filter. For bias frames, the filter would 
-        # have no meaning, so we don't put it.
+        # have no meaning, so we don't put it, just add the "_" to separate the next thing (numbers)
         if object_type != "bias":
             new_name = "{0}_{1}_".format(new_name, object_filter)
+        else:
+            new_name = "{0}_".format(new_name)
 
 
         # Now we need to find out which sequential number the image should have
