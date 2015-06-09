@@ -36,7 +36,7 @@ def remove_cosmics(args):
         gain = im.header.get(im.header.gaink)
         readnoise = im.header.get(im.header.ccdronk)
         c = cosmics.cosmicsimage(array, gain = float(gain), sigfrac = 0.3, \
-                                 readnoise = float(readnoise), objlim = 5.0, \
+                                 readnoise = float(readnoise), objlim = 7.0, \
                                  sigclip = float(args.sigclip))
         # Run the full artillery :
         c.run(maxiter = int(args.maxiter))
@@ -57,7 +57,7 @@ def remove_cosmics(args):
         newname = os.path.split(newfile)[1]
         hdr.add_history(oldname + " --> " + newname)
         hdr.add_history("Parameters used by cosmics.py. Gain=" + str(gain) + \
-                        ", sigfrac=0.3, objlim=5.0, sigclip=" + args.sigclip + \
+                        ", sigfrac=0.3, objlim=7.0, sigclip=" + args.sigclip + \
                         ", readnoise=" + str(readnoise))
         im.flush()
         im.close()
