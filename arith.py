@@ -177,7 +177,7 @@ def main(arguments = None):
   # Pass arguments to variable args
   if arguments == None:
       arguments = sys.argv[1:]
-  
+
   args = parser.parse_args(arguments)
 
   all_together = args.input1 + args.operation + args.input2
