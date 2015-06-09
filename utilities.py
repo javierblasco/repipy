@@ -294,6 +294,8 @@ def add_suffix_prefix(filename, prefix='', suffix=''):
         outpt = os.path.join(outdir, prefix + outfile_root + out_extensions)
     elif suffix != '':
         outpt = os.path.join(outdir, outfile_root + suffix + out_extensions)
+    else:  # do nothing with the image
+        outpt = filename
 
     return outpt
     
