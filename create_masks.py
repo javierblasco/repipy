@@ -292,10 +292,7 @@ def main(arguments = None):
   if args.true_val == args.false_val:
       sys.exit("\n\n ERROR: true_val and false_val are the same value: " + \
                str(args.false_val) + " Use --true_val and --false_val \n\n")
-  
-  # Default for --outside_val is the same as false_val
-  if args.outside_val is numpy.nan:
-      args.outside_val = args.false_val
+
   
   # Call combine, keep name of the file created
   masknames = mask(args)
@@ -331,10 +328,9 @@ parser.add_argument("--false_val", metavar="false_val", dest='false_val', defaul
                    type=int, action='store', help='Value for the INVALID points. '+\
                    'those you DO want to mask out. Default: 1 ')
 parser.add_argument("--outside_val", metavar="outside_val", dest="outside_val", 
-                    type=int, action="store", default=numpy.nan,
+                    type=int, action="store", default=2,
                     help="If --circular is used, this is the value to be used "+\
-                    "to mask out the points outside the circular FoV. The default "+\
-                    "case is using the same as --false_val")                   
+                    "to mask out the points outside the circular FoV. Default:2 ")
 parser.add_argument("--margin", metavar="margin", dest='margin', default=10, \
                    type=int, action='store', help='Margin around the edges for '+\
                    'which the mask is set to zero. If --circular is used '+\
