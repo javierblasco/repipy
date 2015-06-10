@@ -16,6 +16,13 @@ import repipy.utilities as utils
 from scipy import ndimage
 from scipy import optimize
 from scipy.ndimage.filters import median_filter
+import matplotlib.pyplot as plt
+
+from skimage.util import img_as_ubyte
+from skimage.draw import circle_perimeter
+from skimage.feature import peak_local_max, canny
+from skimage.transform import hough_circle
+from skimage import data, color
 
 def gauss(x, *p):
     A,mu,sigma = p
@@ -129,6 +136,89 @@ def mask_circle(image, xc, yc, radius, value=0):
     image[numpy.where(r > radius)] = value
     return image
 
+
+def detect_Hough(data):
+    image = data.copy()
+    edges = canny(image, sigma=10, low_threshold=60, high_threshold=90)
+
+    # Detect circles between 80% and 100% of image semi-diagonal
+    lx, ly = data.shape
+    sizex, sizey = lx/2., ly/2.
+    max_r = numpy.sqrt(sizex**2 + sizey**2) 
+    hough_radii = numpy.linspace(0.5*max_r, 0.9 * max_r, 20)
+    hough_res = hough_circle(edges, hough_radii)
+
+
+    centers = []
+    accums = []
+    radii = []
+    for radius, h in zip(hough_radii, hough_res):
+        # For each radius, extract two circles
+        num_peaks = 2
+        peaks = peak_local_max(h, num_peaks=num_peaks)
+        centers.extend(peaks)
+        accums.extend(h[peaks[:, 0], peaks[:, 1]])
+        radii.extend([radius] * num_peaks)
+
+    # Use the most prominent circle
+    idx = numpy.argsort(accums)[::-1][:1]
+    center_x, center_y = centers[idx]
+    radius = radii[idx]
+    return center_x, center_y, radius
+
+def get_mesh(data):
+    " Get a mesh grid the same shape of the data"
+    lx, ly = data.shape
+    x = numpy.linspace(0, ly, ly)
+    y = numpy.linspace(0, lx, lx)
+    xv, yv = numpy.meshgrid(x, y)
+    return xv, yv
+
+def get_center(data):
+    " Find the centroid of the image"
+    xv, yv = get_mesh(data)
+    cy = numpy.sum( data * yv ) / numpy.sum(data) 
+    cx = numpy.sum( data * xv ) / numpy.sum(data)
+    return cy, cx
+
+def get_radius(data):
+    rr, avg = means(data)
+    der_avg = derivative(rr, avg)
+    whr = der_avg.argmin()
+    #plt.plot( (rr[0:-1] + rr[1:]) / 2, der_avg, 'o')
+    #plt.show()
+    return rr[whr]
+
+def distance(data):
+    " For each pixel, tell me how far it is from the centre"
+    xv, yv = get_mesh(data)
+    cy, cx = get_center(data)
+    distance = numpy.sqrt( (xv - cx)**2 + (yv - cy)**2 )
+    return distance 
+
+
+def means(data):
+    nbins = 40
+    dist = distance(data)
+    radii = numpy.linspace(1, dist.max(), nbins+1)  
+    rr, avg, std, suma = numpy.zeros(nbins), numpy.zeros(nbins), numpy.zeros(nbins), numpy.zeros(nbins)
+    for ii in range(0, nbins):
+        rr[ii] = (radii[ii] + radii[ii+1]) / 2.    
+        whr = numpy.where( (radii[ii] <= dist) & (dist <= radii[ii+1]) )
+        avg[ii] = numpy.mean(data[whr])    
+    return rr, avg
+
+
+def derivative(x,y):
+    return (y[1:] - y[0:-1]) / ( x[1:] - x[0:-1])
+
+def cutre_detect(data):
+    
+    yc, xc = get_center(data)
+    radius = get_radius(data) 
+    return yc, xc, radius
+
+
 def mask(args):
     ''' Program to mask a set of images according to:
            - min, max clipping
@@ -147,7 +237,7 @@ def mask(args):
         
         # If circular field of view within rectangular image:
         if args.circular:
-            result = detect_circular_FoV(data, args)
+            result = cutre_detect(data)
             if result:
                 xc, yc, radius = result
                 radius = radius - args.margin   # avoid border effects
