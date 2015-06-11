@@ -255,6 +255,20 @@ class Target(object):
         except ValueError:   # problems, for example, with the SIP polynomials
             return None
 
+
+        # One of the most annoying things observatories do is include in the headers the keywords of the World
+        # Coordinate System with some default values that are absolute nonsense. The WCS gets mixed up and the rest of
+        # this function gets extremely confused. One of the giveaways is PC001001=           1.00000000  in the keyword
+        # This means that for each pixel you move in one direction, a whole degree is moved in one of the coordinates.
+        # Now, I think we can all agree that a 1 degree pixel scale is quite unlikely, so...
+        try:
+            if self.header.hdr["PC001001"] ==  1 :
+                return None
+        except KeyError:     #  "PC001001" not even there
+            pass
+
+
+
         ly, lx = fits.getdata(self.header.im_name).shape
         # ra_min, dec_min will be the coordinates of pixel (0,0)
         # ra_max, dec_max the coordinates of the upper right corner of the image.
