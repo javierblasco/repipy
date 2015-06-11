@@ -173,7 +173,8 @@ class Target(object):
     @utilities.memoize
     def _get_object(self):
         """ From the header read the object name, and try to find the type of object and name using regular expressions.
-        Failing that, try to find in the image one of the list of standard stars: 'standards.csv' """
+        Failing that, try to find in the image one of the list of standard stars in the file 'standards.csv' of the
+        folder in repipy. """
 
         # Default type is Unknown, default name, whatever comes in the header
         type, name = "Unknown", "Unknown"
@@ -186,7 +187,7 @@ class Target(object):
             pass
 
         # Search for the patterns above in the "object field" of the header. If the name corresponds to a bias, for
-        # example, both the type and the name will be 'bias'. If it is a CIG galaxy, the type will be 'cig', but the
+        # example, both the type and the name will be 'bias'. If it is a CIG galaxy, the type will be 'cig', and the
         # name is 'cig' followed by the number of the cig
         for key, value in regexp_dict.iteritems():
             match = re.match(key, re.sub("[_:\s\t\|\\\\]","", name), re.I)
