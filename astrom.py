@@ -60,8 +60,8 @@ def build_default_sex():
         fd.write("PARAMETERS_NAME   {0}  \n".format(os.path.join(repipy_path, "default.param")))
         fd.write("FILTER_NAME       {0}  \n".format(os.path.join(repipy_path, "default.conv")))
         fd.write("STARNNW_NAME      {0}  \n".format(os.path.join(repipy_path, "default.nnw")))
-        fd.write("DETECT_MINAREA         5  \nTHRESH_TYPE         RELATIVE \n"
-                 "DETECT_THRESH        3  \nANALYSIS_THRESH     3.0  \nCATALOG_TYPE        FITS_1.0")
+        fd.write("DETECT_MINAREA         10  \nTHRESH_TYPE         RELATIVE \n"
+                 "DETECT_THRESH        7  \nANALYSIS_THRESH     7.0  \nCATALOG_TYPE        FITS_1.0")
     return None
 
 
