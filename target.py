@@ -124,7 +124,7 @@ class Target(object):
             dir = os.path.join(repipy_path[0], "standard_spectra")
             file = os.path.join(dir, self.__str__())
 
-            # Determine how long is the header:
+            # Determine how long is the header of the file, how many lines to skip.
             with open(file, 'r') as ff:
                 for ii, line in enumerate(ff):
                     try:
