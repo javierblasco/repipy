@@ -90,7 +90,7 @@ parser.add_argument("--sigclip", metavar="sigmaclip", action='store', dest='sigc
                     "recommended for high S/N images. Default: 5")
 parser.add_argument("--create_mask", action="store_true", dest="mask", \
                     help="Add this keyword if you want to create a mask. The "+\
-                    "mask will be called cosmic_mask-... ", default=False)
+                    "mask will have -cosmic_mask as suffix... ", default=False)
 parser.add_argument("--maxiter", metavar='maxiter', action='store', dest='maxiter',\
                     default='3', help="Maximum number of iterations searching "+\
                     "for cosmic rays. See the documentation of cosmics or LACOS. "+\
