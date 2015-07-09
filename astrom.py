@@ -95,11 +95,29 @@ def include_wcs(args):
 
         # The output of the WCS process of astrometry.net will go to a .new file, the coordinates to a .coor
         _, output_wcs = tempfile.mkstemp(prefix=basename, suffix=".new")
+        os.unlink(output_wcs)
+        _, solved_file = tempfile.mkstemp(prefix=basename, suffix=".solved")
+        os.unlink(solved_file)
         _, corrfile = tempfile.mkstemp(prefix=basename, suffix=".cor")
 
 
-        build_default_sex()
+        # Try first with the defaults of astrometry
+        arguments_def = ["solve-field", "--no-plots", "--no-fits2fits", "--dir", "/tmp", "--overwrite",
+                      "--new-fits", output_wcs, "--corr", corrfile, "--cpulimit", "20", input_image]
+        try:  # Try to add the RA, DEC, Radius options to constrain the search
+            ra, dec = im.header.get(im.header.RAk, im.header.DECk)
+            ra, dec = utilities.sex2deg(ra, dec)
+            arguments = arguments_def + ["--ra", str(ra), "--dec", str(dec), "--radius", str(args.radius),
+                                      "--cpulimit", "20"]
+        except:
+            arguments = arguments_def
+        print "Trying to find WCS with astrometry standard keywords. "
+        subprocess.call(arguments)
 
+
+
+        # Now we will try using sextractor
+        build_default_sex(args)
         # To avoid having too much residual crap in the folder, the output of astrometry will go to tmp (--dir /tmp).
         arguments0 = ["solve-field", "--no-plots", "--no-fits2fits", "--use-sextractor", "--dir", "/tmp",
                       "--x-column", "X_IMAGE", "--y-column", "Y_IMAGE", "--sort-column", "MAG_AUTO",
@@ -116,12 +134,17 @@ def include_wcs(args):
             arguments = arguments0
 
         # Run astrometry, in case of not solving it on the first attempt, try fitting freely (no RA, DEC used)
-        subprocess.call(arguments)
-        if not os.path.exists(output_wcs):
+        if not os.path.exists(solved_file):
+            print "\n\n Now trying using sextractor"
+            subprocess.call(arguments)
+
+        if not os.path.exists(solved_file):
+            print "\n\n Finally, try using sextractor in the whole sky. "
             subprocess.call(arguments0)
 
+
         # Only if we have a solution
-        if os.path.exists(output_wcs):
+        if os.path.exists(solved_file):
             # copy the input file into the new file if they are not the same
             if os.path.abspath(im_name) != os.path.abspath(new_file):
                 shutil.copy2(im_name, new_file)
