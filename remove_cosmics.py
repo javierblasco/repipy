@@ -46,7 +46,7 @@ def remove_cosmics(args):
 
         # If you want the mask, here it is :
         if args.mask == True:
-            mask = utils.add_suffix_prefix(newfile, prefix="cosmic_mask")
+            mask = utils.add_suffix_prefix(newfile, suffix="-cosmic_mask")
             cosmics.tofits(mask, c.mask, header)
 
         # And write info to the header:
