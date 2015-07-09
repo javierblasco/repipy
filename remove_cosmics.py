@@ -87,13 +87,14 @@ parser.add_argument("--readnoise", metavar="readout noise", action='store', \
 parser.add_argument("--sigclip", metavar="sigmaclip", action='store', dest='sigclip',\
                     default="5.", help=" Sigma clipping factor in order to "+\
                     "distinguish noise from cosmic rays. Higher value are "+\
-                    "recommended for high S/N images.")                  
+                    "recommended for high S/N images. Default: 5")
 parser.add_argument("--create_mask", action="store_true", dest="mask", \
                     help="Add this keyword if you want to create a mask. The "+\
                     "mask will be called cosmic_mask-... ", default=False)
 parser.add_argument("--maxiter", metavar='maxiter', action='store', dest='maxiter',\
                     default='3', help="Maximum number of iterations searching "+\
-                    "for cosmic rays. See the documentation of cosmics or LACOS" )                    
+                    "for cosmic rays. See the documentation of cosmics or LACOS. "+\
+                    " Default: 3")
 
 
 
