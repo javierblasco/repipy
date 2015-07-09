@@ -88,9 +88,9 @@ mandatory.add_argument("--region",metavar=('x0', 'x1', 'y0', 'y1'), action='stor
                        required=True, dest="region", \
                     help='Region of the image where the overscan is situated. x0,x1 is the range in the horizontal '
                           'axis as shown by ds9, while y0, y1 mean the same in the vertical axis.'
-                          'Please, note that what ds9 shows as X (i.e. the horizontal axis) is the first index in '
-                          'a numpy array. Usually x0,x1 correspond to Naxis1 and y0,y1 to Naxis2 in the header of fits '
-                          'images. ')
+                          'Please, note that what ds9 shows as X (i.e. the horizontal axis) is the second index in '
+                          'a numpy array, the Y axis as shown by ds9 being the first. '
+                          'Usually x0,x1 correspond to Naxis1 and y0,y1 to Naxis2 in the header of fits images. ')
 parser.add_argument("--overwrite", action="store_true", dest="overwrite", \
                     default=False, help="Allows you to overwrite the original image.")
 parser.add_argument("--suffix", metavar="suffix", dest='suffix', action='store',\
