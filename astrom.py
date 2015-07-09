@@ -52,7 +52,7 @@ def perform_cosmic_removal(im_name, output=None):
     return new_name
 
 
-def build_default_sex():
+def build_default_sex(args):
     """ Build a default.sex file in the path of repipy
     :return:
     """
@@ -61,7 +61,8 @@ def build_default_sex():
         fd.write("FILTER_NAME       {0}  \n".format(os.path.join(repipy_path, "default.conv")))
         fd.write("STARNNW_NAME      {0}  \n".format(os.path.join(repipy_path, "default.nnw")))
         fd.write("DETECT_MINAREA         10  \nTHRESH_TYPE         RELATIVE \n"
-                 "DETECT_THRESH        7  \nANALYSIS_THRESH     7.0  \nCATALOG_TYPE        FITS_1.0")
+                 "DETECT_THRESH        {0}  \nANALYSIS_THRESH     {0}  \n"
+                 "CATALOG_TYPE        FITS_1.0".format(args.threshold))
     return None
 
 
@@ -182,6 +183,9 @@ parser.add_argument("--overwrite", dest='overwrite', action="store_true",
                     help='Overwrite the original images. This keyword will override both --remove_original and --suffix')
 parser.add_argument("--radius", dest='radius', action="store", type=float, default="1",
                     help='Search radius. If the RA and DEC are found in the header, astrometry will look for ' + \
+                         'solutions within this radius of those coordinates. Default=1.0')
+parser.add_argument("--threshold", dest='threshold', action="store", type=float, default=7,
+                    help='Detection threshold for sextractor Search radius. If the RA and DEC are found in the header, astrometry will look for ' + \
                          'solutions within this radius of those coordinates. Default=1.0')
 parser.add_argument('-o', action = 'append', dest = 'extras',
                   default = [], help = "additional options to pass to Astrometry.net's "
