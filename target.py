@@ -134,7 +134,6 @@ class Target(object):
                         break
                     except ValueError:
                         continue
-
             return numpy.genfromtxt(file, skip_header=nn)
 
     def _get_photometry(self, default_radius=None):
@@ -212,7 +211,7 @@ class Target(object):
         This program follows one in IDL called convol.pro from Jorge Iglesias, IAA.
         """
         if self.spectra is not None:  # For standards, where the spectra are used to calibrate in flux
-            # Get the spectra of the star and the filter curve. The spectra must be in A
+            # Get the spectra of the star and the filter curve. The spectra must be in Angstrom and magnitudes AB
             wavelength_star = self.spectra.transpose()[0]
             magnitude_star = self.spectra.transpose()[1]
             wavelength_filter = self.filter.filter_curve.transpose()[0]
