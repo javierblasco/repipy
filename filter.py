@@ -36,10 +36,11 @@ class Filter(object):
         return re.sub('[\s\']', "", filter_alias)
 
 
-    def zero_point(self, target):
+    def zero_point(self, target, aperture=None):
         """ Return the zero point, given this target """
         if target.objtype == 'standards':
-            return  2.5 * (numpy.log10(target.counts / self.header.hdr[self.header.exptimek]) - numpy.log10(target.flux()))
+            return  2.5 * (numpy.log10(target.counts(aperture=aperture) / self.header.hdr[self.header.exptimek]) -
+                           numpy.log10(target.flux()))
 
     @property
     def filter_ID(self):
