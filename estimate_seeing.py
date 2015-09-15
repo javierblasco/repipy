@@ -1,143 +1,177 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-"""
-Created on Mon Nov  4 01:16:30 2013
-
-@author: blasco
-"""
-
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Oct 28 23:14:24 2013
-
-@author: blasco
-"""
-import repipy.utilities as utilities
+from astropy.modeling import models, fitting
+import astropy.io.fits as fits
+import astropy.wcs as wcs
 import numpy as np
-import astropy.io.fits as fits  
+import matplotlib.pyplot as plt
+import repipy.utilities as utilities
 import argparse
 import sys
-from scipy import spatial 
-import astropy.wcs.wcs as wcs 
 import os
 
-from lemon import methods
-import repipy
-# Change to the directory where repipy is installed to load pyraf
-with methods.tmp_chdir(repipy.__path__[0]):
-    from pyraf import iraf
-    from iraf import obsutil
-    from iraf import digiphot, apphot, daophot
+class Star(object):
+    """ Define a star by its coordinates and modelled FWHM
+
+        Given the coordinates of a star within a 2D array, fit a model to the star and determine its
+        Full Width at Half Maximum (FWHM).The star will be modelled using astropy.modelling. Currently
+        accepted models are: 'Gaussian2D', 'Moffat2D'
+    """
+    _AVAILABLE_MODELS = ['Gaussian2D', 'Moffat2D']
+
+    def __init__(self, x0, y0, data, model_type="Moffat2D", box=40):
+        """ Instantiation method for the class Star.
+
+        The 2D array in which the star is located (data), together with the pixel coordinates (x0,y0) must be
+        passed to the instantiation method. .
+        """
+        self.x = x0
+        self.y = y0
+        self._XGrid, self._YGrid = self._grid_around_star(x0, y0, data, box=int(box))
+        self.data = data[self._XGrid, self._YGrid]
+        self.model_type = model_type
+
+    @property
+    def model(self):
+        """ Fit a model to the star. """
+        return self._fit_model()
+
+    @property
+    def fwhm(self):
+        """ Extract the FWHM from the model of the star.
+
+            The FWHM needs to be calculated for each model. For the Moffat, the FWHM is a function of the gamma and
+            alpha parameters (in other words, the scaling factor and the exponent of the expression), while for a
+            Gaussian FWHM = 2.3548 * sigma. Unfortunately, our case is a 2D Gaussian, so a compromise between the
+            two sigmas (sigma_x, sigma_y) must be reached. We will use the average of the two.
+        """
+        model_dict = dict(zip(self.model.param_names, self.model.parameters))
+        if self.model_type == "Moffat2D":
+            gamma, alpha = [model_dict[ii] for ii in ("gamma_0", "alpha_0")]
+            FWHM = 2. * gamma * np.sqrt(2 ** (1/alpha) -1)
+        elif self.model_type == "Gaussian2D":
+            sigma_x, sigma_y = [model_dict[ii] for ii in ("x_stddev_0", "y_stddev_0")]
+            FWHM = 2.3548 * np.mean([sigma_x, sigma_y])
+        return FWHM
+
+    @utilities.memoize
+    def _fit_model(self):
+        fit_p = fitting.LevMarLSQFitter()
+        model = self._initialize_model()
+        p = fit_p(model, self._XGrid, self._YGrid, self.data)
+        return p
+
+    def _initialize_model(self):
+        """ Initialize a model with first guesses for the parameters.
+
+        The user can select between several astropy models, e.g., 'Gaussian2D', 'Moffat2D'. We will use the data to get
+        the first estimates of the parameters of each model. Finally, a Constant2D model is added to account for the
+        background or sky level around the star.
+        """
+        min_value = self.data.min()
+        max_value = self.data.max()
+        if self.model_type == "Gaussian2D":
+            model = models.Gaussian2D(x_stddev=1, y_stddev=1, x_mean=self.x, y_mean=self.y, amplitude=max_value)
+        elif self.model_type == "Moffat2D":
+            model = models.Moffat2D(x_0=self.x, y_0=self.y, gamma=2, alpha=2, amplitude=max_value)
+
+        return model + models.Const2D(min_value)
+
+    def _grid_around_star(self, x0, y0, data, box=40):
+        """ Build a grid of side 'box' centered in coordinates (x0,y0). """
+        lenx, leny = data.shape
+        xmin, xmax = max(x0-box/2, 0), min(x0+box/2+1, lenx-1)
+        ymin, ymax = max(y0-box/2, 0), min(y0+box/2+1, leny-1)
+        return np.mgrid[int(xmin):int(xmax), int(ymin):int(ymax)]
+
+    def plot_resulting_model(self):
+        """ Make a plot showing data, model and residuals. """
+        data = self.data
+        model = self.model(self._XGrid, self._YGrid)
+        residuals = data - model
+        plt.figure(figsize=(8, 2.5))
+        plt.subplot(1, 3, 1)
+        plt.imshow(data, origin='lower', interpolation='nearest', vmin=data.min(), vmax=data.max())
+        plt.colorbar()
+        plt.title("Data")
+        plt.subplot(1, 3, 2)
+        plt.imshow(model, origin='lower', interpolation='nearest', vmin=data.min(), vmax=data.max())
+        plt.colorbar()
+        plt.title("Model")
+        plt.subplot(1, 3, 3)
+        plt.imshow(residuals, origin='lower', interpolation='nearest')
+        plt.colorbar()
+        plt.title("Residual")
+        plt.show()
+
+
+class StarField(object):
+    """ Fit a model to a list of stars from an image, estimate their FWHM, write it to the image.
+
+    To initialize the object you need the name of an astronomical image (im_name) and the name of a text file
+     with the coordinates of the stars to be used to estimate the FWHM. The file must contain two columns with the
+     RA and DEC of the stars, one row per star. If image pixels are given instead of RA and DEC, the wcs=False flag
+     must be passed.
+    """
+    def __init__(self, im_name, coords_file, model_type, wcs=True):
+        self.im_name = im_name
+        self.im_data = fits.open(im_name)[0].data
+        self.coords_file = coords_file
+        self._wcs = wcs
+        self.model_type = model_type
+
+    def __iter__(self):
+        """ Iterat"""
+        return iter(self._star_list)
+
+    @property
+    def star_coords(self):
+        """ Read from a file the coordinates of the stars.
+
+        The file must have two columns, with one star per row. If the coordinates are in (RA,DEC) we will transform
+        them into image pixels.
+        """
+        x, y = np.genfromtxt(self.coords_file, unpack=True)
+        if self._wcs:  # if x,y are not pixels but RA,DEC
+            with fits.open(self.im_name, 'readonly') as im:
+                w = wcs.WCS(im[0].header, im)
+            y, x = w.all_world2pix(x, y, 1)
+        return zip(x,y)
+
+    @property
+    def _star_list(self):
+        """ Return a list of Star objects from the image data and the coordinates of the stars."""
+        return [Star(x0, y0, self.im_data, self.model_type) for (x0,y0) in self.star_coords]
+
+    @property
+    def FWHM(self):
+        """ Determine the FWHM (seeing) of the image. """
+        return np.median([star.fwhm for star in self._star_list])
+
+    def _write_FWHM(self):
+        """ Write the FWHM to the header of the fits image."""
+        with fits.open(self.im_name, 'update') as im:
+            im[0].header["seeing"] = (self.FWHM, 'Seeing estimated in pixels')
+        return None
 
 
 def calculate_seeing(args):
     """ Program to estimate the seeing from an image and a list of estimates
-    for the positions of stars. After calculating the seeing, some of the 
-    stars might get recalculated centers. The list will be updated with the 
+    for the positions of stars.
     """
-    for im, im_cat in zip(args.input, args.cat):
-        output = "output.txt"
-        ignore = "ignore.txt"
-        # Victor Terron, esto es horroroso, sugerencias?
-        utilities.if_exists_remove("q.txt", output, ignore)
-        q = open("q.txt", "w")
-        q.write("q")
-        q.close()
-        iraf.psfmeasure(im, coords = "mark1", size = "MFWHM",
-                               sbuffer = 10, swidth=10,radius=10,
-                               satura = 55000, ignore = "yes", 
-                               imagecur = im_cat, display = "no",
-                               graphcur = "q.txt", Stdout=ignore, 
-                               wcs = args.wcs, logfile=output)
-        
-        # Now we read the input im_cat and the output output.txt and compare
-        # the location of stars. Those stars that have moved will not be 
-        # trusted. 
-        xout = np.array([])
-        yout = np.array([])
-        FWHM = np.array([])
-        for line in open(output, 'r'):
-            # First line is a description of the file, second is a newline \n
-            # and third the description of the columns.
-            if line != "\n" and line.split()[0] in im:
-                xout = np.append(xout, float(line.split()[1]))
-                yout = np.append(yout, float(line.split()[2]))
-                FWHM = np.append(FWHM, float(line.split()[4]))
-            else:
-                try:
-                   xout = np.append(xout, float(line.split()[0])) 
-                   yout = np.append(yout, float(line.split()[1]))
-                   FWHM = np.append(FWHM, float(line.split()[3]))
-                except:
-                   pass 
-        xin, yin = np.genfromtxt(im_cat, dtype="float", unpack=True)
-        xin, yin = np.array(xin), np.array(yin)  # case it is only one value
+    for im_name, star_cat in zip(args.input, args.cat):
+        im = StarField(im_name, star_cat, args.model, wcs=args.wcs)
+        im._write_FWHM()
 
-
-        # If args.wcs is "world" it means the input is in (RA, DEC), while 
-        # the output is in pixels (X,Y). We need to convert one to the other
-        # and we choose to follow the (RA,DEC) which, after all, is meaningful
-        if args.wcs == "world":
-            coords_xy = np.array(zip(xout, yout))
-            hdr = fits.open(im)[0].header
-            remove_keys = ["PC001001", "PC001002", "PC002001", "PC002002"]
-            for keys in remove_keys:
-                hdr.pop(keys,None)
-            w = wcs.WCS(hdr)            
-            coords_RADEC = w.all_pix2world(coords_xy,1)
-            xout = coords_RADEC[:,0]
-            yout = coords_RADEC[:,1]
-           
-        # find common stars using KDtrees    
-        if xin.size > 1 : 
-            tree_in = spatial.KDTree(zip(xin, yin))
-        elif xin.size == 1:
-            tree_in = spatial.KDTree([(float(xin), float(yin))])
-        if xout.size > 1:
-            tree_out = spatial.KDTree(zip(xout, yout))
-        elif xout.size == 1:
-            tree_out = spatial.KDTree([(float(xout), float(yout))])
-        # If WCS use 0.001 degree (~3.6 arcsec) as limit. If not, assume 
-        # pixels and say 4 pixels
-        if args.wcs == "world":
-            limit = 0.001
-        else:
-            limit = 4
-        matches = tree_out.query_ball_tree(tree_in, limit) 
-           
-        # Two close stars in the original .cat could resolve into one  when 
-        # the FWHM is calculated. This will appear as several hits in the 
-        # matches with exactly the same numbers: [[0], [1,2], [1,2], [3]]
-        # One solution is to erase one of them 
-        for index, value in enumerate(matches):      
-            if matches.count(value) > 1:
-                matches[index] = []
-                       
-        # Now restrict to the common objects
-        remove_indices = [ii for ii,jj in enumerate(matches) if jj == []]
-        xout = np.delete(xout, remove_indices)
-        yout = np.delete(yout, remove_indices)
-        FWHM = np.delete(FWHM, remove_indices)
- 
-        # Finally, calculate the median FWHM of the image and rewrite valid
-        # stars to the im_cat file. 
-        median_fwhm = np.median(FWHM)
-        utilities.header_update_keyword(im, "seeing", median_fwhm, "FWHM of image")
-        f = open(im_cat, 'w') # write the "good" stars in the catalogue
-        for ii in range(len(xout)):
-            f.write(str(xout[ii]) + "  " + str(yout[ii]) + "\n")
-        f.close()
-
-        # And clean after yourself!
-        utilities.if_exists_remove("q.txt", output, ignore)
 
 
 ############################################################################
 
 
 # Create parser
-parser = argparse.ArgumentParser(description='Program to find stars in an image. ')
+parser = argparse.ArgumentParser(description='Program to calculate the FWHM (seeing) of an image '
+                                             'by fitting its stars. ')
 
 # Add necessary arguments to parser
 parser.add_argument("input", metavar='input', action='store', help='list of ' +\
@@ -149,12 +183,12 @@ parser.add_argument("--cat", metavar='cat', action='store', dest="cat",
                         '(assming all images are of the same object) or None if catalogues exist for all the ' +\
                         'images and are named exactly like the image but with .radec extension.',
                     nargs=1, type=str)
-parser.add_argument("--wcs", metavar="wcs_in", action="store", dest="wcs", 
-                    default="logical",
-                    help = "System in which the input coordinates are. Can "
-                    "be 'logical', 'tv', 'physical' and 'world' accordind to "
-                    "IRAF. If your coordinates are, for example, in RA and DEC "
-                    "you should provide 'world'. Default: logical.")
+parser.add_argument("--wcs", metavar="wcs_in", action="store", dest="wcs", type=bool,
+                    default=True, help = "If coordinates are in pixels, set this flag to False, if in RA,DEC "
+                                         "set to True. Default: True ")
+parser.add_argument("--model", metavar="model", action="store", dest="model", default="Moffat2D",
+                    help="Model to be fit to the stars: Moffat2D or Gaussian2D. Both models will contain a "
+                         "background value. Default: 'Moffat2D' ")
 
 
 def main(arguments = None):
@@ -177,8 +211,10 @@ def main(arguments = None):
       sys.exit("\n\n number of star catalogues and input images do not coincide \n ")
 
 
-  calculate_seeing(args)  
-  return None    
-     
+  calculate_seeing(args)
+  return None
+
 if __name__ == "__main__":
     main()
+
+
