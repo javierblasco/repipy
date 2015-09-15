@@ -215,10 +215,12 @@ parser.add_argument("--output", metavar="output", dest='output', \
                    action='store', help='Name for output file.')
 parser.add_argument("--average", metavar='average', type=str, default='median', \
                    help='type of average (median, mean) to combine ' +\
-                   'the images. Default: median')
+                   'the images. The average will be made with the central third of the image to avoid border effects. '
+                   'Default: median')
 parser.add_argument("--scale", metavar='scale', type=str, default='none', \
                    help='scaling function (median, mean, mode, none) to apply' +\
-                   'to	the images before combining them. Default: none' )
+                   'to	the images before combining them. As with the average, the central third of the image '
+                   'will be used to avoid border effects. Default: none' )
 parser.add_argument("--all_together", action="store_true", dest="all_together", \
                    default=False, help=' Force all the files to be combined'+ \
                    'together, i.e. do not separate by filter (e.g. for bias)') 
