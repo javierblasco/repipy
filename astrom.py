@@ -208,7 +208,6 @@ parser.add_argument('-o', action = 'append', dest = 'extras',
                   "solve-field. For example: -o ' --downsample 2' -o ' --tweak-order 2'. "
                   "This option may be used multiple times.")
 
-
 def main(arguments=None):
     # Pass arguments to variable args
     if arguments == None:
@@ -234,7 +233,6 @@ def main(arguments=None):
 
     output_list = include_wcs(args)
     return output_list
-
 
 if __name__ == "__main__":
     main()
