@@ -100,7 +100,7 @@ def include_wcs(args):
 
         # Try first with the defaults of astrometry
         arguments_def = ["solve-field", "--no-plots", "--no-fits2fits", "--dir", "/tmp", "--overwrite",
-                      "--new-fits", output_wcs, "--corr", corrfile, "--cpulimit", "20", input_image]
+                      "--new-fits", output_wcs, "--corr", corrfile, "--cpulimit", "1", input_image]
         try:  # Try to add the RA, DEC, Radius options to constrain the search
             ra, dec = im.header.get(im.header.RAk, im.header.DECk)
             ra, dec = utilities.sex2deg(ra, dec)
