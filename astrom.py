@@ -130,11 +130,9 @@ def include_wcs(args):
 
         # Run astrometry, in case of not solving it on the first attempt, try fitting freely (no RA, DEC used)
         if not os.path.exists(solved_file):
-            print "\n\n Now trying using sextractor"
             subprocess.call(arguments)
 
         if not os.path.exists(solved_file):
-            print "\n\n Finally, try using sextractor in the whole sky. "
             subprocess.call(arguments0)
 
 
