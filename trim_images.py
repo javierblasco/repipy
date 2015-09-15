@@ -26,7 +26,7 @@ def trim(args):
         args.output = [utilities.add_suffix_prefix(im_name, suffix=args.suffix) for im_name in args.input]
 
     # Do the actual trimming
-    for im_name, new_name in zip(args.input):
+    for im_name, new_name in zip(args.input, args.output):
         # Do the operation first into a temporary file, then copy it into args.output. This will prevent the problem
         # that iraf's imcopy does not overwrite output filenames.
         basename = os.path.splitext(os.path.basename(im_name))[0]
@@ -61,10 +61,10 @@ def main(arguments=None):
         arguments = sys.argv[1:]
     args = parser.parse_args(arguments)
     if args.output == '' and (not args.overwrite) and args.suffix == '':
-        sys.exit("Error! Introduce a suffix, an output filename or use the '--overwrite' option. "+\
+        sys.exit("Error! Introduce a suffix, an output filename or use the '--overwrite' option. " + \
                  "For help: python trim_images.py -h ")
     if args.suffix != "":
-      args.suffix = args.suffix.strip()
+        args.suffix = args.suffix.strip()
 
     newfile = trim(args)
     return newfile
