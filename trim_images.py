@@ -31,8 +31,10 @@ def trim(args):
         # that iraf's imcopy does not overwrite output filenames.
         basename = os.path.splitext(os.path.basename(im_name))[0]
         _, temp_name = tempfile.mkstemp(prefix=basename, suffix=".fits")
-        imcopy(args.input[x0:x1,y0:y1], temp_name)
-        shutil.move(temp_name, new_name)
+        os.unlink(temp_name )
+        with utilities.tmp_mute():
+            imcopy(im_name + "[{0}:{1}, {2}:{3}]".format(x0, x1, y0, y1), temp_name)
+            shutil.move(temp_name, new_name)
 
     return args.output
 
