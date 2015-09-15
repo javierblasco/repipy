@@ -3,13 +3,18 @@
 
 import tempfile
 import shutil
+import argparse
+import sys
+import os
 from repipy import utilities
 from lemon import methods
 import repipy
+
 # Change to the directory where repipy is installed to load pyraf
 with methods.tmp_chdir(repipy.__path__[0]):
-    from pyraf import iraf
+    import pyraf.iraf as iraf
     from iraf import imcopy
+
 
 def trim(args):
     # Define region to be trimmed
@@ -18,7 +23,7 @@ def trim(args):
     # args.output should be a list of output names. If they do not exist, the outputs should be the same as the
     # inputs with whatever suffix the user gave
     if not args.output:
-        args.output = [utilities.add_suffix_prefix(im_name, args.suffix) for im_name in args.input]
+        args.output = [utilities.add_suffix_prefix(im_name, suffix=args.suffix) for im_name in args.input]
 
     # Do the actual trimming
     for im_name, new_name in zip(args.input):
