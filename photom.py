@@ -101,10 +101,10 @@ def do_photometry(args):
     hdr = astroim.Astroim(args.images[0]).header
     gaink, objectk, filterk, datek = hdr.gaink, hdr.objectk, hdr.filterk, hdr.datek
     exptimek, airmassk, timek   =  hdr.exptimek, hdr.airmassk, hdr.timek
-    photometry.main(arguments=["--uik", "", "--margin", "20", "--gaink", gaink,
+    photometry.main(arguments=["--uik", "", "--margin", "20", "--gaink", gaink, "--cbox", args.cbox,
                                    "--aperture", "4.", "--annulus", "6", "--dannulus", "2", "--individual-fwhm",
                                    "--objectk", objectk, "--filterk", filterk, "--datek", datek, "--expk", exptimek,
-                                   "--fwhmk", "seeing", "--airmk", airmassk, "--timek", timek,
+                                   "--fwhmk", "seeing", "--airmk", airmassk, "--timek", timek, "--overwrite",
                                    "--coordinates", args.coordinates[0], args.images[0]] + args.images + args.output)
 
     return args.output
@@ -123,6 +123,8 @@ parser.add_argument("--coordinates", metavar='coordinates', action='store', dest
 parser.add_argument("--output", metavar='output', action='store', dest="output",  nargs=1, type=str, required=True,
                     help='Name of the output database. ')
 
+parser.add_argument("--cbox", metavar='cbox', action='store', dest="cbox", type=float, default=10,
+                    help='Size of the box within which the centre of the star will be searched. ')
 
 def main(arguments = None):
   # Pass arguments to variable args
