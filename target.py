@@ -75,10 +75,10 @@ class Target(object):
         if RaDec:
             return float(self._get_RaDec()[1])
 
-    @property
-    def counts(self):
+    #@property
+    def counts(self, aperture=None):
         """ Do photometry in the object to get the counts/sec of the source. """
-        return self._get_photometry(10)
+        return self._get_photometry(aperture=aperture)
 
     def flux(self):
         """ If you have both a spectra for the object and the filter curve, calculate the flux under the filter"""
@@ -136,38 +136,47 @@ class Target(object):
                         continue
             return numpy.genfromtxt(file, skip_header=nn)
 
-    def _get_photometry(self, default_radius=None):
+    def _get_photometry(self, seeing=None, aperture=None):
         """ Get the photometry for the target.
 
         If the target is a standard star, aperture photometry will be performed. For the moment nothing is done with
         the others, but in due time (TODO) photometry.py will be included here. """
+
+        if self.objtype is not "standards":
+            return None
 
         basename = "standards"
         fd, coords_file = tempfile.mkstemp(prefix=basename, suffix=".coords")
         os.write(fd, "{0} {1} \n".format(self.RA, self.DEC))
         os.close(fd)
 
-        if self.objtype == "standards":
+
+        # If aperture was not given by the user, try and use the seeing as a reference for default values
+        if not aperture:
             try:
                 seeing = self.header.hdr[self.header.seeingk]
+                aperture = 3 * seeing
             except ValueError:  # keyword was not correctly guessed
-                seeing = None
+                pass
 
-            if not seeing and not default_radius:
-                sys.exit("Seeing not found and default_radius not present. Exiting!")
-            elif not seeing:
-                seeing = default_radius
-
+        # If aperture exists, do the photometry using it
+        if aperture:
+            annulus = 2 * aperture
+            dannulus = max([aperture, 3])  # minimum of 3 pixels thickness for the sky annulus
             photfile_name = self.header.im_name + ".mag.1"
             utilities.if_exists_remove(photfile_name)
-            kwargs =  dict(output=photfile_name, coords=coords_file,
+            kwargs =  dict(output=photfile_name, coords=coords_file, salgorithm='median',
                       wcsin='world', fwhm=seeing, gain=self.header.gaink, exposure=self.header.exptimek,
-                      airmass=self.header.airmassk, annulus=9*seeing, dannulus=3*seeing,
-                      apert=5*seeing, verbose="no", verify="no", interac="no")
+                      airmass=self.header.airmassk, annulus=annulus, dannulus=dannulus,
+                      apertures=aperture, verbose="no", verify="no", interac="no")
             iraf.phot(self.header.im_name, **kwargs)
             [counts] = iraf.txdump(photfile_name, 'FLUX', 'yes', Stdout=subprocess.PIPE)
-            utilities.if_exists_remove(coords_file)
-            return float(counts)
+        else:
+            sys.exit("\n \n Sorry, no aperture was passed by you, and a seeing keyword was not "
+                     "found in the header. \n\n ")
+
+        utilities.if_exists_remove(coords_file)
+        return float(counts)
 
     @utilities.memoize
     def _get_object(self):
