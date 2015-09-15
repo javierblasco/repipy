@@ -70,5 +70,6 @@ def main(arguments=None):
 
     newfile = trim(args)
     return newfile
+
 if __name__ == "__main__":
     main()
