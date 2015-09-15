@@ -94,12 +94,9 @@ def include_wcs(args):
             perform_cosmic_removal(input_image)
 
         # The output of the WCS process of astrometry.net will go to a .new file, the coordinates to a .coor
-        _, output_wcs = tempfile.mkstemp(prefix=basename, suffix=".new")
-        os.unlink(output_wcs)
-        _, solved_file = tempfile.mkstemp(prefix=basename, suffix=".solved")
-        os.unlink(solved_file)
-        _, corrfile = tempfile.mkstemp(prefix=basename, suffix=".cor")
-
+        output_wcs = utilities.replace_extension(input_image, ".new")
+        solved_file = utilities.replace_extension(input_image, ".solved")
+        corrfile = utilities.replace_extension(input_image, ".cor")
 
         # Try first with the defaults of astrometry
         arguments_def = ["solve-field", "--no-plots", "--no-fits2fits", "--dir", "/tmp", "--overwrite",
@@ -113,8 +110,6 @@ def include_wcs(args):
             arguments = arguments_def
         print "Trying to find WCS with astrometry standard keywords. "
         subprocess.call(arguments)
-
-
 
         # Now we will try using sextractor
         build_default_sex(args)
