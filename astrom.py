@@ -109,7 +109,8 @@ def include_wcs(args):
         except:
             arguments = arguments_def
         print "Trying to find WCS with astrometry standard keywords. "
-        subprocess.call(arguments)
+        with utilities.tmp_mute():
+            subprocess.call(arguments)
 
         # Now we will try using sextractor
         build_default_sex(args)
