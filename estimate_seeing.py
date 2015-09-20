@@ -28,7 +28,8 @@ class Star(object):
         """
         self.x = x0
         self.y = y0
-        self._XGrid, self._YGrid = self._grid_around_star(x0, y0, data, box=int(box))
+        self._box = box
+        self._XGrid, self._YGrid = self._grid_around_star(x0, y0, data)
         self.data = data[self._XGrid, self._YGrid]
         self.model_type = model_type
 
@@ -69,20 +70,40 @@ class Star(object):
         the first estimates of the parameters of each model. Finally, a Constant2D model is added to account for the
         background or sky level around the star.
         """
-        min_value = self.data.min()
         max_value = self.data.max()
         if self.model_type == "Gaussian2D":
             model = models.Gaussian2D(x_stddev=1, y_stddev=1, x_mean=self.x, y_mean=self.y, amplitude=max_value)
+            # Establish reasonable bounds for the fitted parameters
+            model.x_stddev.bounds = (0, self._box/4)
+            model.y_stddev.bounds = (0, self._box/4)
+
         elif self.model_type == "Moffat2D":
             model = models.Moffat2D(x_0=self.x, y_0=self.y, gamma=2, alpha=2, amplitude=max_value)
+            model.alpha.bounds = (1,6)
+            model.gamma.bounds = (0, self._box/4)
+        model += models.Const2D(self.fit_sky())
+        model.amplitude_1.fixed=True
+        print "Sky is fixed to value: ", model.amplitude_1
+        return model
 
-        return model + models.Const2D(min_value)
+    def fit_sky(self):
+        """ Fit the sky using a Ring2D model in which all parameters but the amplitude are fixed.
+        """
+        min_value = self.data.min()
+        ring_model = models.Ring2D(min_value, self.x, self.y, self._box * 0.4, width=self._box * 0.4)
+        ring_model.r_in.fixed = True
+        ring_model.width.fixed = True
+        ring_model.x_0.fixed = True
+        ring_model.y_0.fixed = True
+        fit_p = fitting.LevMarLSQFitter()
+        return fit_p(ring_model, self._XGrid, self._YGrid, self.data).amplitude
 
-    def _grid_around_star(self, x0, y0, data, box=40):
+
+    def _grid_around_star(self, x0, y0, data):
         """ Build a grid of side 'box' centered in coordinates (x0,y0). """
         lenx, leny = data.shape
-        xmin, xmax = max(x0-box/2, 0), min(x0+box/2+1, lenx-1)
-        ymin, ymax = max(y0-box/2, 0), min(y0+box/2+1, leny-1)
+        xmin, xmax = max(x0-self._box/2, 0), min(x0+self._box/2+1, lenx-1)
+        ymin, ymax = max(y0-self._box/2, 0), min(y0+self._box/2+1, leny-1)
         return np.mgrid[int(xmin):int(xmax), int(ymin):int(ymax)]
 
     def plot_resulting_model(self):
