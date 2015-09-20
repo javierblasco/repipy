@@ -153,7 +153,7 @@ class StarField(object):
 
     @property
     def star_coords(self):
-        """ Read from a file the coordinates of the stars.
+        """ Read from coords_file the coordinates of the stars.
 
         The file must have two columns, with one star per row. If the coordinates are in (RA,DEC) we will transform
         them into image pixels.
