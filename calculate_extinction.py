@@ -178,9 +178,8 @@ parser = argparse.ArgumentParser(description='''Calculate the extinction coeffic
                                                 coefficient and its uncertainties. ''')
 
 # Add necessary arguments to parser
-parser.add_argument("inputdb", metavar='inputdb', action='store', help='list of ' + \
-                                                                       'input databases from which to calculate the extinction coefficient. ', \
-                    nargs="+", type=str)
+parser.add_argument("inputdb", metavar='inputdb', action='store', nargs="+", type=str,
+                    help='list of input databases from which to calculate the extinction coefficient.')
 parser.add_argument("--plot", action="store_true", dest="plot", default=False,
                     help="Shows the plots of magnitude vs airmass for all db and filters. Default: False")
 parser.add_argument("--silent", action="store_true", dest="silent", default=False,
