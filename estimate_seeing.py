@@ -148,7 +148,7 @@ class StarField(object):
         self.model_type = model_type
 
     def __iter__(self):
-        """ Iterat"""
+        """ Iterate over all the stars defined in the coords_file."""
         return iter(self._star_list)
 
     @property
