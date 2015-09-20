@@ -39,6 +39,11 @@ class Star(object):
         return self._fit_model()
 
     @property
+    def model_psf(self):
+        """ Return a modelled PSF for the given model  """
+        return self.model(self._XGrid, self._YGrid)
+
+    @property
     def fwhm(self):
         """ Extract the FWHM from the model of the star.
 
