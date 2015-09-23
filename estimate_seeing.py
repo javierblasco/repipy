@@ -79,19 +79,33 @@ class Star(object):
         background or sky level around the star.
         """
         max_value = self.data.max()
-        if self.model_type == "Gaussian2D":
-            model = models.Gaussian2D(x_stddev=1, y_stddev=1, x_mean=self.x, y_mean=self.y, amplitude=max_value)
+
+        if self.model_type == self._GAUSSIAN2D:
+            model = models.Gaussian2D(x_mean=self.x, y_mean=self.y, x_stddev=1, y_stddev=1)
+            model.amplitude = max_value
+
             # Establish reasonable bounds for the fitted parameters
             model.x_stddev.bounds = (0, self._box/4)
             model.y_stddev.bounds = (0, self._box/4)
+            model.x_mean.bounds = (self.x - 5, self.x + 5)
+            model.y_mean.bounds = (self.y - 5, self.y + 5)
 
-        elif self.model_type == "Moffat2D":
-            model = models.Moffat2D(x_0=self.x, y_0=self.y, gamma=2, alpha=2, amplitude=max_value)
+        elif self.model_type == self._MOFFAT2D:
+            model = models.Moffat2D()
+            model.x_0=self.x
+            model.y_0=self.y
+            model.gamma=2
+            model.alpha=2
+            model.amplitude=max_value
+
+            #  Establish reasonable bounds for the fitted parameters
             model.alpha.bounds = (1,6)
             model.gamma.bounds = (0, self._box/4)
+            model.x_0.bounds = (self.x - 5, self.x + 5)
+            model.y_0.bounds = (self.y - 5, self.y + 5)
+
         model += models.Const2D(self.fit_sky())
         model.amplitude_1.fixed=True
-        print "Sky is fixed to value: ", model.amplitude_1
         return model
 
     def fit_sky(self):
@@ -215,9 +229,9 @@ parser.add_argument("--cat", metavar='cat', action='store', dest="cat",
 parser.add_argument("--wcs", metavar="wcs_in", action="store", dest="wcs", type=bool,
                     default=True, help = "If coordinates are in pixels, set this flag to False, if in RA,DEC "
                                          "set to True. Default: True ")
-parser.add_argument("--model", metavar="model", action="store", dest="model", default="Moffat2D",
-                    help="Model to be fit to the stars: Moffat2D or Gaussian2D. Both models will contain a "
-                         "background value. Default: 'Moffat2D' ")
+parser.add_argument("--model", metavar="model", action="store", dest="model", default="Gaussian2D",
+                    help="Model to be fit to the stars. All models will contain a background value. "
+                         "Available models: {0}. Default: 'Gaussian2D' ".format( Star._MODELS ) )
 
 
 def main(arguments = None):
