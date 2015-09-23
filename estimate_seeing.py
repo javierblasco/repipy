@@ -18,9 +18,13 @@ class Star(object):
         Full Width at Half Maximum (FWHM).The star will be modelled using astropy.modelling. Currently
         accepted models are: 'Gaussian2D', 'Moffat2D'
     """
-    _AVAILABLE_MODELS = ['Gaussian2D', 'Moffat2D']
 
-    def __init__(self, x0, y0, data, model_type="Moffat2D", box=40):
+
+    _GAUSSIAN2D = 'Gaussian2D'
+    _MOFFAT2D = 'Moffat2D'
+    _MODELS = set([_GAUSSIAN2D, _MOFFAT2D])
+
+    def __init__(self, x0, y0, data, model_type=_GAUSSIAN2D, box=40):
         """ Instantiation method for the class Star.
 
         The 2D array in which the star is located (data), together with the pixel coordinates (x0,y0) must be
@@ -52,11 +56,11 @@ class Star(object):
             Gaussian FWHM = 2.3548 * sigma. Unfortunately, our case is a 2D Gaussian, so a compromise between the
             two sigmas (sigma_x, sigma_y) must be reached. We will use the average of the two.
         """
-        model_dict = dict(zip(self.model.param_names, self.model.parameters))
-        if self.model_type == "Moffat2D":
+        model_dict = dict(zip(self.model().param_names, self.model().parameters))
+        if self.model_type == self._MOFFAT2D:
             gamma, alpha = [model_dict[ii] for ii in ("gamma_0", "alpha_0")]
             FWHM = 2. * gamma * np.sqrt(2 ** (1/alpha) -1)
-        elif self.model_type == "Gaussian2D":
+        elif self.model_type == self._GAUSSIAN2D:
             sigma_x, sigma_y = [model_dict[ii] for ii in ("x_stddev_0", "y_stddev_0")]
             FWHM = 2.3548 * np.mean([sigma_x, sigma_y])
         return FWHM
