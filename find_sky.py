@@ -44,9 +44,9 @@ def find_sky(args):
         MAD = numpy.median( numpy.abs( data2 - median))
 
 
-        # Do a histogram, bins separated by 1.5
-        minx, maxx = median-7*MAD, median+7*MAD
-        nbins = (maxx - minx) / 1.5
+        # Do a histogram, with limits of +- 7.5 MAD (~+-5 sigma for a normal distribution)
+        minx, maxx = median-7.5*MAD, median+7.5*MAD
+        nbins = 15
         n, bins = numpy.histogram(data2, bins=nbins, range=[minx, maxx])
         bincenters = 0.5 * (bins[1:]+bins[:-1])
 
