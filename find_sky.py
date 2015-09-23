@@ -32,7 +32,7 @@ def find_sky(args):
 
         # If mask exist read it, otherwise build it with all values unmasked
         try:
-            maskname = os.path.join(imdir, hdr[args.mask_key])
+            maskname = hdr[args.mask_key]
             mask = fits.getdata(maskname)
         except KeyError:
             mask = numpy.ma.make_mask_none(data.shape)
@@ -98,7 +98,7 @@ parser.add_argument("--plot", dest='plot', action='store_true', default=False, \
                     help='Plot histogram of image to find sky.')
 parser.add_argument("--mask_key", metavar='mask_key', action='store', 
                     dest='mask_key', default="",
-                   help='key where the mask image is stored in the header.')
+                   help='Key where the name of the mask image is stored in the header.')
 
 
 if __name__ == "__main__" :

@@ -100,6 +100,8 @@ def arith(args):
             os.remove(mask_name)
         fits.writeto(outpt, result.data, header=hdr_im) 
         fits.writeto(mask_name, result.mask.astype(numpy.int0), header=hdr_mask)
+        utilities.header_update_keyword(outpt, "MASK", os.path.abspath(mask_name),
+                                                comment="Name of mask image. ")
         output_list.append(outpt)
     return output_list
 
