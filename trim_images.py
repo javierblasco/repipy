@@ -22,17 +22,16 @@ def trim(args):
     y0, y1, x0, x1 = args.region
 
     # args.output should be a list of output names. If they do not exist, the outputs should be the same as the
-    # inputs with whatever suffix the user gave
+    # inputs with whatever suffix, if any, the user gave
     if not args.output:
         args.output = [utilities.add_suffix_prefix(im_name, suffix=args.suffix) for im_name in args.input]
 
-    # Do the actual trimming
+    # Do the actual trimming. We will do it first into a temporary file, then copy it into args.output. This is just
+    # in case the output and input filenames are the same, or if the output exists. IRAF will not overwrite!
     for im_name, new_name in zip(args.input, args.output):
-        # Do the operation first into a temporary file, then copy it into args.output. This will prevent the problem
-        # that iraf's imcopy does not overwrite output filenames.
         basename = os.path.splitext(os.path.basename(im_name))[0]
-        _, temp_name = tempfile.mkstemp(prefix=basename, suffix=".fits")
-        os.unlink(temp_name )
+        _, temp_output = tempfile.mkstemp(prefix=basename, suffix=".fits")
+        os.unlink(temp_output )
         with utilities.tmp_mute():
             imcopy(im_name + "[{0}:{1}, {2}:{3}]".format(x0, x1, y0, y1), temp_output)
             shutil.move(temp_output, new_name)
