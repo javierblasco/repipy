@@ -9,6 +9,7 @@ import os
 from repipy import utilities
 from lemon import methods
 import repipy
+import astropy.io.fits as fits
 
 # Change to the directory where repipy is installed to load pyraf
 with methods.tmp_chdir(repipy.__path__[0]):
@@ -33,8 +34,18 @@ def trim(args):
         _, temp_name = tempfile.mkstemp(prefix=basename, suffix=".fits")
         os.unlink(temp_name )
         with utilities.tmp_mute():
-            imcopy(im_name + "[{0}:{1}, {2}:{3}]".format(x0, x1, y0, y1), temp_name)
-            shutil.move(temp_name, new_name)
+            imcopy(im_name + "[{0}:{1}, {2}:{3}]".format(x0, x1, y0, y1), temp_output)
+            shutil.move(temp_output, new_name)
+
+            # If a mask exists, trim exactly equally
+            if args.mask_key:
+                maskname = fits.getheader(im_name)[args.mask_key]
+                with fits.open(maskname, 'readonly') as mask_im:
+                    mask_im[0].data = mask_im[0].data[y0:y1+1, x0:x1+1]
+                    mask_output = utilities.replace_extension(new_name, ".fits.msk")
+                    fits.writeto(mask_output, mask_im[0].data, mask_im[0].header, clobber=True)
+                utilities.header_update_keyword(new_name, "MASK", os.path.abspath(mask_output),
+                                                comment="Name of mask image. ")
 
     return args.output
 
@@ -56,6 +67,11 @@ parser.add_argument("--region", metavar=('x0', 'x1', 'y0', 'y1'), action='store'
                          'Usually x0,x1 correspond to Naxis1 and y0,y1 to Naxis2 in the header of fits images. ')
 parser.add_argument("--overwrite", dest='overwrite', action='store_true',
                     help='Overwrite the input file if no suffix or output file is given. ')
+parser.add_argument("--mask_key", metavar='mask_key', action='store',
+                    dest='mask_key', default="",
+                   help='Key where the name of the mask image is stored in the header. The mask image should be trimmed '
+                        'to be the same size as the output image.')
+
 
 def main(arguments=None):
     # Pass arguments to variable
