@@ -114,10 +114,10 @@ parser.add_argument("--suffix", metavar="suffix", dest='suffix', action='store',
                     'quite annoying. One way around it is " -c" (notice the '+\
                     'space, since within the code the string is stripped.', nargs=1)
 parser.add_argument("--message", metavar="hdr_message", dest='hdr_message', \
-                    action='store', default="", help=' Message to be added to ' +\
+                    action='store', default="", help='Message to be added to ' +\
                     'the header via HISTORY. For example: bias subtracted.')
 parser.add_argument("--sigma_key", metavar="sigma_key", dest='sigma', \
-                    action='store', default="", help=' Keyword in the header ' +\
+                    action='store', default="", help='Keyword in the header ' +\
                     'containing an estimate of the noise of the sky.')
 parser.add_argument("--min_val", metavar="minval", dest='minval', default=0, \
                    type=float, action='store', help='Minimum allowed value. '+\
