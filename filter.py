@@ -11,10 +11,10 @@ repipy_path = repipy_path[0]
 class Filter(object):
 
     _system_dict = {'Har': '.*har(ris)?.*',
-               '': '.*(H(a(lpha)?)?|H(a)?)\d{4}.*',
-               'Joh': '.*j(oh(nson)?)?.*',
-               'Gunn': '.*gun(n)?.*',
-               'sdss': '.*(sdss|sloan).*'
+                     '': '.*(H(a(lpha)?)?|H(a)?)\d{4}.*',
+                    'Joh': '.*j(oh(nson)?)?.*',
+                    'Gunn': '.*gun(n)?.*',
+                    'sdss': '.*(sdss|sloan).*'
                }
 
 
