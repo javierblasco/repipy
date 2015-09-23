@@ -37,7 +37,6 @@ class Star(object):
         self.data = data[self._XGrid, self._YGrid]
         self.model_type = model_type
 
-    @property
     def model(self):
         """ Fit a model to the star. """
         return self._fit_model()
@@ -45,7 +44,7 @@ class Star(object):
     @property
     def model_psf(self):
         """ Return a modelled PSF for the given model  """
-        return self.model(self._XGrid, self._YGrid)
+        return self.model()(self._XGrid, self._YGrid)
 
     @property
     def fwhm(self):
@@ -118,7 +117,7 @@ class Star(object):
     def plot_resulting_model(self):
         """ Make a plot showing data, model and residuals. """
         data = self.data
-        model = self.model(self._XGrid, self._YGrid)
+        model = self.model()(self._XGrid, self._YGrid)
         residuals = data - model
         plt.figure(figsize=(8, 2.5))
         plt.subplot(1, 3, 1)
