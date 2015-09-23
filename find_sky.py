@@ -55,7 +55,7 @@ def find_sky(args):
         maxvalue = bincenters[maxpos]
 
         # First guess for a fit
-        p0 = [n[maxpos],maxvalue,5,numpy.mean(n)]
+        p0 = [n[maxpos], maxvalue, 1.5 * MAD, numpy.min(n)]
         coeff, varmatrix = curve_fit(gauss, bincenters,n,p0=p0)
 
         # Plot the histogram
