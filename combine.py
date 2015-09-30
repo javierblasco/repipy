@@ -68,11 +68,11 @@ def compute_scales(input_images, scale_type, mask_key):
     scales = []
     for image in input_images:
         im = utils.read_image_with_mask(image, mask_keyword=mask_key, limits=centre)
-        if scale_type == "median":
+        if scale_type.lower() == "median":
             new_item = numpy.ma.median(im)
-        elif scale_type == "mean":
+        elif scale_type.lower() == "mean":
             new_item = numpy.ma.mean(im)
-        elif scale_type == "none":
+        elif scale_type.lower() == "none":
             new_item = 1
         if new_item is numpy.ma.masked:  # Result if all elements where masked
             new_item = 1
@@ -225,7 +225,7 @@ parser.add_argument("--all_together", action="store_true", dest="all_together", 
                    default=False, help=' Force all the files to be combined'+ \
                    'together, i.e. do not separate by filter (e.g. for bias)') 
 parser.add_argument("--norm", action="store_true", dest="norm", default=False, \
-                    help="Normalize resulting image? Default: No")
+                    help="Normalize resulting image? Default: False")
 parser.add_argument("--nmin", metavar="nmin", type=int, dest="nmin", action='store', \
                     default=1, help="Minimum number of images with valid "+\
                     "(i.e. non masked, non rejected) pixels. If the valid pixels "+\
