@@ -106,18 +106,9 @@ parser.add_argument("--suffix", metavar="suffix", dest='suffix', action='store',
                     'does not raise an error, but just stops execution, which is '+\
                     'quite annoying. One way around it is " -c" (notice the '+\
                     'space, since within the code the string is stripped.', nargs=1)
-parser.add_argument("--message", metavar="hdr_message", dest='hdr_message', \
-                    action='store', default="", help='Message to be added to ' +\
-                    'the header via HISTORY. For example: bias subtracted.')
 parser.add_argument("--sigma_key", metavar="sigma_key", dest='sigma', \
                     action='store', default="", help='Keyword in the header ' +\
                     'containing an estimate of the noise of the sky.')
-parser.add_argument("--min_val", metavar="minval", dest='minval', default=0, \
-                   type=float, action='store', help='Minimum allowed value. '+\
-                   'Below this value, mask out. Default: 0.')
-parser.add_argument("--max_val", metavar="maxval", dest='maxval', action='store',\
-                    default=50000, type=float, help='Maximum allowed value. '+\
-                    'Above this value, mask out. Default: 50000.')     
 parser.add_argument("--gain_key", metavar="gain_key", dest='gain_key', \
                     action='store', default="", help=' Keyword in the header ' +\
                     'of the image that contains the gain of the '+\
