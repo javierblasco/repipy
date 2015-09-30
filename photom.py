@@ -101,11 +101,18 @@ def do_photometry(args):
     hdr = astroim.Astroim(args.images[0]).header
     gaink, objectk, filterk, datek = hdr.gaink, hdr.objectk, hdr.filterk, hdr.datek
     exptimek, airmassk, timek   =  hdr.exptimek, hdr.airmassk, hdr.timek
-    photometry.main(arguments=["--uik", "", "--margin", "20", "--gaink", gaink, "--cbox", args.cbox,
-                                   "--aperture", "4.", "--annulus", "6", "--dannulus", "2", "--individual-fwhm",
-                                   "--objectk", objectk, "--filterk", filterk, "--datek", datek, "--expk", exptimek,
-                                   "--fwhmk", "seeing", "--airmk", airmassk, "--timek", timek, "--overwrite",
-                                   "--coordinates", args.coordinates[0], args.images[0]] + args.images + args.output)
+
+
+
+    arguments_common = ["--uik", "", "--margin", "20", "--gaink", gaink, "--cbox", args.cbox, "--individual-fwhm",
+                   "--objectk", objectk, "--filterk", filterk, "--datek", datek, "--expk", exptimek, "--fwhmk", "seeing",
+                   "--airmk", airmassk, "--timek", timek, "--overwrite", "--coordinates",
+                   args.coordinates[0], args.images[0]] + args.images + args.output)]
+    if args.unit == "FWHM":
+        photometry.main(arguments = ["--aperture", args.aperture, "--annulus", "6", "--dannulus", "2"] + arguments_common)
+    elif args.unit == "pix":
+        photometry.main(arguments= ["--aperture-pix", args.aperture, "--annulus-pix", "6", "--dannulus-pix", "2"] +\
+                                    arguments_common)
 
     return args.output
 
@@ -122,9 +129,24 @@ parser.add_argument("--coordinates", metavar='coordinates', action='store', dest
                          'or one per image. If no catalogue is passed, SEP will be used to find the stars in the image.')
 parser.add_argument("--output", metavar='output', action='store', dest="output",  nargs=1, type=str, required=True,
                     help='Name of the output database. ')
-
 parser.add_argument("--cbox", metavar='cbox', action='store', dest="cbox", type=float, default=10,
                     help='Size of the box within which the centre of the star will be searched. ')
+parser.add_argument("--aperture", metavar='aperture', action='store', dest="aperture", type=float, default=3,
+                    help='Aperture, by default in FWHM (see --unit below), to perform the photometry. '
+                         'The star will be considered to extend out to this radius. ')
+parser.add_argument("--annulus", metavar='annnulus', action='store', dest="annulus", type=float, default=6,
+                    help='Inner circle of the ring to measure the sky. By default it is in units of FWHM '
+                         '(see --unit below). Default value: 6')
+parser.add_argument("--dannulus", metavar='dannnulus', action='store', dest="dannulus", type=float, default=2,
+                    help='Width of the ring to measure the sky. By default it is in units of FWHM '
+                         '(see --unit below). Default value: 2')
+parser.add_argument("--unit", metavar='unit', action='store', dest="unit", type=float, default='FWHM',
+                    help="Scale of the units in aperture, annulus and dannulus. 'Pix' and 'FWHM' are acceptable,  "
+                         'depending on if the aperture, annulus and dannulus should be taken as pixels or as number '
+                         'of FWHM. ')
+
+
+
 
 def main(arguments = None):
   # Pass arguments to variable args
