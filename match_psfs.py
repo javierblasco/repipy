@@ -75,8 +75,8 @@ def match(args):
                                  output=output,
                                  verbose="no")
             utils.if_exists_remove("kernel.fits")
-        mssg = "Before equating PSFs: " + str(current_seeing)
-        utils.header_update_keyword(output, args.FWHM_key, ref_seeing, comment=mssg)
+            mssg = "Before equating PSFs: " + str(current_seeing)
+            utils.header_update_keyword(output, args.FWHM_key, ref_seeing, comment=mssg)
         output_list.append(output)
     return output_list
 
