@@ -106,7 +106,7 @@ def calculate_extinctions(args):
     results = {}  # Dictionary for the outputs
     for DB in args.inputdb:
         print "\nStudying database {0}:".format(DB)
-        airmass, magnitudes, filters, SNR = extract.main(DB)
+        airmass, magnitudes, filters, SNR, im_paths = extract.main(DB)
 
         # SNR is the signal-to-noise-ratio, we want to use the errors in the magnitudes
         magnitude_errors_minus, magnitude_errors_plus = snr.snr_to_error(SNR)
