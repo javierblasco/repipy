@@ -107,13 +107,13 @@ def do_photometry(args):
     arguments_common = ["--uik", "", "--margin", "20", "--gaink", gaink, "--cbox", args.cbox, "--individual-fwhm",
                    "--objectk", objectk, "--filterk", filterk, "--datek", datek, "--expk", exptimek, "--fwhmk", "seeing",
                    "--airmk", airmassk, "--timek", timek, "--overwrite", "--coordinates",
-                   args.coordinates[0], args.images[0]] + args.images + args.output)]
+                   args.coordinates[0], args.images[0]] + args.images + args.output
     if args.unit == "FWHM":
         photometry.main(arguments = ["--aperture", args.aperture, "--annulus", args.annulus, "--dannulus", args.dannulus] +\
                                      arguments_common)
     elif args.unit == "pix":
         photometry.main(arguments= ["--aperture-pix", args.aperture, "--annulus-pix", args.annulus,
-                                    "--dannulus-pix", args.dannulus,] +  arguments_common)
+                                    "--dannulus-pix", args.dannulus] +  arguments_common)
 
     return args.output
 
