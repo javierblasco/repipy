@@ -187,15 +187,19 @@ class StarField(object):
         """ Return a list of Star objects from the image data and the coordinates of the stars."""
         return [Star(x0, y0, self.im_data, self.model_type) for (x0,y0) in self.star_coords]
 
-    @property
+
     def FWHM(self):
-        """ Determine the FWHM (seeing) of the image. """
-        return np.median([star.fwhm for star in self._star_list])
+        """ Determine the median and median absolute deviation of the FWHM (seeing) of the image. """
+        fwhm_stars = np.array([star.fwhm for star in self._star_list])
+        return np.median(fwhm_stars), np.median( np.abs( np.median(fwhm_stars) - fwhm_stars ) )
+
+
 
     def _write_FWHM(self):
         """ Write the FWHM to the header of the fits image."""
         with fits.open(self.im_name, 'update') as im:
-            im[0].header["seeing"] = (self.FWHM, 'Seeing estimated in pixels')
+            im[0].header["seeing"] = (self.FWHM()[0], 'Seeing estimated in pixels')
+            im[0].header["seeing_MAD"] = (self.FWHM()[1], 'Median absolute deviation of Seeing (in pixels)')
         return None
 
 
