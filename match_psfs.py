@@ -49,7 +49,7 @@ def match(args):
  
     output_list = []
     for image, stars in zip(args.input, args.input_stars):
-        output = utils.add_suffix_prefix(image, prefix=args.prefix, suffix=args.suffix)
+        output = utils.add_suffix_prefix(image, suffix=args.suffix)
 
         # Too small differences of seeing are not worh doing any matching
         current_seeing = utils.get_from_header(image, args.FWHM_key)
@@ -97,13 +97,6 @@ parser.add_argument("--input_stars", metavar='input_stars', action='store',
                     'is passed, it will be assumed that it contains the stars to be used '+\
                     'for all images. Otherwise, you can list a file for each image '+\
                     'in "input"', nargs="+", type=str)
-parser.add_argument("--coords", metavar='coords', action='store', default="world",
-                    help='Type of coordinates that input_stars give. Allowed: '+\
-                    ' "logical", tv", "physical", and "world". Default: world ')                             
-parser.add_argument("--prefix", metavar="prefix", dest='prefix', action='store', \
-                    default='', type=str, help='prefix to be added at the '+\
-                    'beginning of the image input list to generate the outputs.',
-                    nargs=1)
 parser.add_argument("--suffix", metavar="suffix", dest='suffix', action='store',\
                     default=' -p', type=str, help='suffix to be added at the end '+\
                     'of the image input list to generate the outputs. There '+\
@@ -155,8 +148,6 @@ def main(arguments = None):
     # In order to allow "  -c" to be able to use the hyphen as suffix.
   if args.suffix != "":
       args.suffix = args.suffix[0].strip()
-  if args.prefix != "":
-      args.prefix = (args.prefix[0]).strip()  
   
   # Number of reference star files should be one or as many as input images
   if len(args.input_stars) != 1 and (len(args.input) != len(args.input_stars)):
