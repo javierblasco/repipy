@@ -53,7 +53,7 @@ def match(args):
 
         # Too small differences of seeing are not worh doing any matching
         current_seeing = utils.get_from_header(image, args.FWHM_key)
-        if abs(ref_seeing - current_seeing) < 0.2:  # Not worth equating PSFs for small differences
+        if abs(ref_seeing - current_seeing) < args.limit:  # Not worth equating PSFs for small differences
             shutil.copy(image, output)  # copy old file into new one
         else:
             # Calculate psf of the other images
@@ -137,6 +137,11 @@ parser.add_argument("--airm_key", metavar='airm_key', action='store', \
 parser.add_argument("--FWHM_key", metavar='seeing', dest='FWHM_key', action='store', 
                     default='SEEING', help='Keyword in which the seeing is stored ' +\
                    'in the headers. Default: "SEEING" ' )
+parser.add_argument("--limit", metavar='limit', dest='limit', action='store',
+                    default=0.2, type=float,  help='Limit for the matching of PSFs. IF the FWHM of the '
+                                      'images differ by less than this limit, do nothing with the '
+                                      'images, their PSFs are close enough already. Default: 0.2 (pixels) ' )
+
 
 def main(arguments = None):
   # Pass arguments to variable args
