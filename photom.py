@@ -141,7 +141,7 @@ parser.add_argument("--annulus", metavar='annnulus', action='store', dest="annul
 parser.add_argument("--dannulus", metavar='dannnulus', action='store', dest="dannulus", type=float, default=2,
                     help='Width of the ring to measure the sky. By default it is in units of FWHM '
                          '(see --unit below). Default value: 2')
-parser.add_argument("--unit", metavar='unit', action='store', dest="unit", type=float, default='FWHM',
+parser.add_argument("--unit", metavar='unit', action='store', dest="unit", type=str, default='FWHM',
                     help="Scale of the units in aperture, annulus and dannulus. 'Pix' and 'FWHM' are acceptable,  "
                          'depending on if the aperture, annulus and dannulus should be taken as pixels or as number '
                          'of FWHM. ')
