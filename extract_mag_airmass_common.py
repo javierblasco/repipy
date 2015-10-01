@@ -47,10 +47,11 @@ def main(db_name):
     magnitudes = np.zeros([num_stars, num_airmasses], dtype=np.float64)
     SNR = np.zeros([num_stars, num_airmasses], dtype=np.float64)
     filters = np.array([""] * num_stars * num_airmasses, dtype="S15").reshape(num_stars, num_airmasses)
+    im_paths = np.array([""] * num_stars * num_airmasses, dtype="S100").reshape(num_stars, num_airmasses)
 
     for ii, id_ in enumerate(star_ids):
         query = """
-                SELECT p.star_id, f.name, p.magnitude, i.airmass, p.SNR
+                SELECT p.star_id, f.name, p.magnitude, i.airmass, p.SNR, i.path
                 FROM photometry AS p
                 INNER JOIN images AS i
                 ON p.image_id = i.id
@@ -62,9 +63,10 @@ def main(db_name):
         db._execute(query, t)
 
         for jj, row in enumerate(db._rows):
-            star_id, filter_name, magnitude, airmass, snr = row
+            star_id, filter_name, magnitude, airmass, snr, path = row
             airmasses[ii,jj] = airmass
             magnitudes[ii,jj] = magnitude
             filters[ii, jj] = filter_name
             SNR[ii,jj] = snr
-    return airmasses, magnitudes, filters, SNR
+            im_paths[ii,jj] = path
+    return airmasses, magnitudes, filters, SNR, im_paths
