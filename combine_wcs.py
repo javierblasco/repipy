@@ -11,6 +11,16 @@ with methods.tmp_chdir(repipy.__path__[0]):
     from pyraf import iraf
     from iraf import images
 
+
+class ImList(images):
+    """ List of astronomical FITS images.
+    """
+    def __init__(self):
+        """ Return astropy.io.fits objects
+        """
+
+
+
 def combine(args):
     """ Combine images using the wcs in their headers to match the pixels.
     :param args:
