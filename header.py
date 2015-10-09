@@ -61,7 +61,7 @@ class Header(object):
         self.im_name = image
         if HDU is None:
             HDU = fits.open(self.im_name)[0]
-        self.hdr = hdulist.header
+        self.hdr = HDU.header
 
     @property
     def telescope(self):
