@@ -2,7 +2,7 @@
 
 
 
- """
+"""
 
 import astropy.io.fits as fits
 import sys
@@ -57,16 +57,11 @@ class Header(object):
     }
 
 
-    def __init__(self, image):
+    def __init__(self, image, HDU=None):
         self.im_name = image
-        # Some fits images will have more than one extension, the header beeing split between the 0 and the others
-        hdulist = fits.open(self.im_name)
-        if len(hdulist) == 1:
-            self.hdr = hdulist[0].header
-            self.ndetectors = 1
-        else:
-            self.hdr = hdulist[0].header + hdulist[1].header
-            self.ndetectors = utils.number_of_chips(hdulist)
+        if HDU is None:
+            HDU = fits.open(self.im_name)[0]
+        self.hdr = hdulist.header
 
     @property
     def telescope(self):
