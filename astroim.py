@@ -3,6 +3,11 @@ import repipy.target as target
 import repipy.filter as imfilter
 
 
+class chip(object):
+    print "mugre"
+    pass
+
+
 class Astroim(object):
     """
     """
