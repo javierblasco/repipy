@@ -4,8 +4,13 @@ import repipy.filter as imfilter
 
 
 class chip(object):
-    print "mugre"
-    pass
+    """ Each of the CCD Header/Data Units (HDUs) of an astronomical image
+    """
+    def __init__(self, HDU):
+        self.data = HDU.data
+        self.header  = header.Header(HDU.header)
+        self.mask = None
+        self.stats = imstats.Imstats(self)
 
 
 class Astroim(object):
