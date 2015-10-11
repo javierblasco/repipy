@@ -2,6 +2,7 @@ import repipy.header as header
 import repipy.target as target
 import repipy.filter as imfilter
 import astropy.io.fits as fits
+import repipy.imstats as imstats
 
 class chip(object):
     """ Each of the CCD Header/Data Units (HDUs) of an astronomical image
