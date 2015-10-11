@@ -2,6 +2,7 @@ import repipy.header as header
 import repipy.target as target
 import repipy.filter as imfilter
 import astropy.io.fits as fits
+import astropy.wcs as wcs
 import repipy.imstats as imstats
 
 class chip(object):
@@ -11,7 +12,37 @@ class chip(object):
         self.data = HDU.data
         self.header  = header.Header(HDU.header)
         self.mask = None
-        self.stats = imstats.Imstats(self)
+        self.wcs = self._get_wcs()
+
+    def _get_wcs(self):
+        """ Get the World Coordinate System solution from the header, if present.
+
+        The WCS module of astropy gives always a solution. If there is no WCS information in the header, it will return
+        False in the attribute "is_celestial", and return a set of parameters, which are essentially equivalent to
+        assuming that the image is pointed at Ra, Dec = 0,0  and with a pixel scale of 1 degree per pixel. Whenever that
+         happens we will return None instead.
+        """
+
+        w = wcs.WCS(self.header.hdr)
+        if not w.is_celestial:
+            w = None
+        return w
+
+    def has_coords(self, ra, dec):
+        """ Check if given coordinates are within the chip boundaries.
+        """
+
+        # With no valid wcs in the header, the rest is useless
+        if not self.wcs:
+            return None
+
+        ly, lx = self.data.shape
+        x, y = self.wcs.all_world2pix(ra, dec, 0)
+        if (0 < x < (lx-1)) and (0 < y < (ly-1)):
+            return True
+        else:
+            return False
+
 
 
 class Astroim(object):
