@@ -25,7 +25,7 @@ class Imstats(object):
     def __init__(self, astroim, mask_keyword="MASK", region=None):
         self.im_name = astroim.im_name
         self.region = region
-        mask_name =  astroim.header._get_from_header("MASK")
+        mask_name =  astroim.header._get_value("MASK")
         self.im_mask = fits.open(mask_name)
         self.im_data = astroim.data
         self.user_mask = self._get_user_mask()
