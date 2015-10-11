@@ -57,11 +57,8 @@ class Header(object):
     }
 
 
-    def __init__(self, image, HDU=None):
-        self.im_name = image
-        if HDU is None:
-            HDU = fits.open(self.im_name)[0]
-        self.hdr = HDU.header
+    def __init__(self, header):
+        self.hdr = header
 
     @property
     def telescope(self):
