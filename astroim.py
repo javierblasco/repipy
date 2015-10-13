@@ -5,13 +5,13 @@ import astropy.io.fits as fits
 import astropy.wcs as wcs
 import repipy.imstats as imstats
 
-class chip(object):
+
+class Chip(object):
     """ Each of the CCD Header/Data Units (HDUs) of an astronomical image
     """
-    def __init__(self, HDU):
-        self.data = HDU.data
-        self.header  = header.Header(HDU.header)
-        self.mask = None
+    def __init__(self, hdu, mask=None):
+        self.data = hdu.data
+        self.header = header.Header(hdu.header)
         self.wcs = self._get_wcs()
 
     def _get_wcs(self):
