@@ -4,13 +4,14 @@ import repipy.filter as imfilter
 import astropy.io.fits as fits
 import astropy.wcs as wcs
 import repipy.imstats as imstats
+import numpy
 
 
 class Chip(object):
     """ Each of the CCD Header/Data Units (HDUs) of an astronomical image
     """
     def __init__(self, hdu, mask=None):
-        self.data = hdu.data
+        self.im_data = numpy.ma.array(hdu.data, mask=mask)
         self.header = header.Header(hdu.header)
         self.wcs = self._get_wcs()
 
@@ -36,7 +37,7 @@ class Chip(object):
         if not self.wcs:
             return None
 
-        ly, lx = self.data.shape
+        ly, lx = self.im_data.data.shape
         x, y = self.wcs.all_world2pix(ra, dec, 0)
         if (0 < x < (lx-1)) and (0 < y < (ly-1)):
             return True
