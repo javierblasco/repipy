@@ -15,7 +15,7 @@ class Imstats(object):
         self.im_data = numpy.ma.array(data, mask=mask)
 
     def __str__(self):
-        """ Print the whole statistical set.
+        """ Print some statistical info.
         """
         variables = [self.mean(), self.std(), self.median(), self.mad()]
         output_message = "Statistics of image {0}: \n Mean = {1}, Std = {2}, Median = {3}, MAD = {4}".format(*variables)
