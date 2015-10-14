@@ -29,8 +29,8 @@ class Chip(object):
             w = None
         return w
 
-    def has_coords(self, ra, dec):
-        """ Check if given coordinates are within the chip boundaries.
+    def contains_coords(self, ra, dec):
+        """ Check if given coordinates are within the chip.
         """
 
         # With no valid wcs in the header, the rest is useless
