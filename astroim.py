@@ -8,7 +8,7 @@ import numpy
 
 
 class Chip(object):
-    """ Each of the CCD Header/Data Units (HDUs) of an astronomical image
+    """ Each of the CCD Header Data Units (HDUs) of an astronomical image which contains data (i.e., no main headers)
     """
     def __init__(self, hdu, mask=None):
         self.im_data = numpy.ma.array(hdu.data, mask=mask)
