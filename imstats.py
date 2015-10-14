@@ -36,7 +36,7 @@ class Imstats(object):
         """
         return numpy.ma.median(self.im_data)
 
-    def MAD(self):
+    def mad(self):
         """  Calculate the median absolute deviation of the non-masked area of an image
         """
         return numpy.ma.median(numpy.ma.abs(self.im_data - self.median()))
