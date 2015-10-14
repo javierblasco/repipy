@@ -15,6 +15,13 @@ class Chip(object):
         self.header = header.Header(hdu.header)
         self.wcs = self._get_wcs()
 
+    @property
+    def imstats(self):
+        """ Imstat object, as a @property to allow for changes in imstats following those in mask and data
+        :return:
+        """
+        return imstats.Imstats(self.im_data.data, self.im_data.mask)
+
     def _get_wcs(self):
         """ Get the World Coordinate System solution from the header, if present.
 
@@ -56,7 +63,6 @@ class Astroim(object):
         self.chips = [chip(hdu) for hdu in self._HDUList if hdu.data is not None]
         self.filter = imfilter.Filter(self.header)
         self.target = target.Target(self.header, self.filter)
-        self.imstats = imstats.Imstats(self)
 
     def zero_point(self, aperture=None):
         return self.filter.zero_point(self.target, aperture=aperture)
