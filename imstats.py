@@ -4,21 +4,11 @@ from sklearn.cross_validation import train_test_split
 
 
 class Imstats(object):
-    """ Do statistics in an astronomical image with or without an associated mask.
+    """ Point statistics, statistical fits and tests for images.
 
-    We will do several statistics (mean, median, mode, fit to plane, statistical tests...) in an astronomical 2D image.
-    A mask can be used: the mask should be another fits image, with 0 in the non-masked pixels, and any integer
-    different from 0 in those pixels not to be used. The mask, if it exists, must be saved into a keyword in the header.
-    That keyword is, by default, "MASK", but if the keyword has any other name, you must pass it when creating the
-    Imstats object.
-
-    By default, the whole image is used to do statistics. If you want a square section of the image, you need
-    to provide region = ((x0, y0), (x1, y1)), where (x0,y0) and (x1, y1) the coordinates of two non-consecutive
-    corners of the square, with Y corresponding to the NAXIS1 in the header and X to the NAXIS2 of the header.
-    Notice that this convention is the one numpy arrays use, and it has flipped axes with respect to the way DS9 and
-    matplotlib shows data, i.e., the point (100, 300) in ds9/matplotlib will be (300,100) in this convention.
-    If you prefer a circular aperture, just give region = ((x0, y0), radius), again following the convention of Y
-    for NAXIS1 and X for NAXIS2.
+    By default, the whole image is used to do statistics, but the initializer accepts a parameter region to define
+    circular or rectangular regions of the image to be used instead. The regions must be an iterable of lists/tuples
+    with three elements (x0, y0, radius) for circular regions or four elements (x0, y0, x1, y1)
     """
 
     def __init__(self, astroim, mask_keyword="MASK", region=None):
