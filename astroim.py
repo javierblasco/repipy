@@ -52,15 +52,14 @@ class Chip(object):
             return False
 
 
-
 class Astroim(object):
     """
     """
     def __init__(self, image):
         self.im_name = image
         self._HDUList = fits.open(self.im_name, 'readonly')
-        self.chips = [chip(hdu) for hdu in self._HDUList if hdu.data is not None]
         self.header = self._get_main_header()
+        self.chips = self._get_chips()
         self.filter = imfilter.Filter(self.header)
         self.target = target.Target(self.header, self.filter)
 
@@ -78,6 +77,16 @@ class Astroim(object):
             main_header = self._HDUList[0].header
         return main_header
 
+    def _get_chips(self):
+        """ Build Chip class objects for all the chips present in the image
+        """
+        hdu_with_data = [hdu for hdu in self._HDUList if hdu.data is not None]
+        hdu_masks = [mask for mask in self._HDUmask]
+        chip_objects = []
+        for hdu, mask in zip(hdu_with_data, hdu_masks):
+            if hdu.data is not None:
+                chip_objects.append(Chip(hdu, mask.data))
+        return chip_objects
+
     def zero_point(self, aperture=None):
         return self.filter.zero_point(self.target, aperture=aperture)
-
