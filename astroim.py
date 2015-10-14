@@ -59,10 +59,24 @@ class Astroim(object):
     def __init__(self, image):
         self.im_name = image
         self._HDUList = fits.open(self.im_name, 'readonly')
-        self.header = header.Header(self._HDUList[0].header)
         self.chips = [chip(hdu) for hdu in self._HDUList if hdu.data is not None]
+        self.header = self._get_main_header()
         self.filter = imfilter.Filter(self.header)
         self.target = target.Target(self.header, self.filter)
+
+    def _get_main_header(self):
+        """ Return the main header of a fits file.
+
+        Some fits files have an extra HDU, with no data but a header. It is usually associated with information
+        about telescope, site, atmospheric conditions, ... In other cases, that information is in the chips header,
+        so returning the first header available will do.
+
+        :return: main header, if present, otherwise the first header in the fits file.
+        """
+        main_header = [hdu.header for hdu in self._HDUList if not hdu.data]
+        if not main_header:
+            main_header = self._HDUList[0].header
+        return main_header
 
     def zero_point(self, aperture=None):
         return self.filter.zero_point(self.target, aperture=aperture)
