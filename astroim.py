@@ -59,6 +59,7 @@ class Astroim(object):
         self.im_name = image
         self._HDUList = fits.open(self.im_name, 'readonly')
         self.header = self._get_main_header()
+        self._HDUmask = self._getmask()
         self.chips = self._get_chips()
         self.filter = imfilter.Filter(self.header)
         self.target = target.Target(self.header, self.filter)
@@ -87,6 +88,16 @@ class Astroim(object):
             if hdu.data is not None:
                 chip_objects.append(Chip(hdu, mask.data))
         return chip_objects
+
+    def _getmask(self):
+        """ Get the mask, if any is present in the header, for the image.
+
+        :return: the mask if there is a fits file under the keyword MASK, None otherwise
+        """
+        try:
+            return fits.open(self.header.get("MASK"))
+        except IOError:  # Image not found
+            return None
 
     def zero_point(self, aperture=None):
         return self.filter.zero_point(self.target, aperture=aperture)
