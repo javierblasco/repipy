@@ -1,8 +1,7 @@
-import repipy.utilities as utilities
 import numpy
 from sklearn import linear_model
-import random
 from sklearn.cross_validation import train_test_split
+
 
 class Imstats(object):
     """ Do statistics in an astronomical image with or without an associated mask.
@@ -152,5 +151,3 @@ class Imstats(object):
                          """.format(*output_coefficients)
         print output_message
         return model
-
-
