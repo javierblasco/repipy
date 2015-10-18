@@ -68,6 +68,9 @@ class Astroim(object):
         """ Iterate over all the chips of the image.  """
         return iter(self.chips)
 
+    def zero_point(self, aperture=None):
+        return self.filter.zero_point(self.target, aperture=aperture)
+
     def _get_primary_header(self):
         """ Return the main header of a fits file.
 
@@ -105,6 +108,3 @@ class Astroim(object):
                 else:
                     chip_objects.append(Chip(hdu))
         return chip_objects
-
-    def zero_point(self, aperture=None):
-        return self.filter.zero_point(self.target, aperture=aperture)
