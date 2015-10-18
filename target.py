@@ -123,11 +123,13 @@ class Target(object):
 
     @property
     def RA(self):
-       return float(self._get_RaDec()[0])
+        """ RA of the object targeted by the observation, if known. """
+        return float(self._get_RaDec()[0])
 
     @property
     def DEC(self):
-       return float(self._get_RaDec()[1])
+        """ DEC of the object targeted by the observation, if known."""
+        return float(self._get_RaDec()[1])
 
     @property
     def DEC(self):
