@@ -132,7 +132,6 @@ class Target(object):
         return float(self._get_RaDec()[1])
 
 
-    #@property
     def counts(self, aperture=None):
         """ Do photometry in the object to get the counts/sec of the source. """
         return self._get_photometry(aperture=aperture)
