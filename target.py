@@ -44,9 +44,10 @@ stds = numpy.genfromtxt(standards_file, delimiter=",", dtype=None, autostrip=Tru
 
 
 class Target(object):
-    def __init__(self, hdr, filt):
+    def __init__(self, hdr, filt, chips):
         self.header = hdr
         self.filter = filt
+        self.chips = chips
 
     def __str__(self):
         return re.sub('[-+\s_]', "", self.objname.lower())

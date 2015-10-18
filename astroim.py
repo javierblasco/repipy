@@ -61,7 +61,7 @@ class Astroim(object):
         self.primary_header = self._get_primary_header()
         self.chips = self._get_chips()
         self.filter = imfilter.Filter(self.primary_header)
-        self.target = target.Target(self.primary_header, self.filter)
+        self.target = target.Target(self.primary_header, self.filter, self.chips)
 
 
     def __iter__(self):
