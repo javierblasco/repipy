@@ -54,13 +54,72 @@ class Target(object):
 
     @property
     def objtype(self):
-        """ Find out what type of image (bias, flat, cig, standard, ...) this object is"""
-        return self._get_object()[0]
+        """ Find out the type of image, (bias, flat, cig, standard). """
+        return self._type_and_name()[0]
 
     @property
     def objname(self):
-        """ Using the header object, find out the name of the target in the image """
-        return self._get_object()[1]
+        """ Find out the name of the target in the image """
+        return self._type_and_name()[1]
+
+    @utilities.memoize
+    def _type_and_name(self):
+        """ Find out what type of image (bias, flat, cig, standard, ...) this object is
+
+        Several types of search are combined to find out the sort of object observed (bias, flat, cig, ...) and the name
+        of the object. A match using regular expressions is tried for those objects with easy patterns. As a second
+        option, using the coordinates of the object it is determined whether it is a standard star and which one. If
+        both fail, the type and name of the object are set to 'Unknown'.
+
+        """
+        if self.regex_match():
+            objtype, match = self.regex_match()
+            objname = objtype
+        elif self.is_a_standard():
+            objtype = "standards"
+            objname = self.is_a_standard()
+        else:
+            objtype = 'Unknown'
+            name = self.header.get(self.header.objectk)  #whatever the header says
+            objname = re.sub("[_:\s\t\|\\\\]","", name)
+
+        # CIGs are usually followed by a number, CIG23, CIG815, CIG1020
+        if objtype == 'cig':
+            objname += match.group('number').zfill(4)
+        return objtype, objname
+
+    @utilities.memoize
+    def regex_match(self):
+        """ Use regular expressions to guess the name of the object
+
+        Use the regular expressions in the regexp_dict to match the field that contains the objext name in the header.
+        :return: match of the regular expression
+        """
+        name = self.header.get(self.header.objectk)
+        if name is None:
+            return None
+
+        name = re.sub("[_:\s\t\|\\\\]","", name)
+        for key, value in regexp_dict.iteritems():
+            match = re.match(key, name, re.I)
+            if match:
+                return value, match
+
+
+    @utilities.memoize
+    def is_a_standard(self):
+        """ Find if the coordinates of a set of spectrophotometric standards is in any of the chips of the image.
+        :return: the name of the standard, if any is found. None otherwise.
+        """
+        for ii, star in enumerate(stds['std_names']):
+            ra, dec = stds['ra'][ii], stds['dec'][ii]
+            for chip in self.chips:
+                try:
+                    if chip.contains_coords(ra, dec):
+                        return star
+                except wcs.wcs.NoConvergence:
+                    continue
+        return None
 
     @property
     def RA(self):
@@ -264,39 +323,14 @@ class Target(object):
         except ValueError:   # problems, for example, with the SIP polynomials
             return None
 
-
-        # One of the most annoying things observatories do is include in the headers the keywords of the World
-        # Coordinate System with some default values that are absolute nonsense. The WCS gets mixed up and the rest of
-        # this function gets extremely confused. One of the giveaways is PC001001=           1.00000000  in the keyword
-        # This means that for each pixel you move in one direction, a whole degree is moved in one of the coordinates.
-        # Now, I think we can all agree that a 1 degree pixel scale is quite unlikely, so...
-        try:
-            if self.header.hdr["PC001001"] ==  1 :
-                return None
-        except KeyError:     #  "PC001001" not even there
-            pass
-
-
-
-        ly, lx = fits.getdata(self.header.im_name).shape
-        # ra_min, dec_min will be the coordinates of pixel (0,0)
-        # ra_max, dec_max the coordinates of the upper right corner of the image.
-        # But beware, the orientation could be such that ra_min > ra_max if the image is not oriented North
-        ra_min, dec_min = w.all_pix2world(numpy.array(zip([0],[0])), 1)[0]
-        ra_max, dec_max = w.all_pix2world(numpy.array(zip([lx], [ly])), 1)[0]
-        ra_min, ra_max = numpy.sort([ra_min, ra_max])
-        dec_min, dec_max = numpy.sort([dec_min, dec_max])
-
-        # Victor: astropy is the most stubborn thing on earth, it will find a solution even where there is none to be
-        # found. If that happens, ra_min = 0, dec_min = 0, ra_max = lx and ra_min = ly
-        if ra_min == 0 and dec_min == 0 and ra_max == lx and dec_max == ly:
+        if not w.is_celestial:
             return None
-        else:
-            for ii, star in enumerate(stds['std_names']):
-                ra, dec = stds['ra'][ii], stds['dec'][ii]
-                if (ra_min < ra < ra_max) and (dec_min < dec < dec_max):
-                    type, name = 'standards', star
-                    return type, name
+
+        for ii, star in enumerate(stds['std_names']):
+            ra, dec = stds['ra'][ii], stds['dec'][ii]
+            if (ra_min < ra < ra_max) and (dec_min < dec < dec_max):
+                type, name = 'standards', star
+                return type, name
 
 
 
