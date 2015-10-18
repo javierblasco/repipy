@@ -55,7 +55,8 @@ class Chip(object):
 class Astroim(object):
     """
     """
-    def __init__(self, image):
+    def __init__(self, image, memmap=False):
+        self.memmap = memmap
         self.im_name = image
         self.primary_header = self._get_primary_header()
         self.chips = self._get_chips()
@@ -76,7 +77,7 @@ class Astroim(object):
         conditions.
         :return: main header, if present, otherwise the first header in the fits file.
         """
-        with fits.open(self.im_name, mode='readonly') as HDUList:
+        with fits.open(self.im_name, mode='readonly', memmap=self.memmap) as HDUList:
             for hdu in HDUList:
                 if hdu.data is None:
                     primary_header = hdu.header
@@ -88,7 +89,7 @@ class Astroim(object):
         """ Build Chip class objects for all the chips present in the image
         """
         chip_objects = []
-        with fits.open(self.im_name) as HDUList:
+        with fits.open(self.im_name, memmap=self.memmap) as HDUList:
             hdu_with_data = [hdu for hdu in HDUList if hdu.data is not None]
 
             # Read the mask, if present in the header, create a mask of None otherwise.
