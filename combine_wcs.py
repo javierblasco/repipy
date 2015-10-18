@@ -13,6 +13,7 @@ import sys
 from lemon import methods
 import repipy
 from repipy import utilities
+from repipy import astroim
 with methods.tmp_chdir(repipy.__path__[0]):
     from pyraf import iraf
     from iraf import images
