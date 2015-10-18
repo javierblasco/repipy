@@ -32,8 +32,10 @@ class Filter(object):
         except ValueError:
             filtersys = ""
         filtername = self.filter_name
-        filter_alias =  passband.Passband( filtersys + filtername).__str__()
-        return re.sub('[\s\']', "", filter_alias)
+        filter_alias =  passband.Passband(filtername)
+        if filter_alias.system == 'Unknown':
+            filter_alias =  passband.Passband(filtersys + filtername)
+        return re.sub('[\s\']', "", filter_alias.__str__())
 
 
     def zero_point(self, target, aperture=None):
