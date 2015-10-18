@@ -67,9 +67,9 @@ class Astroim(object):
     def _get_main_header(self):
         """ Return the main header of a fits file.
 
-        Some fits files have an extra HDU, with no data but a header. It is usually associated with information
-        about telescope, site, atmospheric conditions, ... In other cases, that information is in the chips header,
-        so returning the first header available will do.
+    def __iter__(self):
+        """ Iterate over all the chips of the image.  """
+        return iter(self.chips)
 
         :return: main header, if present, otherwise the first header in the fits file.
         """
