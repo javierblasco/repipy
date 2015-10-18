@@ -57,8 +57,6 @@ class Astroim(object):
     """
     def __init__(self, image):
         self.im_name = image
-        self._HDUList = fits.open(self.im_name, 'readonly')
-        self._HDUmask = self._getmask()
         self.primary_header = self._get_primary_header()
         self.chips = self._get_chips()
         self.filter = imfilter.Filter(self.primary_header)
@@ -78,31 +76,34 @@ class Astroim(object):
         conditions.
         :return: main header, if present, otherwise the first header in the fits file.
         """
-        main_header = [hdu.header for hdu in self._HDUList if not hdu.data]
-        if not main_header:
-            main_header = self._HDUList[0].header
-        return main_header
+        with fits.open(self.im_name, mode='readonly') as HDUList:
+            for hdu in HDUList:
+                if hdu.data is None:
+                    primary_header = hdu.header
+            else:
+                primary_header = HDUList[0].header
+        return header.Header(primary_header, im_name=self.im_name)
 
     def _get_chips(self):
         """ Build Chip class objects for all the chips present in the image
         """
-        hdu_with_data = [hdu for hdu in self._HDUList if hdu.data is not None]
-        hdu_masks = [mask for mask in self._HDUmask]
         chip_objects = []
-        for hdu, mask in zip(hdu_with_data, hdu_masks):
-            if hdu.data is not None:
-                chip_objects.append(Chip(hdu, mask.data))
+        with fits.open(self.im_name) as HDUList:
+            hdu_with_data = [hdu for hdu in HDUList if hdu.data is not None]
+
+            # Read the mask, if present in the header, create a mask of None otherwise.
+            mask_name = self.primary_header.get("MASK")
+            if mask_name is not None:
+                hdu_masks = [mask for mask in fits.open(mask_name, memmap=self.memmap)]
+            else:
+                hdu_masks = [None for hdu in hdu_with_data]
+
+            for hdu, mask in zip(hdu_with_data, hdu_masks):
+                if mask:
+                    chip_objects.append(Chip(hdu, mask.data))
+                else:
+                    chip_objects.append(Chip(hdu))
         return chip_objects
-
-    def _getmask(self):
-        """ Get the mask, if any is present in the header, for the image.
-
-        :return: the mask if there is a fits file under the keyword MASK, None otherwise
-        """
-        try:
-            return fits.open(self.header.get("MASK"))
-        except IOError:  # Image not found
-            return None
 
     def zero_point(self, aperture=None):
         return self.filter.zero_point(self.target, aperture=aperture)
