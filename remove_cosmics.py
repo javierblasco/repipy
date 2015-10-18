@@ -33,8 +33,8 @@ def remove_cosmics(args):
         if im.target.objtype in ["bias", "domeflat", "skyflat", "flat"]:
             continue
 
-        gain = im.header.get(im.header.gaink)
-        readnoise = im.header.get(im.header.ccdronk)
+        gain = im.primary_header.get(im.primary_header.gaink)
+        readnoise = im.primary_header.get(im.primary_header.ccdronk)
         c = cosmics.cosmicsimage(array, gain = float(gain), sigfrac = 0.3, \
                                  readnoise = float(readnoise), objlim = 7.0, \
                                  sigclip = float(args.sigclip))

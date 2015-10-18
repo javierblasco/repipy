@@ -97,9 +97,10 @@ def do_photometry(args):
         #else:
         #    cat_name = "mierda.cat"
         #    detect_sources(im_name, cat_name)
-
-    hdr = astroim.Astroim(args.images[0]).header
-    gaink, objectk, filterk, datek = hdr.gaink, hdr.objectk, hdr.filterk, hdr.datek
+    im = astroim.Astroim(args.images[0])
+    hdr = im.primary_header
+    chip_hdr = im.chips[0].header
+    gaink, objectk, filterk, datek = chip_hdr.gaink, hdr.objectk, hdr.filterk, hdr.datek
     exptimek, airmassk, timek   =  hdr.exptimek, hdr.airmassk, hdr.timek
 
 

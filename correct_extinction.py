@@ -130,8 +130,8 @@ def correct(args):
             coeff, uncertainty = result[0], ""
 
         # Get the airmass from the header of the image
-        airm_keyword = im.header.airmassk
-        airmass = im.header.airmass
+        airm_keyword = im.primary_header.airmassk
+        airmass = im.primary_header.airmass
         if airmass == 0:
             print "{0} has zero airmass. Nothing to be done. ".format(im_name)
             continue

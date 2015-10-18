@@ -41,7 +41,7 @@ def perform_cosmic_removal(im_name, output=None):
 
     im = astroim.Astroim(im_name)
 
-    needed_keys = [("--gain", im.header.gaink), ("--readnoise", im.header.ccdronk)]
+    needed_keys = [("--gain", im.primary_header.gaink), ("--readnoise", im.primary_header.ccdronk)]
     for arg, kk in needed_keys:
         if kk is None:
             continue
@@ -102,7 +102,7 @@ def include_wcs(args):
         arguments_def = ["solve-field", "--no-plots", "--no-fits2fits", "--dir", "/tmp", "--overwrite",
                       "--new-fits", output_wcs, "--corr", corrfile, "--cpulimit", "1", input_image]
         try:  # Try to add the RA, DEC, Radius options to constrain the search
-            ra, dec = im.header.get(im.header.RAk, im.header.DECk)
+            ra, dec = im.primary_header.get(im.primary_header.RAk, im.primary_header.DECk)
             ra, dec = utilities.sex2deg(ra, dec)
             arguments = arguments_def + ["--ra", str(ra), "--dec", str(dec), "--radius", str(args.radius),
                                       "--cpulimit", "20"]
@@ -122,7 +122,7 @@ def include_wcs(args):
         arguments0 += args.extras
 
         try:  # Try to add the RA, DEC, Radius options to constrain the search
-            ra, dec = im.header.get(im.header.RAk, im.header.DECk)
+            ra, dec = im.primary_header.get(im.primary_header.RAk, im.primary_header.DECk)
             ra, dec = utilities.sex2deg(ra, dec)
             arguments = arguments0 + ["--ra", str(ra), "--dec", str(dec), "--radius", str(args.radius),
                                       "--cpulimit", "20"]

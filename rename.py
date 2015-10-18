@@ -176,8 +176,8 @@ def sort_by_date(fits_list):
     im_datetimes = []
     for im_name in fits_list:
         im = astroim.Astroim(im_name)
-        im_date = im.header.get(im.header.datek)
-        im_time = im.header.get(im.header.timek)
+        im_date = im.primary_header.get(im.primary_header.datek)
+        im_time = im.primary_header.get(im.primary_header.timek)
         if im_time:  # if not None
             im_date = "{0}T{1}".format(im_date, im_time)
         im_datetimes.append(dateutil.parser.parse(im_date))
@@ -217,7 +217,7 @@ def rename(args):
         object_name = re.sub('[\s\-_\(\)]', "", im.target.objname.lower())
         object_type = im.target.objtype
         object_filter = im.filter.__str__()
-        object_date = dateutil.parser.parse(im.header.get(im.header.datek)).date()
+        object_date = dateutil.parser.parse(im.primary_header.get(im.primary_header.datek)).date()
         object_date = re.sub('[\s\-\_\:]', "", object_date.__str__())
 
         # If the subfolder out_dir/object_type does not exist, create it,
