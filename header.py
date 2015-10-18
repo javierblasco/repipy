@@ -57,7 +57,9 @@ class Header(object):
     }
 
 
-    def __init__(self, header):
+    def __init__(self, header, im_name=None):
+        if im_name:
+            self.im_name = im_name
         self.hdr = header
 
     @property
