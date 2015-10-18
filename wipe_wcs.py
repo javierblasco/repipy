@@ -10,8 +10,9 @@ import sys
 def wipe(args):
     for im_name in args.input:
         with fits.open(im_name, 'update') as im:
-            im[0].header = utilities.remove_WCS(im[0].header)
-            im.flush()
+            for hdu in im:
+                hdu.header = utilities.remove_WCS(hdu.header)
+                im.flush()
 
 
 
