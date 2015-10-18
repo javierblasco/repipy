@@ -131,11 +131,6 @@ class Target(object):
         """ DEC of the object targeted by the observation, if known."""
         return float(self._get_RaDec()[1])
 
-    @property
-    def DEC(self):
-        RaDec = self._get_RaDec()
-        if RaDec:
-            return float(self._get_RaDec()[1])
 
     #@property
     def counts(self, aperture=None):
@@ -146,7 +141,6 @@ class Target(object):
         """ If you have both a spectra for the object and the filter curve, calculate the flux under the filter"""
         if self.spectra is not None and self.filter.filter_curve is not None:
             return self._get_flux()
-
 
     @utilities.memoize
     def _get_RaDec(self):
