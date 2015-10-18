@@ -58,19 +58,24 @@ class Astroim(object):
     def __init__(self, image):
         self.im_name = image
         self._HDUList = fits.open(self.im_name, 'readonly')
-        self.header = self._get_main_header()
         self._HDUmask = self._getmask()
+        self.primary_header = self._get_primary_header()
         self.chips = self._get_chips()
-        self.filter = imfilter.Filter(self.header)
-        self.target = target.Target(self.header, self.filter)
+        self.filter = imfilter.Filter(self.primary_header)
+        self.target = target.Target(self.primary_header, self.filter)
 
-    def _get_main_header(self):
-        """ Return the main header of a fits file.
 
     def __iter__(self):
         """ Iterate over all the chips of the image.  """
         return iter(self.chips)
 
+    def _get_primary_header(self):
+        """ Return the main header of a fits file.
+
+        A main header is the header with no data unit associated. It usually contains data about the telescope and
+        observations, with the chip information being stored in their own headers. If not present in our data, the
+        first header (Primary header) is passed, since it will contain all the info available about the general
+        conditions.
         :return: main header, if present, otherwise the first header in the fits file.
         """
         main_header = [hdu.header for hdu in self._HDUList if not hdu.data]
