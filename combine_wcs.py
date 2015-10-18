@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-###############################################################################
+"""  Combine a list of images into a single output image.
+
+The program takes in a list of images and returns an image with the type of combination indicated by --average,
+produciendo an output file given by --output output_name. Scaling the images previous to the combination is optional.
+If a mask is present in the header, the masks will be combined as well, and if more than a certain percentage of the
+images contains a pixel that is masked out, the resulting pixel will be also masked out.
+"""
 import argparse
 import sys
 from lemon import methods
