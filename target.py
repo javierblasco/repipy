@@ -218,7 +218,7 @@ class Target(object):
         if aperture:
             annulus = 2 * aperture
             dannulus = max([aperture, 3])  # minimum of 3 pixels thickness for the sky annulus
-            photfile_name = self.header.im_name + ".mag.1"
+            fd, photfile_name = tempfile.mkstemp(".mag.1")
             utilities.if_exists_remove(photfile_name)
             kwargs =  dict(output=photfile_name, coords=coords_file, salgorithm='median',
                       wcsin='world', fwhm=seeing, gain=self.header.gaink, exposure=self.header.exptimek,
