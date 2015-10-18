@@ -31,7 +31,8 @@ def combine(args):
     if args.average == "mean":
         args.average = "average"
 
-    iraf.imcombine(input_names, output=args.output, scale=args.scale.lower(), combine=args.average.lower(), offsets="wcs")
+    iraf.imcombine(input_names, output=args.output, scale=args.scale.lower(), combine=args.average.lower(),
+                   offsets="wcs")
 
 
 
