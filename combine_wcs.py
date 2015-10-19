@@ -19,7 +19,7 @@ with methods.tmp_chdir(repipy.__path__[0]):
     from iraf import images
 
 
-def combine(args):
+def combine_images(args):
     """ Combine images using the wcs in their headers to match the pixels.
     :param args:
     :return:
@@ -33,6 +33,7 @@ def combine(args):
 
     iraf.imcombine(input_names, output=args.output, scale=args.scale.lower(), combine=args.average.lower(),
                    offsets="wcs")
+
 
 
 
@@ -84,7 +85,7 @@ def main(arguments = None):
 
 	
   # Call combine, keep name of the file created
-  newfile = combine(args)
+  newfile = combine_images(args)
   return newfile  
 
 if __name__ == "__main__":
