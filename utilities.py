@@ -20,6 +20,7 @@ import functools
 from lemon import methods
 import repipy
 import tempfile
+import itertools
 
 # Change to the directory where repipy is installed to load pyraf
 with methods.tmp_chdir(repipy.__path__[0]):
@@ -101,13 +102,29 @@ def remove_WCS(header):
     wcs_keywords = ["wcsaxes", "ctype1", "ctype2", "equinox", "lonpole", 
               "latpole", "crval1", "crval2", "crpix1", "crpix2", 
               "cunit1", "cunit2", "cd1_1", "cd1_2", "cd2_1", "cd2_2", 
-              "PC001001", "PC001002", "PC002001", "PC002002",
+              "PC001001", "PC001002", "PC002001", "PC002002", "cdelt1", "cdelt2",
+              "PC1_1", "PC1_2", "PC2_1", "PC2_2",
               "PROJP1", "PROJP3", "PV1_1", "PV1_2", "PV2_1", "PV2_2"]
-    for keyword in wcs_keywords:
+
+    # And now let's add the keywords referring to the SIP polynomials. Astrometry seems to use four different
+    # polynomials, with different orders and coefficients, maybe?  For example, one is determined by A, another one
+    # is B, another one BP and the last one BP. A keyword A_ORDER indicates the order of the polynomial, for example
+    # A_ORDER = 2. Then, the following coefficients exist: [A_0_0, A_0_1, A_0_2, A_1_0, A_1_1, A_2_0]. We will do a
+    # little bit of overwill in the name of elegance and do all the permutations, including, for example A_2_1.
+    for letter in ("A", "B", "AP", "BP"):
         try:
-            hdr.remove(keyword)
-        except:
+            order = header["{0}_ORDER".format(letter)]
+            wcs_keywords += ["{0}_ORDER".format(letter)] + ["{0}_{1}_{2}".format(letter, i1, i2) for i1, i2 in itertools.product(range(order+1), range(order+1))]
+        except KeyError:
             pass
+        
+    for keyword in wcs_keywords:
+        # Remove as many occurrences as there are
+        while 1:
+            try:
+                hdr.remove(keyword)
+            except ValueError:
+                break
     return hdr
 
 def update_WCS(image_without_wcs, image_with_wcs):
