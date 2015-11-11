@@ -17,8 +17,9 @@ class Chip(object):
 
     @property
     def imstats(self):
-        """ Imstat object, as a @property to allow for changes in imstats following those in mask and data
-        :return:
+        """ Return an object with some basic statistical information about the image.
+        :return: repipy's Imstat object
+        As it is a @property, any change in the data will be reflected in the Imstats object. 
         """
         return imstats.Imstats(self.im_data.data, self.im_data.mask)
 
