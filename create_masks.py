@@ -24,6 +24,29 @@ from skimage.feature import peak_local_max, canny
 from skimage.transform import hough_circle
 from skimage import data, color
 
+from repipy import astroim
+
+"""  Program to mask fits images.
++
++    For the moment, three criteria are used to mask pixels:
++
++        - minmax:  masks anything below a given minimum value or above a maximum one
++        - circular:  masks anything outside a circular area, that is detected from the image. This method is implemented
++                     because some telescopes have their circular Field of View within a square image, and the part
++                     outside the circle has not been exposed.
++        - stars:    Masks stars from the image. This is useful, for example, when you want to detect the sky and/or
++                    exclude possible stars from a flat image.
++    This program will open the image, mask according to the criteria explained above, save the mask and put the name
++    of the mask fits file into the header, under the keyword MASK. If a WCS is present, it will be copied into the mask
++    image.
++
++    Assumptions:
++        - This routine assumes that, if a multi-layer image is given, the first layer will contain a Primary HDU, with
++          the main header of the image (and possibly no data associated). It is in this layer where the MASK keyword
++          will be stored.
++
++"""
+
 def gauss(x, *p):
     A,mu,sigma = p
     return A*numpy.exp(-(x-mu)**2/(2.*sigma**2))    
@@ -220,15 +243,6 @@ def cutre_detect(data):
 
 
 def mask(args):
-    ''' Program to mask a set of images according to:
-           - min, max clipping
-           - circular field of view in rectangular image
-        In the first case, the default values are 0 and 50000, but the user can 
-        input any other limits. In the second case, some telescopes will provide
-        the field of view of the telescope (roughly circular) within a rectangular 
-        image (because the CCD camera is rectangular). As that part of the image
-        has not being exposed, it is sometimes convenient to mask it out. 
-    '''
     for image in args.image:
         im = fits.open(image, mode='update')
         data = im[0].data.astype(numpy.float64)
