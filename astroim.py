@@ -134,6 +134,7 @@ class Astroim(object):
         """ Build Chip class objects for all the chips present in the image
         """
 
+        return [Chip(hdu, msk.data) for hdu, msk in zip(self.HDUList, self.HDUList_mask) if hdu.data is not None ]
 
     def write(self, output_name=None, mask_name=None, no_mask=False):
         """Write output to a fits file.
