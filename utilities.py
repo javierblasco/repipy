@@ -96,15 +96,15 @@ def collect_from_images(image_list, keyword):
     except KeyError:
         sys.exit("Keyword %s does not exist in image %s" % (keyword, im))
 
-def remove_WCS(header):
-    """ Wipe any sign of a WCS in a header object """
-    hdr = header.copy()  # To avoid modifying the original header 
-    wcs_keywords = ["wcsaxes", "ctype1", "ctype2", "equinox", "lonpole", 
-              "latpole", "crval1", "crval2", "crpix1", "crpix2", 
-              "cunit1", "cunit2", "cd1_1", "cd1_2", "cd2_1", "cd2_2", 
-              "PC001001", "PC001002", "PC002001", "PC002002", "cdelt1", "cdelt2",
-              "PC1_1", "PC1_2", "PC2_1", "PC2_2",
-              "PROJP1", "PROJP3", "PV1_1", "PV1_2", "PV2_1", "PV2_2"]
+
+def get_wcs_keywords(order_SIP_polynomials=3):
+    """ Return a list with the most common WCS-related keywords.
+    :return: List with keywords
+    """
+    wcs_keywords = ["wcsaxes", "ctype1", "ctype2", "equinox", "lonpole", "latpole", "crval1", "crval2", "crpix1",
+                    "crpix2", "cunit1", "cunit2", "cd1_1", "cd1_2", "cd2_1", "cd2_2", "PC001001", "PC001002",
+                    "PC002001", "PC002002", "cdelt1", "cdelt2", "PC1_1", "PC1_2", "PC2_1", "PC2_2", "PROJP1", "PROJP3",
+                    "PV1_1", "PV1_2", "PV2_1", "PV2_2"]
 
     # And now let's add the keywords referring to the SIP polynomials. Astrometry seems to use four different
     # polynomials, with different orders and coefficients, maybe?  For example, one is determined by A, another one
@@ -113,11 +113,17 @@ def remove_WCS(header):
     # little bit of overwill in the name of elegance and do all the permutations, including, for example A_2_1.
     for letter in ("A", "B", "AP", "BP"):
         try:
-            order = header["{0}_ORDER".format(letter)]
-            wcs_keywords += ["{0}_ORDER".format(letter)] + ["{0}_{1}_{2}".format(letter, i1, i2) for i1, i2 in itertools.product(range(order+1), range(order+1))]
+            order = order_SIP_polynomials
+            wcs_keywords += ["{0}_ORDER".format(letter)] + ["{0}_{1}_{2}".format(letter, i1, i2)
+                                  for i1, i2 in itertools.product(range(order+1), range(order+1))]
         except KeyError:
             pass
-        
+    return wcs_keywords
+
+def remove_WCS(header):
+    """ Wipe any sign of a WCS in a header object """
+    hdr = header.copy()  # To avoid modifying the original header 
+    wcs_keywords = get_wcs_keywords()
     for keyword in wcs_keywords:
         # Remove as many occurrences as there are
         while 1:
