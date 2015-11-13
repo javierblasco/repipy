@@ -133,28 +133,16 @@ def remove_WCS(header):
                 break
     return hdr
 
-def update_WCS(image_without_wcs, image_with_wcs):
+def copy_WCS(hdr_without_wcs, hdr_with_wcs):
     """ Export the WCS information from an image to another one, by updating 
         certain keywords in the header of the target image"""
-    image = fits.open(image_without_wcs, mode='update')
-    hdr_im = image[0].header
-    hdr_wcs = fits.getheader(image_with_wcs)
-    
-    # WCS parameters are:
-    change = ["wcsaxes", "ctype1", "ctype2", "equinox", "lonpole", 
-              "latpole", "crval1", "crval2", "crpix1", "crpix2", 
-              "cunit1", "cunit2", "cd1_1", "cd1_2", "cd2_1", "cd2_2"]          
-    for key in change:
-        hdr_im[key] = hdr_wcs[key]
-
-    # Remove unnecessary and confusing ones if they exist
-    delete_these = ["PC001001", "PC001002", "PC002001", "PC002002"]
-    for key in delete_these:
-        del hdr_im[key]
-
-    image.flush()
-    image.close()
-    return None
+    for key in get_wcs_keywords():
+        try:
+            card = hdr_with_wcs.cards[key]
+            hdr_without_wcs[card[0]] = card[1:]
+        except KeyError:
+            continue
+    return hdr_without_wcs
 
 def get_from_header(image_name, *args):
     """ From the header of an image, get the values corresponding to the 
