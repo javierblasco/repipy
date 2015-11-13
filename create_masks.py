@@ -327,7 +327,7 @@ parser.add_argument("--min_val", metavar="minval", dest='minval', default=0, \
                    'Below this value, mask out. Default: 0.')
 parser.add_argument("--output", metavar="output", dest='output', action='store',\
                     default='', help='Name of the output mask. ' +\
-                    'Default: same as input images, but ending in .fits.msk.')
+                    'Default: same as input images, but with extension in .fits.msk.')
 parser.add_argument("--circular", action="store_true", dest="circular", \
                    default=False, help=' Use if the field of view is circular, '+\
                    ' while the image is a rectangle. Mask is set to zero_value '+\
