@@ -6,6 +6,7 @@ import astropy.io.fits as fits
 import astropy.wcs as wcs
 import repipy.imstats as imstats
 import numpy
+import os
 import sys
 
 class Chip(object):
@@ -132,20 +133,24 @@ class Astroim(object):
     def _get_chips(self):
         """ Build Chip class objects for all the chips present in the image
         """
-        chip_objects = []
-        with fits.open(self.im_name, memmap=self.memmap) as HDUList:
-            hdu_with_data = [hdu for hdu in HDUList if hdu.data is not None]
 
-            # Read the mask, if present in the header, create a mask of None otherwise.
-            mask_name = self.primary_header.get("MASK")
-            if mask_name is not None:
-                hdu_masks = [mask for mask in fits.open(mask_name, memmap=self.memmap)]
-            else:
-                hdu_masks = [None for hdu in hdu_with_data]
 
-            for hdu, mask in zip(hdu_with_data, hdu_masks):
-                if mask:
-                    chip_objects.append(Chip(hdu, mask.data))
-                else:
-                    chip_objects.append(Chip(hdu))
-        return chip_objects
+    def write(self, output_name=None, mask_name=None, no_mask=False):
+        """Write output to a fits file.
+        :param output_name: name of the output fits file
+        :param mask_name: name of the output mask file. If None, it will be same as input with .fits.msk
+        :param no_mask: if True, no mask will be written.
+        :return: None
+        """
+        if output_name is None:
+            output_name = self.im_name
+
+        if mask_name is None:
+            mask_name = os.path.abspath( utilities.replace_extension(output_name, ".fits.msk") )
+
+        if no_mask is not True:
+            self.HDUList_mask[0].header.add_comment("Mask for image {0}".format(output_name))
+            self.HDUList_mask.writeto(mask_name, clobber=True)
+            self.primary_header.hdr["MASK"] = (mask_name, "Name of mask image.")
+        self.HDUList.writeto(output_name, clobber=True)
+        return None
