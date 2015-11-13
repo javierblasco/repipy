@@ -11,7 +11,8 @@ class Chip(object):
     """ Each of the CCD Header Data Units (HDUs) of an astronomical image which contains data (i.e., no main headers)
     """
     def __init__(self, hdu, mask=None):
-        self.im_data = numpy.ma.array(hdu.data, mask=mask)
+        self.data = hdu.data
+        self.mask = mask
         self.header = header.Header(hdu.header)
         self.wcs = self._get_wcs()
 
@@ -19,9 +20,9 @@ class Chip(object):
     def imstats(self):
         """ Return an object with some basic statistical information about the image.
         :return: repipy's Imstat object
-        As it is a @property, any change in the data will be reflected in the Imstats object. 
+        As it is a @property, any change in the data will be reflected in the Imstats object.
         """
-        return imstats.Imstats(self.im_data.data, self.im_data.mask)
+        return imstats.Imstats(self.data, self.mask)
 
     def _get_wcs(self):
         """ Get the World Coordinate System solution from the header, if present.
