@@ -104,11 +104,24 @@ class Astroim(object):
         """
         HDUList_mask = fits.HDUList( [fits.PrimaryHDU()] + [fits.ImageHDU() for _ in self.HDUList[1:]])
         for ii, hdu in enumerate(self.HDUList):
-            hdr = HDUList_mask[ii].header
-            hdr = utilities.copy_WCS(hdr, hdu.header)   # copy WCS into the new header!
             if hdu.data is not None:
                 HDUList_mask[ii].data = numpy.zeros_like(hdu.data)
+        #Include WCS into the headers
+        HDUList_mask = self._copy_wcs_to_mask(HDUList_mask, self.HDUList)
         return HDUList_mask
+
+    def _copy_wcs_to_mask(self, hdu_list_NoWCS, hdu_list_WCS):
+        """ Copy all the WCS-related keywords from one list of HDUs to another.
+
+        :param hdu_list_NoWCS: HDUList without WCS, so destination HDUList
+        :param hdi_list_WCS:  HDUList with WCS, this will be the origin of the WCS copy
+        :return: HDUList with the resulting target HDUList
+        """
+        for hdu_origin, hdu_target in zip(hdu_list_WCS, hdu_list_NoWCS):
+            hdr_target = utilities.copy_WCS(hdr_target, hdu_origin)
+        return hdu_list_NoWCS
+
+
 
     def zero_point(self, aperture=None):
         return self.filter.zero_point(self.target, aperture=aperture)
@@ -149,9 +162,11 @@ class Astroim(object):
         if mask_name is None:
             mask_name = os.path.abspath( utilities.replace_extension(output_name, ".fits.msk") )
 
+        self.HDUList.writeto(output_name, clobber=True)
         if no_mask is not True:
+            # update and record mask
+            self.HDUList_mask = self._copy_wcs_to_mask(self.HDUList_mask, self.HDU)
             self.HDUList_mask[0].header.add_comment("Mask for image {0}".format(output_name))
             self.HDUList_mask.writeto(mask_name, clobber=True)
             self.primary_header.hdr["MASK"] = (mask_name, "Name of mask image.")
-        self.HDUList.writeto(output_name, clobber=True)
         return None
