@@ -5,8 +5,6 @@ import repipy.utilities as utilities
 import astropy.io.fits as fits
 import astropy.wcs as wcs
 import repipy.imstats as imstats
-import numpy
-import os
 import sys
 
 class Chip(object):
@@ -22,7 +20,7 @@ class Chip(object):
     def imstats(self):
         """ Return an object with some basic statistical information about the image.
         :return: repipy's Imstat object
-        As it is a @property, any change in the data will be reflected in the Imstats object.
+        As it is a @property, any change in the data or the mask will be reflected in the Imstats object.
         """
         return imstats.Imstats(self.data, self.mask)
 
@@ -45,7 +43,7 @@ class Chip(object):
         # With no valid wcs in the header, the rest is useless
         if not self.wcs:
             return None
-        ly, lx = self.im_data.data.shape
+        ly, lx = self.data.shape
         x, y = self.wcs.all_world2pix(ra, dec, 0)
         if (0 < x < (lx-1)) and (0 < y < (ly-1)):
             return True
