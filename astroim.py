@@ -68,6 +68,17 @@ class Astroim(object):
         """ Use an iterator to go through all the chips of the image.  """
         return iter(self.chips)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.HDUList.close()
+        try:
+            self.HDUList_mask.close()
+        except AttributeError:
+            pass
+
+
     def _read_mask(self):
         """ Read the image under the keyword "MASK" in the header, if present.
 
