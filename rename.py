@@ -191,9 +191,8 @@ def sort_by_date(fits_list):
 ###########################################################################
 def rename(args):
     # List of fit and fits images in the directory
-    fits_list1 = glob.glob(os.path.join(args.in_dir, args.in_pattern + "*.fits"))
-    fits_list2 = glob.glob(os.path.join(args.in_dir, args.in_pattern + "*.fit"))
-    fits_list = fits_list1+fits_list2
+    fits_list = glob.glob(os.path.join(args.in_dir, args.in_pattern + "*.[fF][iI][tT][sS]")) +\
+                glob.glob(os.path.join(args.in_dir, args.in_pattern + "*.[fF][iI][tT]"))
 
     # Sort all images chronologically
     fits_list = sort_by_date(fits_list)
