@@ -48,8 +48,8 @@ from repipy import astroim
 +"""
 
 def gauss(x, *p):
-    A,mu,sigma = p
-    return A*numpy.exp(-(x-mu)**2/(2.*sigma**2))    
+    A,mu,sigma, zero = p
+    return A*numpy.exp(-(x-mu)**2/(2.*sigma**2)) + zero
 
 def apply_sobel_filter(image):
     """ Apply sobel filter on an image, return the filtered object. 
@@ -242,65 +242,111 @@ def cutre_detect(data):
     return yc, xc, radius
 
 
+
+def mask_circular(im, mask_value=2, margin=0):
+    """ If the Field of View is circular, and you can detect the circle within the rectangular image, mask the
+    outside of it.
+    :param im: astroim object
+    :return: same object with the part outside the circle masked out
+    """
+    for chip in im.chips:
+        result = cutre_detect(chip.data)
+        if result:
+            xc, yc, radius = result
+            radius = radius - margin   # avoid border effects
+            chip.mask[:,:] = mask_circle(chip.mask, xc, yc, radius, value=mask_value)
+    return im
+
+def minmax_mask(im, min_val=0, max_val=55000, mask_value=1):
+    """ Mask any pixel of the image with counts below a minimum or above a maximum value.
+
+    :param im: repipy.astroim input object
+    :param min: minimum accepted value, mask pixels with number of counts below this value
+    :param max: maximum accepted value, mask pixels with number of counts above this value
+    :return: repipy.astroim object with masked pixels.
+    """
+    for chip in im:
+        whr = numpy.where( (chip.data < min_val) | (chip.data > max_val) )
+        chip.mask[whr] = mask_value
+    return im
+
+def max_sigma_clip(im, n_sigma=3, mask_value=1):
+    """ Sigma clip images using a robust estimate of the sky and its sigma, .
+    :param im:  repipy.astroim.Astroim object
+    :param sigma: number of sigmas
+    :return: same object as input, with pixels with counts above n_sigma * sigma masked out.
+
+    This routine selects a large range around the median (4.5 * MAD, equivalent to ~3*sigma) around the
+
+    """
+    for chip in im:
+        # Select a range of values for the pixel counts and histogram it
+        unmasked = chip.data[chip.mask == 0].flatten()
+        median = numpy.median(unmasked)
+        MAD = numpy.median( numpy.abs( median - unmasked ))
+        range = numpy.linspace(int(median - 4.5 * MAD), int(median + 4.5 * MAD), 50)
+        n, bins = numpy.histogram(unmasked, bins=range.astype(int) )
+        bincenters = 0.5*(bins[1:]+bins[:-1])
+
+        # Fit a Gaussian to the distribution
+        p0 = [n.max(), median, 1.5 * MAD, 0]  # p0 * exp( -(x - p1) ** 2 / (2 * p2)) + p3
+        coeff, varmatrix = optimize.curve_fit(gauss, bincenters, n,p0=p0)
+
+        # Mask anything above n_sigma * sigma
+        max_sky = coeff[1] + n_sigma * coeff[2]
+        chip.mask[chip.data > max_sky] = mask_value
+    return im
+
+def build_mask(im):
+        """ Using the original image as a model, build a similar image for the mask.
+        :return: HDUlist with as many HDUs as the original image, with arrays of zeros wherever the original
+        image had data, and with the WCS information, if the original had it.
+        """
+        HDUList_mask = fits.HDUList( [fits.PrimaryHDU()] + [fits.ImageHDU() for _ in im.HDUList[1:]])
+        for ii, hdu in enumerate(im.HDUList):
+            if hdu.data is not None:
+                HDUList_mask[ii].data = numpy.zeros_like(hdu.data)
+        return HDUList_mask
+
 def mask(args):
-    for image in args.image:
-        im = fits.open(image, mode='update')
-        data = im[0].data.astype(numpy.float64)
-        header = im[0].header
-        mask = numpy.ones(data.shape, dtype=numpy.int) * args.true_val #create mask
-        
+    for image, output in zip(args.image, args.output):
+        im = astroim.Astroim(image)
+
+        # If mask does not exist
+        if not im.mask_name:
+            im.HDUList_mask = build_mask(im)
+            im.mask_name = utils.replace_extension(im.im_name, ".fits.msk")
+            im.chips = im._get_chips()
+            im._copy_wcs_to_mask()
+
+        im = minmax_mask(im, min_val=args.minval, max_val=args.maxval, mask_value=args.false_val)
+
         # If circular field of view within rectangular image:
         if args.circular:
-            result = cutre_detect(data)
-            if result:
-                xc, yc, radius = result
-                radius = radius - args.margin   # avoid border effects
-                mask = mask_circle(mask, xc, yc, radius, value=args.outside_val)
-    
-        # Maxval, minval masking
-        bad_pixels = numpy.where((data < args.minval) | (data > args.maxval))
-        mask[bad_pixels] = args.false_val
-        
+            im = mask_circular(im, mask_value=args.outside_val, margin=args.margin)
+
         # Star masking fitting sky
         if args.stars:  # if stars in the image
-            unmasked = data[mask == 0].flatten()
-	    try:         
-                n, bins = numpy.histogram(unmasked, bins=range(int(min(unmasked)),
-                                                               int(max(unmasked)),50))
-	    except TypeError:
-                print "Error in image: ", image
-                raise
+            im = max_sigma_clip(im, n_sigma=3, mask_value=args.false_val)
 
-            bincenters = 0.5*(bins[1:]+bins[:-1])   
-            max_pos = n.argmax()
-            max_value = bincenters[max_pos]  #value of the sky
-            p0 = [n[max_pos], max_value, 50]
-            coeff, varmatrix = optimize.curve_fit(gauss, 
-                                                  bincenters[max_pos-5:max_pos+5],
-                                                  n[max_pos-5:max_pos+5],p0=p0)
-            max_sky = coeff[1] + 3. * coeff[2] # 2 sigma above sky level
-            mask[data > max_sky] = 1
-        
         # Save mask image
-        maskname = args.output
-        if not maskname:
-            maskname = image + ".msk"
-        if os.path.isfile(maskname):
-            os.remove(maskname)
-        maskname = os.path.abspath(maskname)    
-        fits.writeto(maskname, mask)
+        im.HDUList_mask[0].header.add_comment("Mask for image {0}".format(image))
+        im.HDUList_mask.writeto(output, clobber=True)
 
-        # Add message to image header
-        header.add_history("- Created mask of image, see mask keyword")
-        header[args.mask_key] = (maskname, "Mask of original image")
-        im.flush()
-        im.close()        
-            
+        # Include comment in the header
+        im.primary_header.hdr["MASK"] = output
+        im.write()
+
+    return None
+
 def main(arguments = None):
   # Pass arguments to variable args
   if arguments == None:
       arguments = sys.argv[1:]
   args = parser.parse_args(arguments)
+
+  if not args.output:
+      args.output = [utils.replace_extension(im, ".fits.msk") for im in args.image]
   
   # True_val and false_val can not be the same
   if args.true_val == args.false_val:
