@@ -250,6 +250,10 @@ def rename(args):
         # Add history comment into the header. If image is to be overwritten,
         # just update the image with the changes in the header and move it to 
         # its new name. Otherwise, save it to the new file immediately.
+        im.primary_header.hdr.add_history("- Image "+oldname_base+" renamed "+newname_base)
+        im.write()
+
+
         im = fits.open(im_name, 'update')
         hdr = im[0].header
         hdr.add_history("- Image "+oldname_base+" renamed "+newname_base)
