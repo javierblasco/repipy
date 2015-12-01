@@ -22,13 +22,10 @@ def wipe(args):
         im.write()
 
 # Create parser
-parser = argparse.ArgumentParser(description='(Almost) Completely wipe the World Coordinate Sytem'+\
-                                             ' from the header of a list of images')
-
-# Add necessary arguments to parser
-parser.add_argument("input", metavar='input', action='store', help='list of ' +\
-                    'images from which to remove the WCS.', nargs="+",
-                    type=str)
+parser = argparse.ArgumentParser(description='(Almost) Completely wipe the World Coordinate Sytem from the header of a '
+                                             'list of images')
+parser.add_argument("input", metavar='input', action='store', help='list of images from which to remove the WCS.',
+                    nargs="+", type=str)
 
 
 def main(arguments = None):
