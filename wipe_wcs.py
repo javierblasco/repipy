@@ -5,16 +5,21 @@ import argparse
 import repipy.utilities as utilities
 import astropy.io.fits as fits
 import sys
-
+import repipy.astroim as astroim
 
 def wipe(args):
     for im_name in args.input:
-        with fits.open(im_name, 'update') as im:
-            for hdu in im:
-                hdu.header = utilities.remove_WCS(hdu.header)
-                im.flush()
+        im = astroim.Astroim(im_name)
+        hdulist = im.HDUList
+        if im.HDUList_mask:
+            hdulist += im.HDUList_mask
 
+        for hdu in  hdulist:
+            hdu.header = utilities.remove_WCS(hdu.header)
 
+        if im.HDUList_mask:
+            im.HDUList_mask.writeto(im.mask_name, clobber=True)
+        im.write()
 
 # Create parser
 parser = argparse.ArgumentParser(description='(Almost) Completely wipe the World Coordinate Sytem'+\
