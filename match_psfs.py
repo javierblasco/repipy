@@ -129,9 +129,9 @@ parser.add_argument("--FWHM_key", metavar='seeing', dest='FWHM_key', action='sto
                     default='SEEING', help='Keyword in which the seeing is stored ' +\
                    'in the headers. Default: "SEEING" ' )
 parser.add_argument("--limit", metavar='limit', dest='limit', action='store',
-                    default=0.2, type=float,  help='Limit for the matching of PSFs. IF the FWHM of the '
+                    default=0.3, type=float,  help='Limit for the matching of PSFs. IF the FWHM of the '
                                       'images differ by less than this limit, do nothing with the '
-                                      'images, their PSFs are close enough already. Default: 0.2 (pixels) ' )
+                                      'images, their PSFs are close enough already. Default: 0.3 (pixels) ' )
 
 
 def main(arguments = None):
