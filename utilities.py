@@ -104,7 +104,7 @@ def get_wcs_keywords(order_SIP_polynomials=3):
     wcs_keywords = ["wcsaxes", "ctype1", "ctype2", "equinox", "lonpole", "latpole", "crval1", "crval2", "crpix1",
                     "crpix2", "cunit1", "cunit2", "cd1_1", "cd1_2", "cd2_1", "cd2_2", "PC001001", "PC001002",
                     "PC002001", "PC002002", "cdelt1", "cdelt2", "PC1_1", "PC1_2", "PC2_1", "PC2_2", "PROJP1", "PROJP3",
-                    "PV1_1", "PV1_2", "PV2_1", "PV2_2"]
+                    "PV1_1", "PV1_2", "PV2_1", "PV2_2", "EQUINOX"]
 
     # And now let's add the keywords referring to the SIP polynomials. Astrometry seems to use four different
     # polynomials, with different orders and coefficients, maybe?  For example, one is determined by A, another one
@@ -195,7 +195,7 @@ def check_dimensions(image_list):
             print image, size        
         return False
 
-def read_image_with_mask(image, mask_keyword=None, limits = 0, header=None):
+def read_image_with_mask(image, mask_keyword="MASK", limits = 0, header=None):
     """ Read an image and a mask (from a keyword in the image), save it into a numpy.ma array.
     The mask should contain 1 for pixels to be masked out. Limits allows to read only a part of an image, avoiding
     the need to read it all into memory. Limit should be limits = (min_x, min_y, max_x, max_y), use limit=0 to use all
@@ -209,13 +209,24 @@ def read_image_with_mask(image, mask_keyword=None, limits = 0, header=None):
     else:
         min_x, min_y, max_x, max_y = limits
 
+    # Try to find the mask
+    imdir, _ = os.path.split(os.path.abspath(image))
+    mask_name = header.get(mask_keyword)
+    if mask_name is None:
+        mask_name = replace_extension(image, ".fits.msk")
 
-    # Open both image and mask (if present)
+    for m in [mask_name, os.path.join(imdir, mask_name), replace_extension(image, ".fits.msk")]:
+        if m and os.path.exists(m):
+            mask_name = m
+            break
+        else:
+            mask_name = None
+
     with fits.open(image, memtype=True) as im:
         data = im[0].data[min_x:max_x, min_y:max_y]
-        try:
-            mask = fits.open(header[mask_keyword], memtype=True)[0].data[min_x:max_x, min_y:max_y]
-        except KeyError:
+        if mask_name:
+            mask = fits.open(mask_name, memtype=True)[0].data[min_x:max_x, min_y:max_y]
+        else:
             mask = np.zeros_like(data)
     return np.ma.array(data, mask=mask, dtype=np.float64)
 
