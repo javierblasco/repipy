@@ -6,6 +6,7 @@ import astropy.io.fits as fits
 import astropy.wcs as wcs
 import repipy.imstats as imstats
 import sys
+import os
 
 class Chip(object):
     """ Each of the CCD Header Data Units (HDUs) of an astronomical image which contains data (i.e., no main headers)
@@ -86,8 +87,14 @@ class Astroim(object):
         """
         mask = None
         if self.mask_name:
+            if not os.path.exists(self.mask_name):
+                imdir, _ = os.path.split(self.im_name)
+                mask_name = os.path.abspath(os.path.join(imdir, self.mask_name))
+            else:
+                mask_name = self.mask_name
+
             try:
-                mask = fits.open(self.mask_name, memmap=self.memmap)
+                mask = fits.open(mask_name, memmap=self.memmap)
             except IOError:
                 mssg = "\n In the header of image {1} appears image {0} as the mask. The image is not present! " \
                        "Remove the keyword or put the image where it should be!  ".format(self.mask_name, self.im_name)
