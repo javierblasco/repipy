@@ -10,6 +10,8 @@ import repipy.utilities as utilities
 import argparse
 import sys
 import os
+import numpy
+from repipy.utilities import memoize
 
 class Star(object):
     """ Define a star by its coordinates and modelled FWHM
@@ -37,6 +39,7 @@ class Star(object):
         self.data = data[self._XGrid, self._YGrid]
         self.model_type = model_type
 
+    @memoize
     def model(self):
         """ Fit a model to the star. """
         return self._fit_model()
@@ -64,11 +67,19 @@ class Star(object):
             FWHM = 2.3548 * np.mean([sigma_x, sigma_y])
         return FWHM
 
-    @utilities.memoize
+    @property
+    def SNR(self):
+        residuals = numpy.abs( self.data - self.model()(self._XGrid, self._YGrid) )
+        return self.model().amplitude_0 / numpy.std(residuals)
+
+
     def _fit_model(self):
+        """ Fit the model to the data.
+        """
         fit_p = fitting.LevMarLSQFitter()
         model = self._initialize_model()
         p = fit_p(model, self._XGrid, self._YGrid, self.data)
+
         return p
 
     def _initialize_model(self):
@@ -179,7 +190,7 @@ class StarField(object):
         if self._wcs:  # if x,y are not pixels but RA,DEC
             with fits.open(self.im_name, 'readonly') as im:
                 w = wcs.WCS(im[0].header, im)
-            y, x = w.all_world2pix(x, y, 1)
+            y, x = w.all_world2pix(x, y, 0)
         return zip(x,y)
 
     @property
@@ -189,8 +200,9 @@ class StarField(object):
 
 
     def FWHM(self):
-        """ Determine the median and median absolute deviation of the FWHM (seeing) of the image. """
-        fwhm_stars = np.array([star.fwhm for star in self._star_list])
+        """ Determine the median and median absolute deviation of the FWHM (seeing) of the image.
+         Use only those stars with an amplitude over the sky larger than 5 times the std of the residuals. """
+        fwhm_stars = np.array([star.fwhm for star in self._star_list if star.SNR > 15])
         return np.median(fwhm_stars), np.median( np.abs( np.median(fwhm_stars) - fwhm_stars ) )
 
 
@@ -208,6 +220,7 @@ def calculate_seeing(args):
     for the positions of stars.
     """
     for im_name, star_cat in zip(args.input, args.cat):
+        print im_name, star_cat
         im = StarField(im_name, star_cat, args.model, wcs=args.wcs)
         im._write_FWHM()
 
