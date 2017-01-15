@@ -1,164 +1,192 @@
-#! /usr/bin/env python
-# -*- coding: UTF-8 -*-
-
-import lemon.photometry as photometry
-import argparse
-import repipy.utilities as utilities
-import numpy
-import sys
-from astropy import log
-import astropy
+import matplotlib.pyplot as plt
+import pyregion
+import ds9
 import astropy.io.fits as fits
-import astropy.wcs as wcs
-import repipy.astroim as astroim
-import sep as sextractor
-import warnings
+import numpy as np
+import sys
+import Tkinter
+import tkMessageBox
+import repipy.utilities as utils
+import repipy.extract_stars as extract_stars
+import astropy.wcs.wcs as wcs
 
+class myWindow:
 
-def detect_sources(image, cat_name=None):
-    """ A generator of (ra, dec) tuples (PROOF OF CONCEPT) """
+    def __init__(self, message):
+        self.mw = Tkinter.Tk()
+        self.mw.withdraw()
+        self.mw.option_add("*font", ("Arial", 15, "normal"))
+        self.mw.geometry("+250+200")
+        self.message = message
+        
+    def box(self):
+        box = tkMessageBox.showinfo("Action required", self.message)
+        
+  
+        
+def mask_from_ds9(image_name, message):
+    # Display image
+    d = ds9.ds9()
+    d.set("file " + image_name)
 
-    log.debug("Reading FITS file")
-    with astropy.io.fits.open(image) as hdulist:
-        data = hdulist[0].data
-        header = hdulist[0].header
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        log.info("Loading WCS data")
-        wcs = astropy.wcs.WCS(header)
-
-    try:
-        log.info("Estimating background")
-        background = sextractor.Background(data)
-    except ValueError:
-        # Fix for error "Input array with dtype '>f4' has non-native
-        # byte order. Only native byte order arrays are supported".
-        log.debug("Converting data to native byte order")
-        data = data.byteswap(True).newbyteorder()
-        background = sextractor.Background(data)
-
-    log.info("Subtracting background")
-    background.subfrom(data) # in-place
-
-
-    # Global "average" RMS of background
-    log.info("Detecting sources")
-    rms_ntimes = 1.5
-    while True:
+    # Tell the user to select the regions
+    answer = False
+    while answer == False:
+        window = myWindow(message)
+        window.box()
         try:
-            threshold = rms_ntimes * background.globalrms
-            objects = sextractor.extract(data, threshold)
+            region = pyregion.parse(d.get("region"))
+            answer = True
+        except ValueError:  # No regions defined
+            print "\n There is no region loaded in the image! \n"
+    return region
 
-        except Exception as e:
+def positions_of_stars_from_ds9(image_name, message, catalogue_name):
+    # Display image
+    d = ds9.ds9()
+    d.set("file " + image_name)
 
-            # Fix for error "internal pixel buffer full: The limit of 300000
-            # active object pixels over the detection threshold was reached.
-            # Check that the image is background subtracted and the detection
-            # threshold is not too low. detection threshold". If a different
-            # exception is raised, just re-raise it.
+    # Tell the user to select the regions
+    answer = False
+    while answer == False:
+        window = myWindow(message)
+        window.box()
+        try:
+            region = pyregion.parse(d.get("region"))
+            answer = True
+        except ValueError:  # No regions defined
+                print "\n There is no region loaded in the image! \n"
 
-            if "threshold is not too low" in str(e):
-                rms_ntimes *= 1.25
-                log.debug("Internal pixel buffer full")
-                log.debug("Retrying with threshold {0:.2} times RMS of background".format(rms_ntimes))
-            else:
-                raise
-        else:
-            break
+    coords_RADEC = [cc.coord_list[0:2] for cc in region]
 
-    pixel_coords = numpy.empty([0,2])
-    print "len(objects) = ", len(objects)
-    print "Image = ", image
-    sys.exit()
-
-    # https://github.com/kbarbary/sep/blob/master/sep.pyx#L555
-    log.info("Transforming pixel to celestial coordinates")
-    for index in range(len(objects)):
-        x, y = objects[index]['x'], objects[index]['y']
-        pixel_coords = numpy.row_stack(pixel_coords, (x, y))
-
-    print pixel_coords.shape
-
-    # If cat_name is present, save the coordinates to a file
-    if cat_name:
-        fd = open(cat_name, 'w')
-        for ra, dec in list(wcs.all_pix2world(pixel_coords[:,0], pixel_coords[:,1], 0)):
-            fd.write( "{0}  {1} \n ".format(ra, dec) )
-        fd.close()
-
-    return list(wcs.all_pix2world(pixel_coords[:,0], pixel_coords[:,1], 0))
+    #hdr = fits.getheader(image_name)
+    #w = wcs.WCS(hdr)
+    #coords_RADEC = w.all_pix2world(xyout,1)
+    with open(catalogue_name, 'w') as fd:
+        for reg in coords_RADEC:
+            fd.write(" {0}  {1} \n".format(*reg))
+    return region
 
 
+def main(Ha_name, rgunn_name, scaling_factor, zp_Ha, T_Ha, T_rGunn):
+    # Tell the user to load regions for the galaxy
+    galaxy_messg = "\n Create/load region(s) in ds9 to enclose the galaxy. "+\
+              " Save it for latter use. Then hit the 'OK' button!"
+    galaxy_region = mask_from_ds9(rgunn_name, galaxy_messg)
 
-def do_photometry(args):
-    #for ii, im_name in enumerate(args.images):
-        # If the catalogue exists already, use it, if it doesn't, create it using SEP
-        #else:
-        #    cat_name = "mierda.cat"
-        #    detect_sources(im_name, cat_name)
-    im = astroim.Astroim(args.images[0])
-    hdr = im.primary_header
-    chip_hdr = im.chips[0].header
-    gaink, objectk, filterk, datek = chip_hdr.gaink, hdr.objectk, hdr.filterk, hdr.datek
-    exptimek, airmassk, timek   =  hdr.exptimek, hdr.airmassk, hdr.timek
+    # Sky regions
+    sky_messg = "\n Now do the same for sky region (or regions!) "
+    sky_region =   mask_from_ds9(rgunn_name, sky_messg)
+
+    # Stars to model PSF
+    mod_stars_catalogue = utils.replace_extension(rgunn_name, ".model_stars")
+    mod_stars_messg = "\n Select nice isolated non-saturated stars to model the PSF. "
+    mod_stars_region = positions_of_stars_from_ds9(rgunn_name, mod_stars_messg, mod_stars_catalogue)
+
+    # Stars to be subtracted
+    subt_stars_catalogue = utils.replace_extension(rgunn_name, ".subt_stars")
+    subt_stars_messg = "\n Finally, select the stars to be subtracted from the images"
+    subt_stars_region = positions_of_stars_from_ds9(rgunn_name, subt_stars_messg, subt_stars_catalogue)
+
+    # Now remove the stars from the images
+    output_Ha = utils.add_suffix_prefix(Ha_name, suffix='-s')
+    extract_stars.main(arguments=['--model_stars', mod_stars_catalogue,
+                                  "--subt_stars", subt_stars_catalogue,
+                                  '--coords', 'world',
+                                  '--output', output_Ha,
+                                  Ha_name])
+    output_rgunn = utils.add_suffix_prefix(rgunn_name, suffix='-s')
+    extract_stars.main(arguments=['--model_stars', mod_stars_catalogue,
+                                  "--subt_stars", subt_stars_catalogue,
+                                  '--coords', 'world',
+                                  '--output', output_rgunn,
+                                  rgunn_name])
+
+    # Read images
+    image_Ha = fits.open(output_Ha)
+    Ha_data = np.array(image_Ha[0].data, dtype=np.float64)
+    Ha_header = image_Ha[0].header
+    Ha_shape = Ha_data.shape
+
+    image_R = fits.open(output_rgunn)
+    R_data = np.array(image_R[0].data, dtype=np.float64)
+    R_header  = image_R[0].header
+    R_shape = R_data.shape
+
+    # Halpha image: get galaxy mask, sky mask, subtract sky from galaxy flux
+    Ha_gal_mask = galaxy_region.as_imagecoord(Ha_header).get_mask(shape=Ha_shape)
+    Ha_sky_mask = sky_region.as_imagecoord(Ha_header).get_mask(shape=Ha_shape)
+    Ha_sky_flux = np.median(Ha_data[Ha_sky_mask == 1])
+    Ha_data_nosky = Ha_data - Ha_sky_flux
+    Ha_and_R_counts = np.sum( Ha_data_nosky[Ha_gal_mask == 1])
+    print "Narrow Ha filter counts: ", Ha_and_R_counts
+
+    # Same for R image: get galaxy mask, sky mask, subtract sky from galaxy flux
+    R_gal_mask = galaxy_region.as_imagecoord(R_header).get_mask(shape=R_shape)
+    R_sky_mask = sky_region.as_imagecoord(R_header).get_mask(shape=R_shape)
+    R_sky_flux = np.median(R_data[R_sky_mask == 1])
+    R_data_nosky = R_data - R_sky_flux
+    R_counts = np.sum( R_data_nosky[R_gal_mask == 1])
+    print "R filter counts: ", R_counts
+
+
+    # Halpha is basically the subtractiong of the counts in Halpha filter minus the scaled R counts
+    # but more precisely, the contrinbution of Halpha line to the filter rGunn should be corrected.
+    # For:
+    #   - a transmittance T(Gunn) of redshifted Halpha in the rGunn filter
+    #   - T(Ha_filter) the transmittance of redshifted Halpha in the Halpha narrow filter
+    #   - scaling_factor the factor of scale between counts in filter rGunn and in the Ha filter (typically from stars)
+    #   - rgunn_scaled the number of counts in the Gunn filter, already scaled to match Halpha
+    #   - Ha_filter is the counts in the narrow Ha filter, which obviously contain a contribution from R.
+    #   - Halpha the number of counts of the Halpha line in the Halpha filter (the contribution of Halpha alone)
+    #
+    # we would need to subtract the Halpha contribution to rGunn before we scale it, but since we are starting
+    # already from a scaled version of rGunn, we need to divide the contribution from Halpha by the scaling factor.
+    # The system of equations would be:
+    #
+    #  R_counts = rgunn_scaled - Halpha * T(Gunn)/T(Ha_filter) / scaling_factor
+    #  Halpha = Ha_filter - R_counts
+    #
+    # with solution:
+    #  Halpha = (Ha_filter - rgunn_scaled) * scaling_factor/(scaling_factor - T(Gunn)/T(Halpha)
+    #
+    # which gives, for a typical scaling factor of ~11 and similar transmittances in both filters a correction
+    # of the order of ~10%.
+
+    Halpha = (Ha_and_R_counts - R_counts * scaling_factor) / (1 - scaling_factor * T_rGunn / T_Ha)
+    print "Halpha counts: ", Halpha
+    print Halpha  / T_Ha * 10**(-zp_Ha/2.5)
 
 
 
-    arguments_common = ["--uik", "", "--margin", "20", "--gaink", gaink, "--cbox", args.cbox, "--individual-fwhm",
-                   "--objectk", objectk, "--filterk", filterk, "--datek", datek, "--expk", exptimek, "--fwhmk", "seeing",
-                   "--airmk", airmassk, "--timek", timek, "--overwrite", "--coordinates",
-                   args.coordinates[0], args.images[0]] + args.images + args.output
-    if args.unit == "FWHM":
-        photometry.main(arguments = ["--aperture", args.aperture, "--annulus", args.annulus, "--dannulus", args.dannulus] +\
-                                     arguments_common)
-    elif args.unit == "pix":
-        photometry.main(arguments= ["--aperture-pix", args.aperture, "--annulus-pix", args.annulus,
-                                    "--dannulus-pix", args.dannulus] +  arguments_common)
-
-    return args.output
+    mask = np.logical_or(Ha_gal_mask, Ha_sky_mask)
+    d = ds9.ds9()
+    d.set_np2arr(Ha_data * mask, dtype=np.float64)
 
 
-# Create parser
-parser = argparse.ArgumentParser(description='Arithmetic operations on images')
+#########################################
+image_list = [("/mnt/data/OPTICAL_DATA/OPTICO/CAHA2.2/2003/AUG_03/Noche1/cig0895_combined_H6678.fits",
+               "/mnt/data/OPTICAL_DATA/OPTICO/CAHA2.2/2003/AUG_03/Noche1/cig0895_combined_rGunn.fits"),
+              ("/mnt/data/OPTICAL_DATA/OPTICO/CAHA2.2/2003/AUG_03/Noche2/cig0828_combined_H6678.fits",
+               "/mnt/data/OPTICAL_DATA/OPTICO/CAHA2.2/2003/AUG_03/Noche2/cig0828_combined_rGunn.fits"),
+              ("/mnt/data/OPTICAL_DATA/OPTICO/CAHA2.2/2003/AUG_03/Noche2/cig0854_combined_H6678.fits",
+               "/mnt/data/OPTICAL_DATA/OPTICO/CAHA2.2/2003/AUG_03/Noche2/cig0854_combined_rGunn.fits"),
+              ("/mnt/data/OPTICAL_DATA/OPTICO/CAHA2.2/2003/AUG_03/Noche2/cig0633_combined_H6678.fits",
+               "/mnt/data/OPTICAL_DATA/OPTICO/CAHA2.2/2003/AUG_03/Noche2/cig0633_combined_rGunn.fits")]
 
-# Add necessary arguments to parser
-parser.add_argument("--images", metavar='image', action='store', dest="images", nargs="+", type=str,
-                    help='list of input images from which to subtract another image or value')
-parser.add_argument("--coordinates", metavar='coordinates', action='store', dest="coordinates",  nargs=1,
-                    default="",
-                    help='File with coordinates of stars. You can pass one catalogue for all images '+\
-                         'or one per image. If no catalogue is passed, SEP will be used to find the stars in the image.')
-parser.add_argument("--output", metavar='output', action='store', dest="output",  nargs=1, type=str, required=True,
-                    help='Name of the output database. ')
-parser.add_argument("--cbox", metavar='cbox', action='store', dest="cbox", type=float, default=10,
-                    help='Size of the box within which the centre of the star will be searched. ')
-parser.add_argument("--aperture", metavar='aperture', action='store', dest="aperture", type=float, default=3,
-                    help='Aperture, by default in FWHM (see --unit below), to perform the photometry. '
-                         'The star will be considered to extend out to this radius. ')
-parser.add_argument("--annulus", metavar='annnulus', action='store', dest="annulus", type=float, default=6,
-                    help='Inner circle of the ring to measure the sky. By default it is in units of FWHM '
-                         '(see --unit below). Default value: 6')
-parser.add_argument("--dannulus", metavar='dannnulus', action='store', dest="dannulus", type=float, default=2,
-                    help='Width of the ring to measure the sky. By default it is in units of FWHM '
-                         '(see --unit below). Default value: 2')
-parser.add_argument("--unit", metavar='unit', action='store', dest="unit", type=str, default='FWHM',
-                    help="Scale of the units in aperture, annulus and dannulus. 'Pix' and 'FWHM' are acceptable,  "
-                         'depending on if the aperture, annulus and dannulus should be taken as pixels or as number '
-                         'of FWHM. ')
+cigs = ["cig0895", "cig0828", "cig0854", "cig0633" ]
 
+# From the filter transmittance curve of 667.8  for Halpha at redshift 0.0161 (for CIG0812)
+T_Ha = [0.774, 0.774, 0.774, 0.744]
+T_rGunn = [0.73, 0.73, 0.73, 0.73]
+zp_Ha = [37.68, 37.873, 37.873, 37.873]
+scaling_factor = [0.109849984506, 0.102706989603, 0.11220184543, 0.107102698809]
 
+#########################################
 
+def test():
+    for ii, pair in enumerate(image_list):
+        print "CIG ", cigs[ii]
+        main(pair[0], pair[1], scaling_factor[ii], zp_Ha[ii], T_Ha[ii], T_rGunn[ii])
+        print "\n" * 2
 
-def main(arguments = None):
-  # Pass arguments to variable args
-  if arguments == None:
-      arguments = sys.argv[1:]
-
-  args = parser.parse_args(arguments)
-
-  output_catalogue = do_photometry(args)
-  return output_catalogue
-
-if __name__ == "__main__":
-    main()
