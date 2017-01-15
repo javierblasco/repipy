@@ -71,7 +71,6 @@ def psf(args):
     psffile_name = args.input + ".psf.fits" 
     utils.if_exists_remove(psffile_name)
     iraf.seepsf(psffile_table, psffile_name)
-     
     return psffile_name
 
 ############################################################################
